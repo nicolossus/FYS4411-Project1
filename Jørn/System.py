@@ -11,7 +11,7 @@ class System:
     def __init__(self, seed, omega_HO=1.0):
         self.seed = seed
         self.omega_HO = omega_HO
-        self.a = 0.0
+        self.a = 0.1
 
 
     def set_number_particles(self, num_particles):
@@ -37,9 +37,6 @@ class System:
     def calculate_energy(self, alpha, beta):
         kinetic_E, potential_E = self.HO_Hamiltionian(alpha, beta)
         local_energy = kinetic_E + potential_E
-        #print("Potential energy: ", potential_E)
-        #print("Kinetic energy: ", kinetic_E)
-        #print("Local energy: ", local_energy)
         return local_energy
 
     def Gaussian(self, alpha, beta):
@@ -199,9 +196,12 @@ class System:
 
 system = System(101, omega_HO=1.0)
 system.set_number_dimensions(1)
-system.set_number_particles(10)
+system.set_number_particles(2)
 #system.initialize_system()
 #print(system.numberOfParticles)
-#system.calculate_energy(0.5, 1.0)
+#print(system.calculate_energy(0.2, 1.0))
 Es, Vs, alphas, betas = system.Metropolis()
+print(system.particles[0].position)
+print(system.particles[1].position)
 print(Es)
+#print(Es)
