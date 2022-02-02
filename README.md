@@ -1,8 +1,8 @@
-**Warning:** filenames that contains string 'example' will be deleted when `clean_examples.sh` is run.
+# FYS4411 - Computational Physics II: Quantum Mechanical Systems
 
-# Project X
+## Project 1:
 
-This repository contains programs made for project X
+This repository contains programs made for project 1 in FYS4411
 
 ### Structure
 
