@@ -47,6 +47,9 @@ class WaveFunction:
     def drift_force(self, r, alpha):
         return -4 * alpha * np.sum(r)
 
+    def dim(self):
+        return self._d
+
     @property
     def dim(self):
         return self._d
