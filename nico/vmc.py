@@ -77,7 +77,7 @@ class VMC:
         return self._rng.normal(loc=old_positions, scale=self._scale)
 
     def _draw_proposal_uniform(self, old_positions):
-        return old_positions + self._rng.random(size=(self._n_particles, self._dim))
+        return old_positions + (self._rng.random(size=(self._n_particles, self._dim)) - 0.5)
 
 
 if __name__ == "__main__":

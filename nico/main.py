@@ -17,7 +17,7 @@ def exact_energy(omega, n_particles, dim):
 
 # System
 #N = int(1e4)
-N = 1
+N = 5
 d = 3
 omega = 1
 psi = WaveFunction(omega, N, d)
@@ -28,15 +28,20 @@ print(f"Exact energy: {exact_E}")
 # Sampler
 vmc_sampler = VMC(psi)
 ncycles = 10000
-alphas = np.arange(0.1, 1.1, 0.05)
+alpha_step = 0.05
+alphas = np.arange(0.1, 1 + alpha_step, alpha_step)
 
 
-energies, variances = vmc_sampler.sample(ncycles, alphas, scale=0.5)
+energies, variances = vmc_sampler.sample(ncycles,
+                                         alphas,
+                                         proposal_dist='normal',
+                                         scale=0.5)
 
 '''
 for alpha, energy in zip(alphas, energies):
     print(f"{alpha=:.2f}, {energy=:.2f}")
 '''
+
 E_min = np.min(energies)
 alpha_min = alphas[np.argmin(energies)]
 print(f"{alpha_min=:.2f}, {E_min=:.2f}")
