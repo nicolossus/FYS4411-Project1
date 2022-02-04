@@ -99,7 +99,7 @@ class VMC:
             scale=self._scale
         )
         '''
-        initial_state = 0.5*self._rng.random(size=(self._n_particles, self._dim))
+        initial_state = self._rng.random(size=(self._n_particles, self._dim))-0.5
         return initial_state
 
     def _draw_proposal_gaussian(self, old_positions):
