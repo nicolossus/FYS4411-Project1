@@ -17,7 +17,7 @@ def exact_energy(omega, n_particles, dim):
 
 # System
 #N = int(1e4)
-N = 20
+N = 100
 d = 3
 omega = 1
 psi = WaveFunction(omega, N, d)

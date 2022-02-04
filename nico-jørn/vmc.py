@@ -24,7 +24,7 @@ class VMC:
         energies = np.zeros(len(alphas))
         variances = np.zeros(len(alphas))
         # errors = np.zeros(len(alphas))
-
+        initial_state = self._tuning(alphas[-1])
         for i, alpha in enumerate(alphas):
             results = self._metropolis(alpha, initial_state)
             energies[i] = results[0]
@@ -64,9 +64,33 @@ class VMC:
 
         return energy, variance
 
-    def _tuning(self, initial_positions):
+    def _tuning(self, alpha):
         # ...
-        return positions, wf2
+        # run a number of metropolis ncycles
+        # count the acceptance Rate
+        # update parameters for metropolis using _tune_scale_table
+        # combines burn in time and acceptance rate optimizer
+        n_tuning_cycles = int(0.1*self._ncycles)
+        n_update_runs = 5
+        positions = self._initial_positions()
+        wf2 = self._psi.squared(positions, alpha)
+        for run in range(n_update_runs):
+            n_accepted = 0
+            for _ in range(n_tuning_cycles):
+                trial_positions = self._propsal_dist(positions)
+                trial_wf2 = self._psi.squared(trial_positions, alpha)
+
+                if self._rng.random() <= trial_wf2 / wf2:
+                    positions = trial_positions
+                    wf2 = trial_wf2
+                    n_accepted += 1
+
+            acceptance_rate = n_accepted/n_tuning_cycles
+            self._tune_scale_table(acceptance_rate)
+        print(f"Final acceptance rate: {acceptance_rate}")
+
+
+        return positions
 
     def _initial_positions(self):
         '''
@@ -75,7 +99,7 @@ class VMC:
             scale=self._scale
         )
         '''
-        initial_state = self._rng.random(size=(self._n_particles, self._dim))
+        initial_state = 0.5*self._rng.random(size=(self._n_particles, self._dim))
         return initial_state
 
     def _draw_proposal_gaussian(self, old_positions):
@@ -84,7 +108,7 @@ class VMC:
     def _draw_proposal_uniform(self, old_positions):
         return old_positions + (self._rng.random(size=(self._n_particles, self._dim)) - 0.5)
 
-    def _tune_scale_table(self):
+    def _tune_scale_table(self, acc_rate):
         """Proposal scale lookup table.
 
         10000 ncycles
@@ -111,21 +135,20 @@ class VMC:
             self._scale *= 0.1
         elif acc_rate < 0.05:
             # reduce by 50 percent
-            return scale * 0.5
+            self._scale *= 0.5
         elif acc_rate < 0.2:
             # reduce by ten percent
-            return scale * 0.9
+            self._scale *= 0.9
         elif acc_rate > 0.95:
             # increase by factor of ten
-            return scale * 10.0
+            self._scale *= 10.0
         elif acc_rate > 0.75:
             # increase by double
-            return scale * 2.0
+            self._scale *= 2.0
         elif acc_rate > 0.5:
             # increase by ten percent
-            return scale * 1.1
+            self._scale *= 1.1
 
-        return scale
 
 
 if __name__ == "__main__":
