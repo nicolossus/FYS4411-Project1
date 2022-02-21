@@ -76,7 +76,7 @@ class SimpleGaussian(WaveFunction):
         densities: np.ndarray, shape=(n_particles,)
             Computed probability densities
         """
-        return np.exp(-2.0*alpha*np.sum(r**2, axis=1))
+        return np.exp(-2.0 * alpha * np.sum(r**2, axis=1))
 
     def gradient(self, r, alpha):
         return -4 * alpha * np.sum(r) * self(r, alpha)
@@ -87,4 +87,4 @@ class SimpleGaussian(WaveFunction):
         return grad2
 
     def drift_force(self, r, alpha):
-        return -4 * alpha * r
+        return -4 * alpha * np.sum(r)
