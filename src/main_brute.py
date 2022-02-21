@@ -23,6 +23,7 @@ wf = SimpleGaussian(N, d, omega)
 exact_E = exact_energy(N, d, omega)
 print(f"Exact energy: {exact_E}")
 
+# Brute-force VMC
 vmc_sampler = MetropolisVMC(wf)
 ncycles = 10000
 alpha_step = 0.05
