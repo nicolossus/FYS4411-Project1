@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import time
+
 import matplotlib.pyplot as plt
 import numpy as np
-from samplers import Metropolis2VMC
-from samplers import MetropolisVMC
-from samplers import MetropolisHastingsVMC
-from wavefunction import SimpleGaussian
-from wavefunction import JaxWaveFunction
-import time
+from samplers import Metropolis2VMC, MetropolisHastingsVMC, MetropolisVMC
+from wavefunction import JaxWaveFunction, SimpleGaussian
 
 
 def exact_energy(n_particles, dim, omega):
@@ -36,14 +34,18 @@ alphas = np.arange(0.1, 1 + alpha_step, alpha_step)
 initial_time = time.time()
 energies, variances = vmc_sampler.sample(ncycles,
                                          alphas,
+<<<<<<< HEAD
                                          dt=dt)
+=======
+                                         dt=0.0005)
+>>>>>>> fcd5c6e679194f58172d69463e7577e4088905c6
 final_time = time.time()
 
 
 E_min = np.min(energies)
 alpha_min = alphas[np.argmin(energies)]
 print(f"{alpha_min=:.2f}, {E_min=:.2f}")
-print("Time spent metropolis hastings: ", final_time-initial_time)
+print("Time spent metropolis hastings: ", final_time - initial_time)
 
 fig, ax = plt.subplots()
 ax.plot(alphas, energies, label='VMC')
@@ -51,7 +53,11 @@ ax.axhline(exact_E, ls='--', color='r', label='Exact')
 ax.set(xlabel=r'$\alpha$', ylabel='Energy')
 ax.legend()
 plt.show()
+<<<<<<< HEAD
 """
+=======
+'''
+>>>>>>> fcd5c6e679194f58172d69463e7577e4088905c6
 vmc_sampler = MetropolisVMC(wf)
 initial_time = time.time()
 energies, variances = vmc_sampler.sample(ncycles,
@@ -74,4 +80,8 @@ ax.axhline(exact_E, ls='--', color='r', label='Exact')
 ax.set(xlabel=r'$\alpha$', ylabel='Energy')
 ax.legend()
 plt.show()
+<<<<<<< HEAD
 """
+=======
+'''
+>>>>>>> fcd5c6e679194f58172d69463e7577e4088905c6
