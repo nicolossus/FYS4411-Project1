@@ -87,4 +87,4 @@ class SimpleGaussian(WaveFunction):
         return grad2
 
     def drift_force(self, r, alpha):
-        return -4 * alpha * np.sum(r)
+        return -4 * alpha * r

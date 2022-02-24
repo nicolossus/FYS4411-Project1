@@ -34,11 +34,7 @@ alphas = np.arange(0.1, 1 + alpha_step, alpha_step)
 initial_time = time.time()
 energies, variances = vmc_sampler.sample(ncycles,
                                          alphas,
-<<<<<<< HEAD
                                          dt=dt)
-=======
-                                         dt=0.0005)
->>>>>>> fcd5c6e679194f58172d69463e7577e4088905c6
 final_time = time.time()
 
 
@@ -53,11 +49,7 @@ ax.axhline(exact_E, ls='--', color='r', label='Exact')
 ax.set(xlabel=r'$\alpha$', ylabel='Energy')
 ax.legend()
 plt.show()
-<<<<<<< HEAD
 """
-=======
-'''
->>>>>>> fcd5c6e679194f58172d69463e7577e4088905c6
 vmc_sampler = MetropolisVMC(wf)
 initial_time = time.time()
 energies, variances = vmc_sampler.sample(ncycles,
@@ -80,8 +72,4 @@ ax.axhline(exact_E, ls='--', color='r', label='Exact')
 ax.set(xlabel=r'$\alpha$', ylabel='Energy')
 ax.legend()
 plt.show()
-<<<<<<< HEAD
 """
-=======
-'''
->>>>>>> fcd5c6e679194f58172d69463e7577e4088905c6

@@ -44,11 +44,7 @@ class MetropolisHastingsVMC:
             positions = self._initial_positions()
         else:
             positions = initial_state
-<<<<<<< HEAD
-        dt = self._dt #/alpha
-=======
-        #dt = self._dt/alpha
->>>>>>> fcd5c6e679194f58172d69463e7577e4088905c6
+        dt = self._dt 
         u = self._rng.random(size=self._ncycles)
         wf2 = self._wf.density(positions, alpha)
         qforceOLD = self._wf.drift_force(positions, alpha)
@@ -62,27 +58,10 @@ class MetropolisHastingsVMC:
         energy2 = 0
 
         for i in range(self._ncycles):
-<<<<<<< HEAD
             trial_positions = positions + self._rng.normal(loc=0, scale=np.sqrt(dt), size=(self._N, self._dim)) + qforceOLD*dt*D
             trial_wf2 = self._wf.density(trial_positions, alpha)
             qforceNEW = self._wf.drift_force(trial_positions, alpha)
             Greens = self._greens_function(positions, trial_positions, qforceOLD, qforceNEW)
-=======
-            trial_positions = positions + \
-                self._rng.normal(loc=0.0, scale=np.sqrt(
-                    self._dt), size=(self._N, self._dim)) + qforceOLD * self._dt * D
-            trial_wf2 = self._wf.density(trial_positions, alpha)
-            qforceNEW = self._wf.drift_force(trial_positions, alpha)
-
-            Greens = self._greens_function(positions,
-                                           trial_positions,
-                                           qforceOLD,
-                                           qforceNEW)
-
-            #Greens = 0.5*(qforceOLD+qforceNEW)*(positions-trial_positions+0.5*D*dt*(qforceOLD-qforceNEW))
-            #Greens = np.sum(Greens)
-            #Greens = np.exp(Greens)
->>>>>>> fcd5c6e679194f58172d69463e7577e4088905c6
             # Metropolis acceptance criterion
             if u[i] <= Greens * trial_wf2 / wf2:
                 positions = trial_positions
