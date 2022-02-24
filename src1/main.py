@@ -19,8 +19,9 @@ def exact_energy(n_particles, dim, omega):
     return (omega * dim * n_particles) / 2
 
 
-N = 1
+N = 500
 d = 3
+dt = 0.5/(np.sqrt(N))
 omega = 1
 wf = SimpleGaussian(N, d, omega)
 
@@ -28,14 +29,14 @@ exact_E = exact_energy(N, d, omega)
 print(f"Exact energy: {exact_E}")
 
 vmc_sampler = MetropolisHastingsVMC(wf)
-ncycles = 10000
+ncycles = 30000
 alpha_step = 0.05
 alphas = np.arange(0.1, 1 + alpha_step, alpha_step)
 
 initial_time = time.time()
 energies, variances = vmc_sampler.sample(ncycles,
                                          alphas,
-                                         dt=0.05)
+                                         dt=dt)
 final_time = time.time()
 
 
@@ -50,7 +51,7 @@ ax.axhline(exact_E, ls='--', color='r', label='Exact')
 ax.set(xlabel=r'$\alpha$', ylabel='Energy')
 ax.legend()
 plt.show()
-
+"""
 vmc_sampler = MetropolisVMC(wf)
 initial_time = time.time()
 energies, variances = vmc_sampler.sample(ncycles,
@@ -73,3 +74,4 @@ ax.axhline(exact_E, ls='--', color='r', label='Exact')
 ax.set(xlabel=r'$\alpha$', ylabel='Energy')
 ax.legend()
 plt.show()
+"""

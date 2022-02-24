@@ -22,6 +22,7 @@ class MetropolisHastingsVMC:
         self._ncycles = ncycles
         self._alphas = alphas
         self._dt = dt
+        self._D = 0.5
 
         initial_state = None
         energies = np.zeros(len(self._alphas))
@@ -43,7 +44,7 @@ class MetropolisHastingsVMC:
             positions = self._initial_positions()
         else:
             positions = initial_state
-        dt = self._dt/alpha
+        dt = self._dt #/alpha
         u = self._rng.random(size=self._ncycles)
         wf2 = self._wf.density(positions, alpha)
         qforceOLD = self._wf.drift_force(positions, alpha)
@@ -54,12 +55,10 @@ class MetropolisHastingsVMC:
         energy2 = 0
 
         for i in range(self._ncycles):
-            trial_positions = positions + self._rng.normal(loc=0.0, scale=np.sqrt(dt)) + qforceOLD*dt*D
+            trial_positions = positions + self._rng.normal(loc=0, scale=np.sqrt(dt), size=(self._N, self._dim)) + qforceOLD*dt*D
             trial_wf2 = self._wf.density(trial_positions, alpha)
             qforceNEW = self._wf.drift_force(trial_positions, alpha)
-            Greens = 0.5*(qforceOLD+qforceNEW)*(positions-trial_positions+0.5*D*dt*(qforceOLD-qforceNEW))
-            Greens = np.sum(Greens)
-            Greens = np.exp(Greens)
+            Greens = self._greens_function(positions, trial_positions, qforceOLD, qforceNEW)
             # Metropolis acceptance criterion
             if u[i] <= Greens*trial_wf2 / wf2:
                 positions = trial_positions
@@ -103,6 +102,11 @@ class MetropolisHastingsVMC:
             wf2 = self._wf.density(positions, alpha)
 
         return positions
+
+    def _greens_function(self, old_positions, new_positions, qforce_old_positions, qforce_new_positons):
+        Greens = 0.5*(qforce_old_positions+qforce_new_positons)*(old_positions-new_positions+0.5*self._D*self._dt*(qforce_old_positions-qforce_new_positons))
+        Greens = np.sum(Greens)
+        return np.exp(Greens)
 
     def _draw_proposal_gaussian(self, old_positions):
         return self._rng.normal(loc=old_positions, scale=self._scale)
