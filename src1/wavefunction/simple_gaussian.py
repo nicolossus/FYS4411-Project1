@@ -88,3 +88,20 @@ class SimpleGaussian(WaveFunction):
 
     def drift_force(self, r, alpha):
         return -4 * alpha * r
+
+    def derivative_wf_parameters(self, r, alpha):
+        """
+        Computes the derivative of the wave function
+        w.r.t. the alpha parameter.
+        Parameters
+        ----------
+        r : np.ndarray, shape=(n_particles, dim)
+            Particle positions
+        alpha : float
+            Variational parameter
+
+        Returns
+        -------
+        dwf/dalpha : float
+        """
+        return -np.sum(r**2)*np.exp(-alpha * np.sum(r**2))
