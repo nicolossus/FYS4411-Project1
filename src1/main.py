@@ -17,15 +17,15 @@ def exact_energy(n_particles, dim, omega):
     return (omega * dim * n_particles) / 2
 
 
-N = 3
-d = 1
+N = 2
+d = 3
 dt = 0.5/(np.sqrt(N))
 omega = 1
 wf = SimpleGaussian(N, d, omega)
 
 exact_E = exact_energy(N, d, omega)
 ncycles = 10000
-alpha = 0.2
+alpha = 1.0
 print(f"Exact energy: {exact_E}")
 """
 
@@ -60,9 +60,10 @@ energy, variance = vmc_sampler.sample(ncycles,
                                          tune_iter=5000,
                                          tune_interval=250,
                                          optimize=True,
-                                         optim_iter=1000,
+                                         optim_iter=10000,
                                          optim_runs=100,
-                                         learning_rate = 0.1)
+                                         learning_rate = 1e-1,
+                                         tolerance = 1e-8)
 final_time = time.time()
 print("Final energy: ", energy)
 print("Final variance: ", variance)

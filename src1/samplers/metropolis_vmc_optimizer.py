@@ -23,15 +23,17 @@ class MetropolisOptimizerVMC:
         tune_iter=5000,
         tune_interval=250,
         optimize=True,
-        optim_iter=5000,
+        optim_iter=10000,
         optim_runs=250,
         learning_rate = 0.01,
+        tolerance = 1e-8,
     ):
         self._ncycles = ncycles
         self._alpha = alpha
         self._scale = scale
         self._tune_iter = tune_iter
         self._tune_interval = tune_interval
+        self._tolerance = tolerance
         initial_state = None
 
         self._propsal_dist = self._draw_proposal_gaussian
@@ -108,7 +110,7 @@ class MetropolisOptimizerVMC:
         wf2 = self._wf.density(positions, alpha)
         step = 0
         diff_alphas = 1.0
-        while diff_alphas >1e-5:
+        while diff_alphas > self._tolerance:
             u = self._rng.random(size=self._optim_iter)
             n_accepted = 0
             energy = 0
@@ -135,7 +137,7 @@ class MetropolisOptimizerVMC:
 
 
             # acceptance rate
-            acc_rate = n_accepted / self._ncycles
+            acc_rate = n_accepted / self._optim_iter
             # Calculate mean, variance, error
             energy /= self._optim_iter
             energy2 /= self._optim_iter
@@ -148,7 +150,7 @@ class MetropolisOptimizerVMC:
             diff_alphas = abs(alpha-new_alpha)
             alpha = new_alpha
             positions = self._tune(alpha, positions)
-            if step % 5 == 0:
+            if step % 10 == 0:
                 print(f"{alpha=:.2f} at iteration {step=:d}.")
                 print(f"{wf2=:.5f}.")
                 print(f"{derivative_wf_E=:.5f}.")
