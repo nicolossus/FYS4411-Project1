@@ -94,7 +94,7 @@ class MetropolisOptimizerVMC:
         # Calculate mean, variance, error
         energy /= self._ncycles
         energy2 /= self._ncycles
-        variance = energy - energy2
+        variance = energy2 - energy*energy
         # error = np.sqrt(variance / self._ncycles)
 
         return energy, variance
@@ -143,7 +143,7 @@ class MetropolisOptimizerVMC:
             energy2 /= self._optim_iter
             derivative_wf_E /=self._optim_iter
             delta_wf /= self._optim_iter
-            variance = energy - energy2
+            variance = energy2 - energy*energy
             derivative_local_energy = 2*(derivative_wf_E-delta_wf*energy)
             # error = np.sqrt(variance / self._ncycles)
             new_alpha = alpha - self._learning_rate*derivative_local_energy
