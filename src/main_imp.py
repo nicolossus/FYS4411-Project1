@@ -24,13 +24,16 @@ exact_E = exact_energy(N, d, omega)
 print(f"Exact energy: {exact_E}")
 
 # Importance VMC
-imp_sampler = ImportanceVMC(wf)
+dt = 0.0006
+#dt = 0.5 / np.sqrt(N)
 ncycles = 30000
+
+imp_sampler = ImportanceVMC(wf)
 alpha_step = 0.05
 alphas = np.arange(0.1, 1. + alpha_step, alpha_step)
 energies, variances = imp_sampler.sample(ncycles,
                                          alphas,
-                                         dt=0.0006
+                                         dt=dt
                                          )
 
 
