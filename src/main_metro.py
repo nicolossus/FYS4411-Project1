@@ -52,7 +52,7 @@ for i, alpha in enumerate(alphas):
                                      tune_iter=8000,
                                      tune_interval=250,
                                      optimize=False,
-                                     tol=1e-5
+                                     tol_scale=1e-5
                                      )
     accept_rate = vmc_sampler.accept_rate
     print(f"{alpha=:.2f}, E={energies[i]:.2f}, {accept_rate=:.2f}")
