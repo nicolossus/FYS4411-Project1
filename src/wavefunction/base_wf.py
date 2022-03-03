@@ -3,6 +3,8 @@
 
 from abc import ABCMeta, abstractmethod
 
+import numpy as np
+
 
 class WaveFunction(metaclass=ABCMeta):
     """Base class for constructing trial wave functions.
@@ -65,6 +67,9 @@ class WaveFunction(metaclass=ABCMeta):
             The squared trial wave function
         """
         return self(*args, **kwargs)**2
+
+    def logdensity(self, *args, **kwargs):
+        return np.log(self(*args, **kwargs)**2)
 
     @property
     def dim(self):

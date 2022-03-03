@@ -79,22 +79,14 @@ class JaxWF:
     def drift_force_jax(self, r, alpha):
         grad_wf = grad(self.evaluate)
         F = (2 * grad_wf(r, alpha)) / self.evaluate(r, alpha)
-        return F.sum()
-
-    @partial(jit, static_argnums=(0,))
-    def drift_force_jax2(self, r, alpha):
-        grad_wf = grad(self.evaluate)
-        logF = jnp.log(2. * grad_wf(r, alpha)) - \
-            jnp.log(self.evaluate(r, alpha))
-        F = jnp.exp(logF)
-        return F.sum()
+        return F
 
 
 if __name__ == "__main__":
     import numpy as np
     from jax import random
 
-    N = 500
+    N = 2
     d = 3
     alpha = 0.5
     omega = 1
@@ -112,7 +104,6 @@ if __name__ == "__main__":
     print("Local energy:", wf.local_energy(r, alpha))
     print("Drift F analytical:", wf.drift_force_analytical(r, alpha))
     print("Drift F Jax:", wf.drift_force_jax(r, alpha))
-    print("Drift F Jax log:", wf.drift_force_jax2(r, alpha))
 
     F_np = -4 * alpha * np.sum(r_np)
     print("Drift F Numpy:", F_np)
