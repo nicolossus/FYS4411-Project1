@@ -44,7 +44,7 @@ class MetropolisHastingsVMC:
             positions = self._initial_positions()
         else:
             positions = initial_state
-        dt = self._dt 
+        dt = self._dt
         u = self._rng.random(size=self._ncycles)
         wf2 = self._wf.density(positions, alpha)
         qforceOLD = self._wf.drift_force(positions, alpha)
@@ -84,7 +84,7 @@ class MetropolisHastingsVMC:
 
         return energy, variance
 
-    def _greens_function(self, r_old, r_new, F_old, F_new):
+    def _greens_function2(self, r_old, r_new, F_old, F_new):
         """Calculate Green's function MH ratio.
         Normalizing factors omitted as they cancel each other out
         """

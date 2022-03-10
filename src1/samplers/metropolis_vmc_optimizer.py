@@ -27,6 +27,7 @@ class MetropolisOptimizerVMC:
         optim_runs=250,
         learning_rate = 0.01,
         tolerance = 1e-8,
+        momentum = 0.9,
     ):
         self._ncycles = ncycles
         self._alpha = alpha
@@ -52,6 +53,7 @@ class MetropolisOptimizerVMC:
             self._optim_iter = optim_iter
             self._optim_runs = optim_runs
             self._learning_rate = learning_rate
+            self._gamma = momentum
             optimized_alpha, variance_after_optimization = self.optimizer(self._alpha, initial_state)
 
 
@@ -98,6 +100,100 @@ class MetropolisOptimizerVMC:
         # error = np.sqrt(variance / self._ncycles)
 
         return energy, variance
+    def optimizer_run(self, alpha, state, wf2):
+        """
+        Gathers information about derivative of the expectation value
+        using the Metropolis sampling rule.
+        Parameters
+        ----------
+        alpha : float (generally np.ndarray, size=(len(parameters,)))
+                Parameter(s) to be optimized
+        state : np.ndarray, shape=(n_particles, dim)
+                Particle positions
+        wf2   : float
+                Wave function squared
+        Returns
+        -------
+        result: tuple of floats, result[0] = energy, result[1] = energy2,
+                       result[2] = derivative_wf_E, result[3] = delta_wf,
+                       result[4] = positions (np.ndarray, shape=(n_particles, dim))
+        """
+        u = self._rng.random(size=self._optim_iter)
+        energy = 0
+        energy2 = 0
+        delta_wf = 0
+        derivative_wf_E = 0
+        for i in range(self._optim_iter):
+            trial_state = self._propsal_dist(state)
+            trial_wf2 = self._wf.density(state, alpha)
+            # Metropolis acceptance criterion
+            if u[i] <= trial_wf2 / wf2:
+                state = trial_state
+                wf2 = trial_wf2
+
+            local_energy = self._wf.local_energy(state, alpha)
+            derivative_wf = self._wf.derivative_wf_parameters(state, alpha)
+            delta_wf += derivative_wf
+            derivative_wf_E += derivative_wf*local_energy
+            energy += local_energy
+            energy2 += local_energy**2
+
+        return energy, energy2, derivative_wf_E, delta_wf, state
+
+    def update_alpha(self, alpha, derivative_local_energy):
+        """
+        Updates the alpha parameter using gradient of local energy.
+        Parameters
+        ----------
+        alpha : float (generally np.ndarray with size=(len(parameters)))
+        derivative_local_energy : float (generally np.ndarray, with size=(len(parameters)))
+
+        Returns
+        -------
+        alpha_new : float (generally np.ndarray with size=(len(parameters)))
+        """
+        alpha_new = alpha - self._learning_rate*derivative_local_energy
+        return alpha_new
+
+    def update_alpha_momentum(self, alpha, derivative_local_energy, momentum_term):
+        """
+        Update the alpha parameter using gradient descent with simple
+        momentum.
+        Parameters
+        ----------
+        alpha : float (generally np.ndarray with size=(len(parameters)))
+        derivative_local_energy : float (generally np.ndarray, with size=(len(parameters)))
+        momentum_term: float (momentum term from previous iterations)
+        momentum_factor: float (factor that momentum is multiplied with)
+        Returns
+        -------
+        new_alpha : float (generally np.ndarray with size=(len(parameters)))
+        m: float (generally np.ndarray with size=(len(parameters)))
+                       momentum term from this iteration
+        """
+        m = self._gamma*momentum_term + self._learning_rate*derivative_local_energy
+        new_alpha = alpha - m
+        return new_alpha, m
+
+    def updta_alpha_adaptive(self, alpha, derivative_local_energy, momentum_term):
+        """
+        Update the alpha parameter using gradient descent with simple
+        momentum. Adaptive learning rate added.
+        Parameters
+        ----------
+        alpha : float (generally np.ndarray with size=(len(parameters)))
+        derivative_local_energy : float (generally np.ndarray, with size=(len(parameters)))
+        momentum_term: float (momentum term from previous iterations)
+        momentum_factor: float (factor that momentum is multiplied with)
+        Returns
+        -------
+        new_alpha : float (generally np.ndarray with size=(len(parameters)))
+        m: float (generally np.ndarray with size=(len(parameters)))
+                       momentum term from this iteration
+        """
+
+        #return new_alpha, m
+
 
     def optimizer(self, guess, initial_state):
         if initial_state is None:
@@ -110,7 +206,9 @@ class MetropolisOptimizerVMC:
         wf2 = self._wf.density(positions, alpha)
         step = 0
         diff_alphas = 1.0
+        momentum = 0
         while diff_alphas > self._tolerance:
+            """
             u = self._rng.random(size=self._optim_iter)
             n_accepted = 0
             energy = 0
@@ -134,30 +232,27 @@ class MetropolisOptimizerVMC:
                 derivative_wf_E += derivative_wf*local_energy
                 energy += local_energy
                 energy2 += local_energy**2
+            """
+            energy, energy2, derivative_wf_E, delta_wf, positions = self.optimizer_run(alpha, positions, wf2)
 
-
-            # acceptance rate
-            acc_rate = n_accepted / self._optim_iter
-            # Calculate mean, variance, error
             energy /= self._optim_iter
             energy2 /= self._optim_iter
-            derivative_wf_E /=self._optim_iter
+            derivative_wf_E /= self._optim_iter
             delta_wf /= self._optim_iter
             variance = energy2 - energy*energy
             derivative_local_energy = 2*(derivative_wf_E-delta_wf*energy)
             # error = np.sqrt(variance / self._ncycles)
-            new_alpha = alpha - self._learning_rate*derivative_local_energy
+            new_alpha, momentum = self.update_alpha_momentum(alpha, derivative_local_energy, momentum)
             diff_alphas = abs(alpha-new_alpha)
             alpha = new_alpha
             positions = self._tune(alpha, positions)
-            if step % 10 == 0:
+            if step % 5 == 0:
                 print(f"{alpha=:.2f} at iteration {step=:d}.")
-                print(f"{wf2=:.5f}.")
-                print(f"{derivative_wf_E=:.5f}.")
-                print(f"{delta_wf=:.5f}.")
                 print(f"{energy=:.5f}")
                 print(f"{derivative_local_energy=:.3f}")
             step += 1
+            if step > 100:
+                break
         print(f"Final {alpha=:.5f}, {variance=:.4f}")
         return alpha, variance
 

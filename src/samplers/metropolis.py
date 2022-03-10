@@ -26,7 +26,6 @@ class MetropolisVMC2:
         self._wf = wavefunction
         self._logp = self._wf.logdensity
         self._Eloc = self._wf.local_energy
-        self._grad_Eloc = self._wf.grad_local_energy
         self._rng = np.random.default_rng()
 
     def sample(

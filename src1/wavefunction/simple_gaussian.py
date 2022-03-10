@@ -102,6 +102,6 @@ class SimpleGaussian(WaveFunction):
 
         Returns
         -------
-        dwf/dalpha : float
+        dwf/dalpha*1/wf : float
         """
         return -np.sum(r**2)

@@ -73,12 +73,12 @@ class JaxWF:
 
     @partial(jit, static_argnums=(0,))
     def drift_force_analytical(self, r, alpha):
-        return -4 * alpha * jnp.sum(r)
+        return -4 * alpha * jnp.sum(r, axis=0)
 
     @partial(jit, static_argnums=(0,))
     def drift_force_jax(self, r, alpha):
         grad_wf = grad(self.evaluate)
-        F = (2 * grad_wf(r, alpha)) / self.evaluate(r, alpha)
+        F = 2 * jnp.sum(grad_wf(r, alpha), axis=0) / self.evaluate(r, alpha)
         return F
 
 
@@ -93,6 +93,7 @@ if __name__ == "__main__":
 
     key = random.PRNGKey(0)
     r = random.normal(key, (N, d)) * 0.001
+    print(r.shape)
 
     # print(r)
     assert np.any(np.array(r) < 0)
