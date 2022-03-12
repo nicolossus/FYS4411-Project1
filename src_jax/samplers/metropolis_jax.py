@@ -4,17 +4,25 @@
 import warnings
 import numpy as np
 import jax.numpy as jnp
+import jax as jax
 from jax import random
 from numpy.random import default_rng
+from jax.config import config
+
+config.update("jax_enable_x64", True)
+
 
 warnings.filterwarnings("ignore", message="divide by zero encountered")
 
 
-def rw_metropolis_step(logp, positions, *model_args, scale=0.5, rng=default_rng()):
+def rw_metropolis_step(logp, positions, *model_args, scale=0.5, iteration):
     """Random walk Metropolis step generator"""
     logp_current = logp(positions, *model_args)
-    log_unif = jnp.log(rng.random(size=positions.shape))
-    proposals = rng.normal(loc=positions, scale=scale)
+    #log_unif = jnp.log(rng.random(size=positions.shape))
+    key = random.PRNGKey(iteration)
+    key1, key2 = random.split(key)
+    log_unif = jnp.log(random.uniform(key1, shape=(positions.shape)))
+    proposals = positions + random.normal(key2, shape=(positions.shape))*self.scale
     logp_proposal = logp(proposals, *model_args)
     accept = log_unif < logp_proposal - logp_current
     positions = jnp.where(accept, proposals, positions)
@@ -27,7 +35,7 @@ class MetropolisVMC2jax:
         self._wf = wavefunction
         self._logp = self._wf.logdensity
         self._Eloc = self._wf.local_energy
-        self._rng = default_rng()
+        self._rng_key = random.PRNGKey(0)
 
     def sample(
         self,
@@ -54,6 +62,7 @@ class MetropolisVMC2jax:
         self._eta = eta
         self._tol_scale = tol_scale
         self._tol_optim = tol_optim
+        self._ncycles = ncycles
 
         if gradient_method == 'gd':
             self._gradient_method = self._gradient_descent
@@ -194,14 +203,18 @@ class MetropolisVMC2jax:
 
         energies = self._rw_metropolis(ncycles, initial_state, alpha)
 
-        self._energy_samples = energies[burn:]
-        energy = np.mean(energies[burn:])
+        self._energy_samples = jax.lax.slice(energies, start_indices=(burn+1,), limit_indices=(self._ncycles-1,))
+        energy = jnp.mean(self._energy_samples)
 
         return energy
 
-    def _rw_metropolis_step(self, positions, logp_current, alpha):
-        log_unif = jnp.log(jnp.asarray(self._rng.random(size=positions.shape)))
-        proposals = jnp.asarray(self._rng.normal(loc=positions, scale=self._scale))
+    def _rw_metropolis_step(self, positions, logp_current, alpha, iteration):
+        #log_unif = jnp.log(jnp.asarray(self._rng.random(size=positions.shape)))
+        key = random.PRNGKey(iteration)
+        key1, key2 = random.split(key)
+        log_unif = jnp.log(random.uniform(key1, shape=(positions.shape)))
+        proposals = positions + random.normal(key2, shape=(positions.shape))*self.scale
+        #proposals = jnp.asarray(self._rng.normal(loc=positions, scale=self._scale))
         logp_proposal = self._logp(proposals, alpha)
         accept = log_unif < logp_proposal - logp_current
         # Where accept is True, yield proposal, otherwise yield old position
@@ -217,7 +230,8 @@ class MetropolisVMC2jax:
             positions, logp_current, accepted = self._rw_metropolis_step(
                 positions,
                 logp_current,
-                alpha)
+                alpha,
+                _)
         return positions
 
     def _tune(self, tune_iter, tune_interval, positions, alpha):
@@ -230,7 +244,8 @@ class MetropolisVMC2jax:
             positions, logp_current, accepted = self._rw_metropolis_step(
                 positions,
                 logp_current,
-                alpha)
+                alpha,
+                i)
 
             n_accepted += accepted
             steps_before_tune -= 1
@@ -240,7 +255,7 @@ class MetropolisVMC2jax:
                 accept_rate = n_accepted / tune_interval
                 self._tune_scale_table(accept_rate)
 
-                dL2 = np.linalg.norm(self._scale - scale_old)
+                dL2 = jnp.linalg.norm(self._scale - scale_old)
                 if dL2 < self._tol_scale:
                     print(f"Tune early stopping at iter {i+1}/{tune_iter}")
                     break
@@ -260,14 +275,15 @@ class MetropolisVMC2jax:
             positions, logp_current, accepted = self._rw_metropolis_step(
                 positions,
                 logp_current,
-                alpha)
+                alpha,
+                i)
             grad_energies.append(self._grad_Eloc(positions, alpha))
 
             steps_before_optimize -= 1
             if steps_before_optimize == 0:
                 alpha_old = alpha
                 alpha = self._gradient_method(alpha, np.mean(grad_energies))
-                dL2_alpha = np.linalg.norm(alpha - alpha_old)
+                dL2_alpha = jnp.linalg.norm(alpha - alpha_old)
 
                 if dL2_alpha < self._tol_optim:
                     print(f"Optimize early stopping at iter {i+1}/{max_iter}")
@@ -290,7 +306,8 @@ class MetropolisVMC2jax:
             positions, logp_current, accepted = self._rw_metropolis_step(
                 positions,
                 logp_current,
-                alpha)
+                alpha,
+                i)
 
             grad_energies.append(self._grad_Eloc(positions, alpha))
 
@@ -345,8 +362,7 @@ class MetropolisVMC2jax:
 
     def _rw_metropolis(self, ncycles, positions, alpha):
         """Sampling"""
-        energies = np.zeros(ncycles)
-        print(type(self._Eloc(positions, alpha)))
+        energies = jnp.zeros(ncycles)
         n_accepted = 0
         logp_current = self._logp(positions, alpha)
 
@@ -354,9 +370,9 @@ class MetropolisVMC2jax:
             positions, logp_current, accepted = self._rw_metropolis_step(
                 positions,
                 logp_current,
-                alpha)
-
-            energies[i]= self._Eloc(positions, alpha)
+                alpha,
+                i)
+            energies = energies.at[i].set(self._Eloc(positions, alpha))
             n_accepted += accepted
 
         self._acc_rate = n_accepted / ncycles

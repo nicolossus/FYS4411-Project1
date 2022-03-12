@@ -55,10 +55,11 @@ class BaseJaxWF:
         self.grad_wf = grad(self.wf, argnums=0, holomorphic=False)
         self.hessian = hessian(self.wf, argnums=0, holomorphic=False)
         self.lap = self.laplacian
+        self.lap_vector = self.laplacian_vector
 
     def hamiltonian(self, r, alpha):
         #kinetic = -0.5*jnp.sum(jnp.diag(jnp.sum(jnp.sum(self.hessian(r, alpha), axis=1), axis=-1)))
-        kinetic = -0.5*self.lap(r, alpha)
+        kinetic = -0.5*jnp.sum(self.lap_vector(r, alpha))
         return kinetic + self.potential(r, self._omega)
 
     def density(self, r, alpha):
@@ -70,8 +71,14 @@ class BaseJaxWF:
     def logdensity(self, r, alpha):
         return jnp.log(self.wf(r, alpha)*self.wf(r, alpha))
 
+    def reduced_hessian(self, r, alpha):
+        return jnp.sum(jnp.sum(self.hessian(r, alpha), axis=1), axis=-1)
+
+    def laplacian_vector(self, r, alpha):
+        return jnp.diag(self.reduced_hessian(r, alpha))
+
     def laplacian(self, r, alpha):
-        return jnp.sum(jnp.diag(jnp.sum(jnp.sum(self.hessian(r, alpha), axis=1), axis=-1)))
+        return jnp.sum(self.lap_vector(r, alpha))
 
     def local_energy(self, r, alpha):
         H = self.hamiltonian(r, alpha)

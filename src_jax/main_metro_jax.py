@@ -3,6 +3,10 @@ import jax.numpy as jnp
 from samplers import MetropolisVMC2jax
 from wavefunction import SimpleGaussian, SG
 import numpy as np
+from jax import random
+from jax.config import config
+
+config.update("jax_enable_x64", True)
 
 def wavefunction(r, alpha):
     return jnp.exp(-alpha*jnp.sum(r**2))
@@ -14,11 +18,12 @@ def exact_energy(n_particles, dim, omega):
     return (omega * dim * n_particles) / 2
 
 
-def safe_initial_state(wavefunction, alpha, seed=None):
-    rng = np.random.default_rng(seed=seed)
+def safe_initial_state(wavefunction, alpha, seed=0):
+    key = random.PRNGKey(seed)
     N = wavefunction.n_particles
     dim = wavefunction.dim
-    positions = jnp.asarray(rng.random(size=(N, dim)))
+    #positions = jnp.asarray(rng.random(size=(N, dim)))
+    positions = random.uniform(key, shape=(N, dim))
 
     # safe initialization
     wf2 = wavefunction.density(positions, alpha)
@@ -43,13 +48,13 @@ ncycles = 10000
 alpha_step = 0.1
 alphas = jnp.arange(0.1, 1 + alpha_step, alpha_step)
 
-energies = np.zeros(alphas.size)
+energies = jnp.zeros(alphas.size)
 
 #fig, ax = plt.subplots()
 
 for i, alpha in enumerate(alphas):
     initial_state = safe_initial_state(wf, alpha)
-    energies[i] = vmc_sampler.sample(ncycles,
+    energies = energies.at[i].set(vmc_sampler.sample(ncycles,
                                      initial_state,
                                      alpha,
                                      scale=0.5,
@@ -59,7 +64,7 @@ for i, alpha in enumerate(alphas):
                                      tune_interval=250,
                                      optimize=False,
                                      tol_scale=1e-5
-                                     )
+                                     ))
     accept_rate = vmc_sampler.accept_rate
     print(f"{alpha=:.2f}, E={energies[i]:.2f}, {accept_rate=:.2f}")
     #ax.plot(vmc_sampler.energy_samples, label=f'{alpha=:.1f}')
