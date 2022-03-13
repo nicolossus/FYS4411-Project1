@@ -69,11 +69,11 @@ class BaseJaxWF:
         return distance
 
     def spherical_laplacian(self, r, alpha):
-        grad2_wf = jax.jacfwd(self.sl_middle, argnums=0)
+        grad2_wf = jax.jacfwd(self.spherical_middle, argnums=0)
         laplacian = jnp.sum(jnp.diag(grad2_wf(r, alpha)/(r*r)))
         return laplacian
 
-    def sl_middle(self, r, alpha):
+    def spherical_middle(self, r, alpha):
         return r*r*self.grad_wf(r, alpha)
 
     def polar_lap(self, r, alpha):
@@ -106,7 +106,7 @@ class BaseJaxWF:
         return jnp.diag(self.reduced_hessian(r, alpha))
 
     def laplacian(self, r, alpha):
-        return jnp.sum(self.lap_vector(r, alpha))
+        return jnp.sum(self.laplacian_vector(r, alpha))
 
     def local_energy(self, r, alpha):
         H = self.hamiltonian(r, alpha)
@@ -191,10 +191,7 @@ if __name__ == "__main__":
     print("Drift F analytical:", drift_force_analytical(r, alpha))
     print("Drift F Jax:", wf.drift_force(r, alpha))
     print("Hessian F shape Jax: ", wf.hessian(r, alpha).shape)
-    print("Laplacian vector: ", wf.lap_vector(r, alpha))
-    print("Jax Laplacian: ", wf.laplacian(r, alpha))
     print("Analytical laplacian: ", laplacian(N, d, r, alpha))
     print("Polar laplacian: ", wf.polar_lap(spherical_r, alpha))
     print("Spherical laplacian: ", wf.spherical_laplacian(spherical_r, alpha))
     print("Potential: ", wf.potential(r, alpha))
-    print("N*d*alpha: ", N*d*alpha)
