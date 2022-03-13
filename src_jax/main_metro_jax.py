@@ -34,8 +34,8 @@ def safe_initial_state(wavefunction, alpha, seed=0):
     return positions
 
 
-N = 1
-d = 1
+N = 10
+d = 3
 omega = 1
 wf = SG(wavefunction, potential, N, d, omega)
 

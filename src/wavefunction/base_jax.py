@@ -30,22 +30,16 @@ class BaseJaxWF(metaclass=ABCMeta):
 
 
     def precompute(self):
-        self.grad_wf = grad(self.wavefunction, argnums=0)
-        self.laplace = jax.jacfwd(self.grad_wf, argnums=0)
+        self.grad_wf = grad(self.wavefunction)
+        self.hessian= jax.jacfwd(self.grad_wf)
         self.grad2_wf = grad(self.grad_wf, argnums=0)
-
-
-
-        print("Testing second derivative.. ")
-        print("Jax df/dr([1.0, 1.0], 0.5): ", jnp.sum(self.grad_wf(jnp.array([1.0, 1.0, 1.0], 0.5)))
-        print("Analytical: ", self.analytical_dfdr(1.0, 0.5))
-        print("Jax d2fdr2(1.0, 0.5): ", jnp.sum(self.hessian(1.0, 0.5)))
-        print("Analytical: ", self.analytical_d2fdr2(1.0, 0.5))
+        laplace_psi = lambda x, alpha: jnp.diag( jax.jacobian( jax.jacobian(self.wavefunction, holomorphic = False, argnums=0), holomorphic = False, argnums=0) (x, alpha) ).sum(-1)
+        self.laplace = laplace_psi
 
 
 
     def analytical_dfdr(self, r, alpha):
-        return -2.0*alpha*np.sum(r)*np.exp(-alpha*np.sum(r**2))
+        return -2.0*alpha*np.sum(r, axis=0)*np.exp(-alpha*np.sum(r**2))
 
     def analytical_d2fdr2(self, r, alpha):
         return -2.0*alpha*np.exp(-alpha*np.sum(r**2)) + 4.0*alpha*alpha*np.sum(r**2)*np.exp(-alpha*np.sum(r**2))
@@ -109,3 +103,35 @@ class SG(BaseJaxWF):
 
     def potential(self, r):
         return 0.5*self._omega*self._omega*jnp.sum(r**2)
+
+
+
+
+
+if __name__ == "__main__":
+    from jax import random
+    N = 2
+    d = 3
+    alpha = 0.5
+    omega = 1
+
+    key = random.PRNGKey(0)
+    r = random.normal(key, (N, d)) * 0.001
+    print(r.shape)
+
+    # print(r)
+    assert np.any(np.array(r) < 0)
+
+    r_np = np.array(r)
+
+    wf = SG(N, d, omega)
+    wf.precompute()
+
+
+    print("Derivative wavefunction: ", wf.grad_wf())
+    print("Local energy:", wf.local_energy(r, alpha))
+    print("Drift F analytical:", wf.drift_force_analytical(r, alpha))
+    print("Drift F Jax:", wf.drift_force_jax(r, alpha))
+
+    F_np = -4 * alpha * np.sum(r_np)
+    print("Drift F Numpy:", F_np)

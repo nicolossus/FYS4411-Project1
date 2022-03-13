@@ -34,7 +34,7 @@ class MetropolisVMC2jax:
     def __init__(self, wavefunction):
         self._wf = wavefunction
         self._logp = self._wf.logdensity
-        self._Eloc = self._wf.local_energy
+        self._Eloc = self._wf.loc_energy
         self._rng_key = random.PRNGKey(0)
 
     def sample(

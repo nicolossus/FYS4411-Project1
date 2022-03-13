@@ -18,3 +18,6 @@ for i in range(10):
         energies = energies.at[i].set(10)
 
 print(energies)
+
+
+print(jnp.mean(energies))
