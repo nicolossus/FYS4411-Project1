@@ -21,6 +21,7 @@ def _init(initial_positions, wf, alpha, scale):
 def _metropolis_sampler(rng_key, n_samples, initial_state, config):
     """Metroplis sampling loop"""
 
+    @jit
     def metropolis_step(state, rng_key):
         """One step of the Metroplis algorithm"""
         # Sample proposal positions and log uniform rvs
