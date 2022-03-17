@@ -22,13 +22,16 @@ class JaxWF:
         self.grad_wf = grad(self.wf_val, argnums=0, holomorphic=False)
         if dim == 3:
             self.lap = self.spherical_laplacian
+        if dim == 2:
+            self.lap = self.polar_lap
+
 
     @partial(jit, static_argnums=(0,))
     def __call__(self, r, alpha):
         return jnp.exp(-alpha * r**2)
 
     def wf_val(self, r, alpha):
-        return jnp.sum(self(r, alpha))
+        return jnp.exp(-alpha*jnp.sum(r**2))
 
     @partial(jit, static_argnums=(0,))
     def pdf(self, r, alpha):
@@ -62,15 +65,14 @@ class JaxWF:
 
     def hamiltonian(self, r, alpha):
         #kinetic = -0.5*jnp.sum(jnp.diag(jnp.sum(jnp.sum(self.hessian(r, alpha), axis=1), axis=-1)))
-        r = self.convert_to_distance(r)
-        print("Shape pos: ", r.shape)
         kinetic = -0.5*self.lap(r, alpha)
-        return kinetic + 0.5*self._omega2*jnp.sum(r**2)*self(r, alpha)
+        return kinetic + 0.5*self._omega2*jnp.sum(r**2)*self.wf_val(r, alpha)
 
     @partial(jit, static_argnums=(0,))
     def local_energy(self, r, alpha):
+        r = self.convert_to_distance(r)
         H = self.hamiltonian(r, alpha)
-        return H/self(r, alpha)
+        return H/self.wf_val(r, alpha)
 
     @partial(jit, static_argnums=(0,))
     def locE(self, r, alpha):
@@ -108,7 +110,7 @@ def safe_initial_state(wavefunction, alpha, seed):
 
 
 # Configure wave function
-N = 500        # Number of particles
+N = 5     # Number of particles
 d = 3        # Dimeansion
 omega = 1.   # Oscillator frequency
 wf = JaxWF(N, d, omega)
@@ -130,7 +132,8 @@ energies = []
 start = time.time()
 for i, alpha in enumerate(alphas):
     initial_positions = safe_initial_state(wf, alpha, seed_init)
-    print(wf.local_energy(initial_positions, alpha))
+    #print("Init pos: ", initial_positions.shape)
+    #print(wf.local_energy(initial_positions, alpha))
     energy, _ = vmc_jax(seed_sampler,
                         n_samples,
                         n_chains,
