@@ -14,7 +14,7 @@ jax.config.update("jax_enable_x64", True)
 def _init(initial_positions, wf, alpha, scale):
     logp_fn = wf.logpdf
     state = State(initial_positions, logp_fn(initial_positions, alpha), 0)
-    config = Config(alpha, scale, logp_fn, wf.locE)
+    config = Config(alpha, scale, logp_fn, wf.local_energy) #wf.locE 
     return state, config
 
 
