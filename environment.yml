@@ -25,4 +25,6 @@ dependencies:
   - yapf
   - scikit-learn
   - pip:
+    - pathos
     - "jax[cpu]"
+    #- "jax[cuda]"
