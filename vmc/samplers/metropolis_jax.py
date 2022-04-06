@@ -6,7 +6,8 @@ import jax
 import jax.numpy as jnp
 import jax.scipy as scipy
 from jax import grad, jit, lax, pmap, random, vmap
-from state import Config, State
+
+from .state_jax import Config, State
 
 jax.config.update("jax_enable_x64", True)
 

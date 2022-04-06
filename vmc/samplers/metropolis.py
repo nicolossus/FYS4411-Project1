@@ -6,6 +6,7 @@ from abc import abstractmethod
 import numpy as np
 
 from .base_sampler import BaseVMC
+from .pool_tools import advance_PRNG_state
 from .state import State
 
 
@@ -14,7 +15,7 @@ class Metropolis(BaseVMC):
     def __init__(self, wavefunction, rng=None):
         super().__init__(wavefunction, inference_scheme='metropolis', rng=rng)
 
-    def step(self, state, alpha, scale=1.0):
+    def step(self, state, alpha, seed, scale=1.0):
         """One step of the random walk Metropolis algorithm
 
         Parameters
@@ -27,10 +28,13 @@ class Metropolis(BaseVMC):
             Scale of proposal distribution. Default: 1.0
         """
 
+        # Advance RNG
+        next_gen = advance_PRNG_state(seed, state.delta)
+        rng = self._rng(next_gen)
         # Sample proposal positions, i.e., move walkers
-        proposals = self._rng.normal(loc=state.positions, scale=scale)
+        proposals = rng.normal(loc=state.positions, scale=scale)
         # Sample log uniform rvs
-        log_unif = np.log(self._rng.random(size=state.positions.shape))
+        log_unif = np.log(rng.random(size=state.positions.shape))
         # Compute proposal log density
         logp_proposal = self._logp_fn(proposals, alpha)
         # Metroplis acceptance criterion
@@ -39,7 +43,8 @@ class Metropolis(BaseVMC):
         new_positions = np.where(accept, proposals, state.positions)
         new_logp = np.where(accept, logp_proposal, state.logp)
         new_n_accepted = state.n_accepted + np.sum(accept)
+        new_delta = state.delta + 1
         # Create new state
-        new_state = State(new_positions, new_logp, new_n_accepted)
+        new_state = State(new_positions, new_logp, new_n_accepted, new_delta)
 
         return new_state
