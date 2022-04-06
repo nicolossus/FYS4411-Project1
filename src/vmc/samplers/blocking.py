@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import warnings
 
 import numpy as np
+
+warnings.filterwarnings("ignore", message="divide by zero encountered")
+warnings.filterwarnings("ignore", message="invalid value encountered")
 
 
 def block(x):
