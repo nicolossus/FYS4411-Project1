@@ -14,8 +14,8 @@ The [report folder](https://github.com/nicolossus/FYS4411-Project1/tree/main/rep
 
 The [resources folder](https://github.com/nicolossus/FYS4411-Project1/tree/main/resources) contains project resources such as literature.
 
-The [src folder](https://github.com/nicolossus/FYS4411-Project1/tree/main/src) contains the source code. For details, see the [src readme](https://github.com/nicolossus/FYS4411-Project1/blob/main/src/README.md).
+The [src folder](https://github.com/nicolossus/FYS4411-Project1/tree/main/src) contains the source code. For details, see the [src readme](https://github.com/nicolossus/FYS4411-Project1/blob/main/src/vmc/README.md).
 
-The [test folder](https://github.com/FYS4411-Project1/tree/main/test) contains unit tests. Run tests locally with `pytest`:
+The [tests folder](https://github.com/FYS4411-Project1/tree/main/tests) contains unit tests. Run tests locally with `pytest`:
 
-    $ python -m pytest tests -v
+    $ pytest tests -v -W ignore
