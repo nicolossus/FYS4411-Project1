@@ -26,6 +26,7 @@ class MetropolisVMC2:
         self._wf = wavefunction
         self._logp = self._wf.logdensity
         self._Eloc = self._wf.local_energy
+        self._grad_Eloc = self._wf.grad_local_energy
         self._rng = np.random.default_rng()
 
     def sample(
@@ -255,6 +256,9 @@ class MetropolisVMC2:
         logp_current = self._logp(positions, alpha)
         grad_energies = []
 
+        wf_eval = []  # NEW
+        energies = []  # NEW
+
         for i in range(max_iter):
             positions, logp_current, accepted = self._rw_metropolis_step(
                 positions,
@@ -262,10 +266,24 @@ class MetropolisVMC2:
                 alpha)
             grad_energies.append(self._grad_Eloc(positions, alpha))
 
+            wf_eval.append(self._wf(positions, alpha))  # NEW
+            energies.append(self._Eloc(positions, alpha))
+
             steps_before_optimize -= 1
             if steps_before_optimize == 0:
                 alpha_old = alpha
-                alpha = self._gradient_method(alpha, np.mean(grad_energies))
+
+                # NEW
+                grad_energies = np.array(grad_energies)
+                wf_eval = np.array(wf_eval)
+                energies = np.array(energies)
+
+                expect1 = np.mean(grad_energies * energies)
+                expect2 = np.mean(grad_energies)
+                expect3 = np.mean(energies)
+                gradE = 2 * (expect1 - expect2 * expect3)
+                alpha = self._gradient_method(alpha, gradE)
+                #alpha = self._gradient_method(alpha, np.mean(grad_energies))
                 dL2_alpha = np.linalg.norm(alpha - alpha_old)
 
                 if dL2_alpha < self._tol_optim:
@@ -274,6 +292,8 @@ class MetropolisVMC2:
 
                 # reset
                 grad_energies = []
+                wf_eval = []  # NEW
+                energies = []  # NEW
                 steps_before_optimize = batch_size
         self._alpha = alpha
         return positions, alpha

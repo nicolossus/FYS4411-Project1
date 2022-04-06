@@ -88,9 +88,13 @@ class ImportanceVMC:
         """Calculate Green's function MH ratio.
         Normalizing factors omitted as they cancel each other out
         """
-        old_term = -(np.sum(r_new - r_old) - self._Ddt * F_old)**2
-        new_term = -(np.sum(r_old - r_new) - self._Ddt * F_new)**2
-        exponent = (old_term - new_term) / self._4Ddt
+        #old_term = -(np.sum(r_new - r_old) - self._Ddt * F_old)**2
+        #new_term = -(np.sum(r_old - r_new) - self._Ddt * F_new)**2
+        #old_term = -(np.sum(r_new - r_old - self._Ddt * F_old))**2
+        #new_term = -(np.sum(r_old - r_new - self._Ddt * F_new))**2
+        old_term = -(r_new - r_old - self._Ddt * F_old)**2
+        new_term = -(r_old - r_new - self._Ddt * F_new)**2
+        exponent = (np.sum(old_term - new_term)) / self._4Ddt
         return np.exp(exponent)
 
     def _initial_positions(self):

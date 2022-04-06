@@ -8,6 +8,16 @@ from jax.config import config
 config.update("jax_enable_x64", True)
 
 
+class JaxWF2:
+
+    def __init__(self, evaluate, potential, *args):
+        self.evaluate = evaluate
+        self.potential = potential
+
+        # precompute
+        grad_wf = grad(self.evaluate)
+
+
 class JaxWF:
 
     def __init__(self, n_particles, dim, omega):

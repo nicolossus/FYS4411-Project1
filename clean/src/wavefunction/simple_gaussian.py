@@ -62,7 +62,8 @@ class SimpleGaussian(WaveFunction):
 
     def grad_local_energy(self, r, alpha):
         """W.r.t. alpha"""
-        return self._N * self._d - 4 * alpha * np.sum(r**2)
+        # return self._N * self._d - 4 * alpha * np.sum(r**2)
+        return -np.sum(r**2)
 
     def gradient(self, r, alpha):
         # return -4 * alpha * np.sum(r) * self(r, alpha)

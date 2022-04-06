@@ -23,8 +23,8 @@ def safe_initial_state(wavefunction, alpha, seed=None):
     return positions
 
 
-N = 1
-d = 1
+N = 500
+d = 3
 omega = 1
 wf = SimpleGaussian(N, d, omega)
 
@@ -33,7 +33,7 @@ print(f"Exact energy: {exact_E}")
 
 vmc_sampler = MetropolisVMC2(wf)
 ncycles = int(1e4)
-initial_alpha = 0.7
+initial_alpha = 0.9
 eta = 0.05  # learning rate
 
 initial_state = safe_initial_state(wf, initial_alpha)
