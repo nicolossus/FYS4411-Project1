@@ -66,6 +66,25 @@ class System:
         raise NotImplementedError
 
     @partial(jax.jit, static_argnums=(0,))
+    def pdf(self, r, alpha):
+        """Probability density for each particle in the system.
+
+        Arguments
+        ---------
+        r : array_like
+            Particle positions
+        alpha : float
+            Variational parameter
+
+        Returns
+        -------
+        array_like
+            Probability density for each particle
+        """
+
+        return jnp.exp(self.logprob(r, alpha))
+
+    @partial(jax.jit, static_argnums=(0,))
     def logprob(self, r, alpha):
         """Log probability density for each particle in the system.
 
@@ -175,7 +194,7 @@ class System:
     def grad_alpha(self, r, alpha):
         """Gradient of wave function w.r.t. variational parameter alpha.
 
-        DEV NOTE: When calling this function, use vmap wrapped by jnp.sum 
+        DEV NOTE: When calling this function, use vmap wrapped by jnp.sum
 
         Arguments
         ---------
