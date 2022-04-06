@@ -5,7 +5,7 @@ import jax
 import jax.numpy as jnp
 import numpy as onp
 import pytest
-from vmc.systems import ANIB, LogNIB
+from src import vmc
 
 jax.config.update("jax_enable_x64", True)
 
@@ -26,8 +26,8 @@ def test_logprob(N, alpha):
     r = onp.random.rand(N, dim)  # Positions
     r = jnp.array(r)
 
-    analytical = ANIB(N, dim, omega)
-    numerical = LogNIB(omega)
+    analytical = vmc.ANIB(N, dim, omega)
+    numerical = vmc.LogNIB(omega)
 
     lp_a = analytical.logprob(r, alpha)
     lp_n = numerical.logprob(r, alpha)
@@ -60,7 +60,7 @@ def test_exact_energy_analytical(N, dim):
     r = jnp.array(r)
 
     exact_energy = 0.5 * omega * dim * N
-    analytical = ANIB(N, dim, omega)
+    analytical = vmc.ANIB(N, dim, omega)
 
     locE = analytical.local_energy(r, alpha)
     assert jnp.allclose(exact_energy, locE)
@@ -91,7 +91,7 @@ def test_exact_energy_numerical(N, dim):
     r = jnp.array(r)
 
     exact_energy = 0.5 * omega * dim * N
-    numerical = LogNIB(omega)
+    numerical = vmc.LogNIB(omega)
 
     locE = numerical.local_energy(r, alpha)
     assert jnp.allclose(exact_energy, locE)
@@ -123,8 +123,8 @@ def test_drift_force(N, dim):
     r = onp.random.rand(N, dim)  # Positions
     r = jnp.array(r)
 
-    analytical = ANIB(N, dim, omega)
-    numerical = LogNIB(omega)
+    analytical = vmc.ANIB(N, dim, omega)
+    numerical = vmc.LogNIB(omega)
 
     F_a = analytical.drift_force(r, alpha)
     F_n = numerical.drift_force(r, alpha)
