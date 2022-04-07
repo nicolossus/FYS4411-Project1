@@ -1,0 +1,671 @@
+\section{Introduction}
+
+A Bose-Einstein Condensate (BEC) is a gas composed of bosons, particles of integer spin that obey Bose-Einstein statistics, cooled down to critical temperature $T_C$ nearing absolute zero at which the gas goes through a phase transition. In this phase every particle falls into the lowest quantum state usually referred to as the ground state. Thus, every particle can be described by the same wave function and thus the expectation value of the energy is as follows
+
+\begin{align}
+    \left\langle E \right\rangle = \frac{\int d\mathbf{R} \mathbf{\Psi}_T^*(\mathbf{R},\alpha) H(\mathbf{R}) \mathbf{\Psi}_T(\mathbf{R},\alpha)}{\int d\mathbf{R} \mathbf{\Psi}_T^*(\mathbf{R},\alpha)\mathbf{\Psi}_T(\mathbf{R},\alpha)}
+    \label{eq:energy-expectation-value}
+\end{align}
+
+where $\mathbf{R}$ is the vector containing the position of all particles and $\alpha$ is the variational parameter. The variational principle states that the expectation value $\left\langle E \right\rangle$ is an upper bound for the ground state energy $E_0$.
+
+\begin{align}
+    E_0 \leq \left\langle E \right\rangle
+\end{align}
+
+An example of a such system is Bose-Einstein Condensation (BEC) in gases of alkali atoms such as $^{87}$Rb, $^{23}$Na, $^{7}$Li confined in magnetic traps. These confined Bose systems are dilute, here we refer you to \cite{DuBois-Glyde01}. Where they calculated the  characteristic length of a typical trap for the $^{87}$Rb gas $a_{ho}$, the s-wave scattering length $a_{Rb}$ set to $100a_0$, where $a_0 = 0.5292 \text{ \AA}$ is the Bohr radius and the inner-atomic spacing $l \simeq 10^4 \text{ \AA}$. And giving that the  effective atom size is small compared to both the trap size and the inter-atomic spacing the system is indeed dilute. This alone means that the physics is dominated by the two-body collisions between particles, represented by the s-wave scattering length $a$. 
+
+We will consider a system of $N$ bosons with mass $m$ which are trapped in a harmonic oscillator potential. Many theoretical studies of Bose-Einstein condensates in gases of alkali atoms confined in magnetic or optical traps have been conducted in the frame work of the Gross-Pitaevskii (GP) equation \cite{Fab-Polls99}. We will consider a system of $N$ bosons with mass $m$ which are trapped in a harmonic oscillator potential.
+
+Typically large multi-dimensional systems like these are very complex and cannot be solved analytically, therefore we turn to numerical approaches in order to simulate the system. We'll start off by studying the non-interacting case where an analytical solution is presented and venture off to the correlated case, which you will see is extremely convoluted and can only be solved numerically. The analytical non-interacting case works as a validity gauge for our numerical approaches. We will be using Variational Monte Carlo (VMC) in order to arrive to a good estimate of what the ground state for \autoref{eq:energy-expectation-value} might be for any of the systems at hand. In addition we will be contrasting ordinary VMC to an importance sampling technique, utilizing the Fokker-Planck equation that takes educated guesses as to were the ground state might be as opposed to ordinary VMC.
+
+\section{Theory}
+
+\subsection{The System}
+
+We're evaluating bosons trapped in a harmonic oscillator potential either spherical $(S)$ or elliptical $(E)$. The system itself generally consist of $N$ bosons with a fixed mass $m$ where they traverse along a $d$-dimensional room. Our generalized equations will mainly focus on the 3 dimensional case. The external potential $V_{ext}$ for both the spherical and the elliptical trap is given by
+
+\begin{align}
+    V_{ext} (\mathbf{r}) =
+  \begin{cases}
+    \frac{1}{2}m \omega_{ho}r^2 \ (S)\\
+    \frac{1}{2}m \left[ \omega_{ho} \left( x^2+y^2 \right) + \omega_z^2 z^2 \right] \ (E)
+  \end{cases}
+  \label{eq:ext-pottential}
+\end{align}
+
+Where $\omega_{ho}$ defines the trap's potential strength and as for the elliptical case $\omega_{ho}$ is the frequency in the $xy$-plane or the perpendicular whilst $\omega_z$ is the frequency in the $z$-direction. At $T= 0\ K$ the mean amplitude of a single boson is given by $\left\langle x^2 \right\rangle = \left( \hbar/2m\omega_{ho} \right)$ such that $a_{ho}= \left( \hbar/m\omega_{ho} \right)^{1/2}$ defines the characteristic length of the trap. The ratio of the frequencies is denoted $\gamma = \omega_z/\omega_\perp$ leading to the ratio of the trap lengths $\left( a_\perp/a_z \right) = \left( \omega_z/\omega_\perp \right)^{1/2} = \sqrt{\gamma}$
+
+The inter-boson interactions between two particles is expressed as a repulsive potential $V_{int}$ between the two. 
+
+\begin{align}
+    V_{int} (\mathbf{r}) =
+  \begin{cases}
+    \infty \text{ for } \abs{\mathbf{r}_i - \mathbf{r}_j} \leq a\\
+    0 \text{ for } \abs{\mathbf{r}_i - \mathbf{r}_j} > a
+  \end{cases}
+  \label{eq:int-pottential}
+\end{align}
+
+Where a is the hard-core diameter of the bosons so $V_{int}$ naturally prevents the particles from ever occupying the same space in the case of a collision. The Hamiltonian for our harmonic oscillator trap, taking into account both of the potentials, is written as
+
+\begin{align}
+    H = \sum_i^N \left( \frac{-\hbar^2}{2m}\nabla^2_i + V_{ext}(\mathbf{r})  \right) + \sum_{i<j} V_{int}\left( \mathbf{r}_i, \mathbf{r}_j \right)
+    \label{eq:Complete-Hamiltonian}
+\end{align}
+
+Where we have used the following convention for the inner potential:
+
+\begin{align*}
+    \sum_{i<j} V_{ij}= \sum_{i=1}^N \sum_{j=i+1}^N V_{ij}
+    \intertext{Which is a double sum that runs over every pairwise interaction once.}
+\end{align*}
+
+For the $\sum_i^N$-part the first term is the kinetic energy of each particle and the second term is as previously mentioned the the external potential of the trap acting on each particle. The $\sum_{i<j}$-part is for the inter-boson interaction between a pair of particles.
+
+Now that we laid the ground for the system, we are in need of one additional powerful tool that would describe the system in it's entirety throughout the whole process and that is a trial wave function. Our initial educated guess for the wave function consist of two parts one for the harmonic trap effecting every single particle each for it's own as seen in eq.$\ $\ref{eq:Complete-Hamiltonian} and one for the inner-boson interaction or in other words the correlated aspect of the system.
+
+\begin{equation}
+    \begin{split}
+        \mathbf{\Psi}_T \left( \mathbf{r} \right) &= \mathbf{\Psi}_T \left( \mathbf{r}_1, \mathbf{r}_2, \mathbf{r}_3, \dots, \mathbf{r}_N, \alpha, \beta \right)\\ 
+        &= \left[\prod_i g\left( \alpha, \beta, \mathbf{r}_i \right) \right] \left[ \prod_{j<k} f\left( a, \abs{r_j - r_k} \right) \right]
+    \end{split}
+    \label{eq:correlated-WF}
+\end{equation}
+
+where $\alpha$ and $\beta$ are two variational parameters and $a$ is diameter in eq.$\ $\ref{eq:int-pottential} for the hard-core \textit{shell} of the particle. The first term follows a Gaussian distribution and is a composition of the single-particle wave function $g$.
+
+\begin{align}
+    g\left( \alpha, \beta, \mathbf{r}_i \right) = e^{-\alpha\left(x_i^2 + y_i^2 +\beta z_i^2\right)}
+    \label{eq:one-body-WF}
+\end{align}
+
+Here $\beta$ determines the elliptical shape of the distribution so in the case where $\beta = 1$ we end with a sphere and this indeed the case for the spherical trap. As for the correlation wave function $f$ also refered to as \textit{the Jastrow factor} and it's presented by
+
+\begin{align}
+    f\left( a, \abs{r_j - r_k} \right) = 
+  \begin{cases}
+    0\ &\abs{r_j - r_k} \geq a\\
+    \left( 1 - \frac{a}{\abs{r_k - r_k}} \right)\ &\abs{r_j - r_k} > a
+  \end{cases}
+  \label{eq:Jastrow-WF}
+\end{align}
+
+\subsubsection{The Simple Gaussian}
+
+For the non-interacting case eq. \ref{eq:Jastrow-WF} is a non-factor here so subsequently $f=1$. This is done by setting the hard-core diameter to $a= 0$ since in this case we are not interested in any boson-to-boson interaction and as such we get a product sequence over the Gaussian distribution for each particle. Furthermore to make so the trap follows a spherical form we set $\beta= 1$. From that we obtain the simplest form our wave function can take and it's given by
+
+\begin{align}
+    \mathbf{\Psi}_T \left( \mathbf{r}_1, \mathbf{r}_2, \mathbf{r}_3, \dots, \mathbf{r}_N, a= 0 , \beta = 1  \right)  = \prod_i e^{-\alpha r_i^2}
+    \label{eq:Simple-Gaussian}
+\end{align}
+
+Will be referring  to eq. \ref{eq:Simple-Gaussian} as \textit{the simple Gaussian}. A quantity used in our Metropolis-Hastings optimization is the quantum force and for the Simple-Gaussian wave function it takes the form
+
+\begin{align}
+    F = 2\frac{\nabla \mathbf{\Psi}_T}{\mathbf{\Psi}_T} = -4\alpha\sum_i r_i
+    \label{eq:quantum-force}
+\end{align}
+
+An entire derivation can be found in \textbf{\ref{sec:app} Appendix \ref{subsec:non-interacting}}.
+ 
+\subsection{The Local Energy}
+
+\begin{equation}
+    E_L(\mathbf{r}) = \frac{1}{\mathbf{\Psi}_T (\mathbf{r})}H \mathbf{\Psi}_T (\mathbf{r})
+    \label{eq:localenergy}
+\end{equation}
+
+
+
+\subsubsection{The Simple Gaussian Wave Function}
+
+\textit{An entire walk-through of the calculation can be found in \textbf{\ref{sec:app}. Appendix \ref{subsec:non-interacting}.}} \\
+
+For the Simple Gaussian case there's is no correlation and the Hamiltonian naturally becomes
+
+\begin{align}
+    H_{OB} = \sum_i^N \left( \frac{-\hbar^2}{2m}\nabla^2_i + V_{ext}(\mathbf{r})  \right)
+    \label{eq:OB-Hamiltonian}
+\end{align}
+
+where OB stands for one-body. Since it's a spherical trap we use $(S)$ in eq. \ref{eq:ext-pottential}. We first start by determining an analytical solution for the Laplacian of the wave function from eq. \ref{eq:localenergy}.
+
+\begin{align}
+    \begin{split}
+        \nabla_i^2 \mathbf{\Psi}_T (\mathbf{r}) &= \nabla_i \cdot \nabla_i \mathbf{\Psi}_T\\
+        &= -2\alpha\nabla_i \cdot \left[x_i, y_i, z_i \right] \mathbf{\Psi}_T\\
+        &= \left[ -2\alpha d + 4\alpha^2r_i^2 \right] \mathbf{\Psi}_T(\mathbf{r})
+    \end{split}
+\end{align}
+
+where $d$ is the number of dimensions, case being $d=3$.
+
+For the simple Gaussian trial function the local energy is given by
+
+\begin{align}
+    \begin{split}
+        E_L(\mathbf{r}) &= \sum_i ^ N \left(-\frac{\hbar^2}{2m} \Big{[} -2\alpha d + 4\alpha^2 r_i^2 \Big{]} + V_{ext}(\mathbf{r}_i) \right) \\
+        &= \sum_i ^ N \left(-\frac{\hbar^2}{2m} \Big{[} -2\alpha d + 4\alpha^2 r_i^2 \Big{]} +  \frac{1}{2}m\omega_{ho}r_i^2 \right) \\
+        &= -\frac{\hbar^2}{2m}  \Big{[} -2\alpha Nd + 4\alpha^2 \sum_i ^ N r_i^2 \Big{]} +  \frac{1}{2}m\omega_{ho}\sum_i ^ N r_i^2
+    \end{split}
+    \label{eq:SG-local-energy}
+\end{align}
+
+As for our upcoming numerical analysis we will be using natural units instead of the physical constants, meaning $\hbar = m = \omega_{ho} =  1$, which yeilds
+
+\begin{align}
+    E_L(\mathbf{r}) &= \alpha Nd - 2\alpha^2\sum_{i=1}^N r_i^2 + \frac{1}{2}\omega^2_{ho}\sum_{i=1}^{N} r_i^2
+\end{align}
+
+For the case where $\omega_{ho}=1$ we find the ground state to occur for $\alpha = 0.5$
+
+\begin{align}
+    E_L(\mathbf{r}) &= \frac{Nd}{2}
+    \label{eq:SG-ground-energy}
+\end{align}
+
+which will work as a gauge for the validity of our numerical solutions later on.
+
+\subsubsection{The Full Wave Function}
+
+\textit{An entire walk-through of the calculation can be found in \textbf{\ref{sec:app}. Appendix \ref{subsec:interacting}.}} \\
+
+A more realistic case is the interacting case for bosons in an eliptical trap $(E)$ in eq. \ref{eq:ext-pottential}. Meaning we're looking at the correlated wave function eq. \ref{eq:correlated-WF}, where now $\beta$ could be different than $1$ and the hard-core diameter $a > 0$. This ultimately means that our wave function contains the Jastrow factor to govern the boson-to-boson interaction and the Hamiltonian contains the repulsive potential eq. \ref{eq:int-pottential}.
+
+We rewrite the Jastrow factor as
+
+\begin{align}
+    f(r_{ij}) &= exp \left( \sum_{i<j}^N u \left( r_{ij} \right) \right)
+    \intertext{here $r_{ij} = \abs{r_i - r_j}$ and $u(r_{ij}) = \ln f(r_{ij})$. In addition we express the one-boday part as}
+    \phi(\mathbf{r}_i) &= g\left( \alpha, \beta, \mathbf{r}_i \right)
+    \intertext{The final expression for the correlated wave function becomes}
+    \mathbf{\Psi}_T \left( \mathbf{r} \right) &= \Bigg{[}\prod_i \phi(\mathbf{r}_i) \Bigg{]} \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) 
+\end{align}
+
+It's the same as for the Simple Gaussian case we start by determining an analytical solution for the Laplacian then we can arrive to the Laplician-term in the local energy
+
+\begin{align}
+    \begin{split}
+        \frac{1}{\mathbf{\Psi}_T}\nabla_k^2 \mathbf{\Psi}_T &= \frac{\nabla_k^2 \phi(\mathbf{r}_k)}{\phi(\mathbf{r}_k)} + 2\frac{\nabla_k \phi(\mathbf{r}_k)}{\phi(\mathbf{r}_k)} \sum_{l\neq k} u'(r_{kl})\frac{\Delta r_{kl}}{r_{kl}} \\
+        &\qquad + \sum_{m\neq k} u'(r_{km})\frac{\Delta r_{km}}{r_{km}} \cdot \sum_{l\neq k} u'(r_{kl})\frac{\Delta r_{kl}}{r_{kl}} \\
+        &\qquad + \sum_{l\neq k} u''(r_{kl}) + u'(r_{kl}) \frac{2}{r_{kl}}
+    \end{split}
+\end{align}
+
+Where 
+
+\begin{align}
+    \frac{\nabla_k^2 \phi(\mathbf{r}_k)}{\phi(\mathbf{r}_k)} &= 4\alpha^2\mathbf{r}_k^2 -2\alpha(2 + \beta) \\
+    \frac{\nabla_k \phi(\mathbf{r}_k)}{\phi(\mathbf{r}_k)} &= -2\alpha\mathbf{r}_k \\
+    u'(r_{kl}) &= \frac{a}{r_{kl}\left( r_{kl} - a \right)} \\
+    u''(r_{kl}) &= \frac{a^2 - 2a r_{kl}}{r_{kl}^2 (r_{kl}-a)^2}
+\end{align}
+
+The drift force is given by
+
+\begin{align}
+    F = 2\frac{\nabla \mathbf{\Psi}_T}{\mathbf{\Psi}_T} = \frac{\nabla_k \phi(\mathbf{r}_k)}{\phi (\mathbf{r}_k)} + \sum_{l\neq k} \nabla_k u(\mathbf{r}_{kl})
+\end{align}
+
+As already mentioned a complete walk-through for the gradient and the Laplacian can be found in the \textbf{Appendix}.
+
+\subsubsection{Scaling the Hamiltonian}
+
+\textit{An entire walk-through of the calculation can be found in \textbf{\ref{sec:app}. Appendix \ref{subsec:interacting}.}} \\
+
+Since we are in the process of rewriting equations. Often quantum systems are expressed in units of $\hbar\omega$ for convenience. In the scaling for the Hamiltonian we aim to increase numerical stability by simplifying the expression for the tools we're working with and achieve a physical interpretation of the system by expressing the energy as units of $\hbar\omega$. This is done by factoring out $\hbar\omega_0$ and dividing the Hamiltonian by that factor, which yields
+
+\begin{align}
+    H = \frac{1}{2} \sum_i^N \left( -{\nabla}^2_i + {x}_i^2 + {y}_i^2 + \gamma^2 {z}_i^2  \right) + \sum_{i<j} V_{int}\left( \mathbf{r}_i, \mathbf{r}_j \right)
+\end{align}
+
+Following \textbf{\ref{sec:app}. Appendix \ref{subsec:interacting}.} we have used:
+
+\begin{align}
+    a_{h0} &= \sqrt{\hbar/m\omega_{ho}} = (1 - 2) \times 10^4\ \text{\AA}
+    \intertext{as the length scale and where we defined the parameter}
+    \gamma &= \omega_z/\omega_{ho}
+    \intertext{Then scaled the particle coordinates and the hard-core diameter by $a_{h0}$, meaning}
+    \mathbf{r'} &= \mathbf{r}/a_{ho} \implies \mathbf{r} = a_{ho}\mathbf{r'} \\
+    a' &= a/a_{ho} \implies a = a_{ho}a'
+\end{align}
+
+The hard-core diameter for the bosons was fixed to $a/a_{ho} = 0.00433$ and $\beta = \gamma = \sqrt{8} \approx 2.82843$ similar to what was done in \cite{MJensen05} and \cite{DuBois-Glyde01}
+
+\twocolumn[
+    \begin{@twocolumnfalse}
+        \section{Appendix}
+        \label{sec:app}
+        \subsection{Calculations for non-interacting bosons}
+        \label{subsec:non-interacting}
+        \begin{align*}
+            E_L(\mathbf{r}) &= \frac{1}{\mathbf{\Psi}_T (\mathbf{r})} H \mathbf{\Psi}_T (\mathbf{r}) \\
+            &= \frac{1}{\mathbf{\Psi}_T (\mathbf{r})} \Bigg{[}\sum_i ^ N \left(-\frac{\hbar^2}{2m} \nabla^2_i + V_{ext}(\mathbf{r}_i) \right) \Bigg{]}\mathbf{\Psi}_T (\mathbf{r})
+        \end{align*}
+        Starting with the $H \mathbf{\Psi}_T (\mathbf{r})$ part of the equation
+        \begin{align}
+            \begin{split}
+                H \mathbf{\Psi}_T (\mathbf{r}) &= \Bigg{[}\sum_i ^ N \left(-\frac{\hbar^2}{2m} \nabla^2_i + V_{ext}(\mathbf{r}_i) \right) \Bigg{]} \mathbf{\Psi}_T (\mathbf{r})\\
+                &= \sum_i ^ N \left(-\frac{\hbar^2}{2m} \nabla^2_i \mathbf{\Psi}_T (\mathbf{r}) + V_{ext}(\mathbf{r}_i) \mathbf{\Psi}_T (\mathbf{r}) \right)
+            \end{split}
+            \intertext{Solving $\sum_i ^ N - \frac{\hbar^2}{2m} \nabla^2_i \mathbf{\Psi}_T$, the sum over $i$ for the Laplacian makes it so we compute the second derivative of the wave function with respect to each particle, for a particle $k$ the second derivatives is expressed as}
+            &\nabla^2_k \prod_i e^{-\alpha |\mathbf{r}_i|^2}= \nabla^2_k \prod_i e^{-\alpha r_i^2}\\
+            \intertext{where $k$ is an element in $\sum_i^N$.}
+            \prod_{i \neq k} e^{-\alpha |\mathbf{r}_i|^2}\nabla^2_k e^{-\alpha |\mathbf{r}_k|^2} &= \prod_{i \neq k} e^{-\alpha |\mathbf{r}_i|^2}\nabla^2_k e^{-\alpha \left(x_k^2 + y_k^2 + z_k^2 \right)}
+            \intertext{We start by finding the general expression for the gradient ($\nabla$)}
+            \begin{split}
+                \nabla_k e^{-\alpha \left(x_k^2 + y_k^2 + z_k^2 \right)}&= \Bigg{[}\frac{\partial}{\partial x}, \frac{\partial}{\partial y}, \frac{\partial}{\partial z}\Bigg{]}e^{-\alpha \left(x_k^2 + y_k^2 + z_k^2 \right)}\\
+                &= \bigg{[}-2\alpha x_k e^{-\alpha|\mathbf{r}_k|^2}, -2\alpha y_k e^{-\alpha|\mathbf{r}_k|^2}, -2\alpha z_k e^{-\alpha|\mathbf{r}_k|^2} \bigg{]}\\
+                &= -2\alpha \Big{[} x_k, y_k, z_k \Big{]} e^{-\alpha|\mathbf{r}_k|^2} = -2\alpha\mathbf{r}_k e^{-\alpha|\mathbf{r}_k|^2}
+            \end{split}
+            \intertext{Bringing back the product sequence we get}
+            \prod_{i \neq k} e^{-\alpha |\mathbf{r}_i|^2}\nabla_k e^{-\alpha |\mathbf{r}_k|^2} &=  -2\alpha\mathbf{r}_k \mathbf{\Psi}_T (\mathbf{r})
+            \intertext{Now for the Laplacian ($\nabla^2$)}
+            \begin{split}
+                \nabla^2_k e^{-\alpha|\mathbf{r}_k|^2}&= -2\alpha\nabla_k\mathbf{r}_k e^{-\alpha|\mathbf{r}_k|^2} = -2\alpha \Bigg{[}\frac{\partial}{\partial x}, \frac{\partial}{\partial y}, \frac{\partial}{\partial z}\Bigg{]} \Big{[} x_k, y_k, z_k \Big{]} e^{-\alpha|\mathbf{r}_k|^2}\\
+                &= -2\alpha \frac{\partial}{\partial x} x_k e^{-\alpha|\mathbf{r}_k|^2} -2\alpha \frac{\partial}{\partial y} y_k e^{-\alpha|\mathbf{r}_k|^2} -2\alpha \frac{\partial}{\partial z} z_k e^{-\alpha|\mathbf{r}_k|^2}\\
+                & \begin{matrix}
+                    = & -2\alpha \left( e^{-\alpha|\mathbf{r}_k|^2} - 2\alpha x_k^2 e^{-\alpha|\mathbf{r}_k|^2} \right)\\
+                    & -2\alpha \left(e^{-\alpha|\mathbf{r}_k|^2} - 2\alpha y_k^2e^{-\alpha|\mathbf{r}_k|^2} \right)\\
+                    & -2\alpha \left( e^{-\alpha|\mathbf{r}_k|^2} - 2\alpha z_k^2 e^{-\alpha|\mathbf{r}_k|^2} \right)
+                \end{matrix}\\
+                &= -2\alpha \bigg{[} \left( 1 - 2\alpha x_k^2  \right) + \left( 1 - 2\alpha y_k^2  \right) + \left( 1 - 2\alpha z_k^2  \right) \bigg{]} e^{-\alpha|\mathbf{r}_k|^2}\\
+                &= -2\alpha \Big{[} 3 - 2\alpha |\mathbf{r}_k|^2 \Big{]} e^{-\alpha|\mathbf{r}_k|^2}
+            \end{split}
+            \intertext{for a general $d$-dimensional case our expression then becomes}
+            &= -2\alpha \Big{[} d - 2\alpha |\mathbf{r}_k|^2 \Big{]}  e^{-\alpha|\mathbf{r}_k|^2} = \Big{[} -2\alpha d + 4\alpha^2 r_k^2 \Big{]} e^{-\alpha|\mathbf{r}_k|^2}
+        \end{align}
+    \end{@twocolumnfalse}
+]
+
+
+\twocolumn[
+    \begin{@twocolumnfalse}
+        \begin{align}
+            \intertext{ where $d$ is the number of dimension, 3 in our case. Bringing back the product sequence we get}
+            \prod_{i \neq k} e^{-\alpha |\mathbf{r}_i|^2}\Big{[} -2\alpha d + 4\alpha^2 r_k^2 \Big{]} e^{-\alpha|\mathbf{r}_k|^2} &= \Big{[} -2\alpha d + 4\alpha^2 r_k^2 \Big{]} \mathbf{\Psi}_T (\mathbf{r})
+            \intertext{The final analytical expression for $H \mathbf{\Psi}_T (\mathbf{r})$ is}
+            \begin{split}
+                H \mathbf{\Psi}_T (\mathbf{r}) &= \sum_i ^ N \left(-\frac{\hbar^2}{2m} \nabla^2_i \mathbf{\Psi}_T (\mathbf{r}) + V_{ext}(\mathbf{r}_i) \mathbf{\Psi}_T (\mathbf{r}) \right)\\
+                &= \sum_i ^ N \left(-\frac{\hbar^2}{2m} \Big{[} -2\alpha d + 4\alpha^2 r_i^2 \Big{]} \mathbf{\Psi_T}(\mathbf{r}) + V_{ext}(\mathbf{r}_i) \mathbf{\Psi}_T (\mathbf{r}) \right)\\
+                &= \sum_i ^ N \left(-\frac{\hbar^2}{2m} \Big{[} -2\alpha d + 4\alpha^2 r_i^2 \Big{]} + V_{ext}(\mathbf{r}_i) \right) \mathbf{\Psi}_T (\mathbf{r})
+            \end{split}
+            \intertext{Using what we've obtained, the final expression for the local energy is then}
+            \begin{split}
+                E_L(\mathbf{r}) &= \frac{1}{\mathbf{\Psi}_T (\mathbf{r})} H \mathbf{\Psi}_T (\mathbf{r}) \\
+                &= \frac{1}{\mathbf{\Psi}_T (\mathbf{r})} \Bigg{[} \sum_i ^ N \left(-\frac{\hbar^2}{2m} \Big{[} -2\alpha d + 4\alpha^2 r_i^2 \Big{]} + V_{ext}(\mathbf{r}_i) \right)\Bigg{]} \mathbf{\Psi}_T (\mathbf{r})\\
+                &= \sum_i ^ N \left(-\frac{\hbar^2}{2m} \Big{[} -2\alpha d + 4\alpha^2 r_i^2 \Big{]} + V_{ext}(\mathbf{r}_i) \right)
+            \end{split}
+        \end{align}
+        
+    For the case of a spherical potential with $\beta = 1$, $\omega_{ho} = 1$
+        
+        \begin{align}
+            \begin{split}
+                E_L(\mathbf{r}) &= \sum_{i=1}^N \left( -\frac{\hbar^2}{2m} \Bigg{[} -2\alpha d + 4\alpha^2r_i^2 \Bigg{]}+ \frac{1}{2}m\omega_{ho}^2r_i^2 \right)\\
+                &= \frac{-h^2}{2m} \Bigg{[} -2\alpha Nd + 4\alpha^2 \sum_{i=1}^N r_i^2\Bigg{]} + \frac{1}{2}m\omega_{ho}^2 \sum_{i=1}^N r_i^2
+            \end{split}
+                \intertext{If we were to work with natural units, meaning $\hbar = m = 1$}
+            \begin{split}
+                &= \frac{-1}{2} \Bigg{[} -2\alpha Nd + 4\alpha^2 \sum_{i=1}^N r_i^2\Bigg{]} + \frac{1}{2}\omega_{ho}^2 \sum_{i=1}^N r_i^2\\
+                &= \alpha Nd - 2\alpha^2 \sum_{i=1}^N r_i^2 + \frac{1}{2}\omega_{ho}^2 \sum_{i=1}^N r_i^2
+            \end{split}
+                \intertext{Choosing to set the oscillator frequency $\omega_{ho} = 1$ the ground state occurs for $\alpha = 0.5$. Which in turn yields a simple analytical expression}
+            \begin{split}
+                &= \frac{1}{2} Nd - \frac{1}{2} \sum_{i=1}^N r_i^2 + \frac{1}{2} \sum_{i=1}^N r_i^2 = \frac{Nd}{2}
+            \end{split}
+        \end{align}
+        which we would use to test our numerical solution for the Hamiltonian. \\
+
+        Finding an analytical expression for the drift force
+
+        \begin{align}
+            \begin{split}
+                F &= \frac{2\nabla \mathbf{\Psi}_T}{\mathbf{\Psi}_T}\\
+                \nabla \mathbf{\Psi}_T&= \sum_i \nabla_i \mathbf{\Psi}_T= -2\alpha \sum_i \mathbf{r}_i \mathbf{\Psi}_T\\
+                F &= \frac{-4\alpha \sum_i \mathbf{r}_i \mathbf{\Psi}_T}{\mathbf{\Psi}_T} = -4\alpha \sum_i \mathbf{r}_i\\
+                F_k &= -4\alpha \mathbf{r}_k
+            \end{split}
+        \end{align}
+    \end{@twocolumnfalse}
+]
+
+
+\twocolumn[
+    \begin{@twocolumnfalse}
+        Finding an expression for the numerical second derivative. We start with the second-order central derivative
+        
+        \begin{align}
+            f''(x) = \frac{f(x+h) - 2f(x) + f(x-h)}{h^2}
+        \end{align}
+        
+        Wave function second derivative
+        \begin{align}
+            \nabla^2 \mathbf{\Psi}_T(\mathbf{r}) &= \sum_i^N \nabla_i^2 \mathbf{\Psi}_T(\mathbf{r})
+            \intertext{for a particle $k$ in a 3 dimensional case}
+            \prod_{i \neq k} e^{-\alpha |\mathbf{r}_i|^2}\nabla^2_k e^{-\alpha |\mathbf{r}_k|^2} &= \prod_{i \neq k} e^{-\alpha |\mathbf{r}_i|^2} \left(\frac{\partial^2}{\partial x_k^2} + \frac{\partial^2}{\partial y_k^2} + \frac{\partial^2}{\partial z_k^2}\right) e^{-\alpha \left(x_k^2 + y_k^2 + z_k^2 \right)}
+        \end{align}
+
+        \begin{align}
+            \frac{\partial^2}{\partial x_k^2} e^{-\alpha \left(x_k^2 + y_k^2 + z_k^2 \right)} &= \frac{e^{-\alpha \left((x_k+h)^2 + y_k^2 + z_k^2 \right)} - 2e^{-\alpha \left(x_k^2 + y_k^2 + z_k^2 \right)} + e^{-\alpha \left((x_k-h)^2 + y_k^2 + z_k^2 \right)}}{h^2}
+        \end{align}
+
+        \begin{align}
+            \begin{split}
+                \left(\frac{\partial^2}{\partial x_k^2} + \frac{\partial^2}{\partial y_k^2} + \frac{\partial^2}{\partial z_k^2}\right) \! e^{-\alpha \left(x_k^2 + y_k^2 + z_k^2 \right)} \! =
+                \frac{- 2\cdot 3 e^{-\alpha \left(x_k^2 + y_k^2 + z_k^2 \right)}}{h^2} & + \! \left(exp\left((x_k+h)^2\right) + exp\left((x_k-h)^2\right)\right)/h^2 \\
+                & + \! \left(exp\left((y_k+h)^2\right) + exp\left((y_k-h)^2\right)\right)/h^2 \\
+                & + \! \left(exp\left((z_k+h)^2\right) + exp\left((z_k-h)^2\right)\right)/h^2
+            \end{split}
+        \end{align}
+
+        \begin{align}
+            \begin{split}
+                \prod_{i \neq k} e^{-\alpha |\mathbf{r}_i|^2}\nabla^2_k e^{-\alpha |\mathbf{r}_k|^2} = \frac{- 2\cdot 3 \mathbf{\Psi}_T(\mathbf{r})}{h^2} + \! \prod_{i \neq k} e^{-\alpha |\mathbf{r}_i|^2} &\Bigg{[} \left(exp\left((x_k+h)^2\right) + exp\left((x_k-h)^2\right)\right)/h^2 \\
+                & + \! \left(exp\left((y_k+h)^2\right) + exp\left((y_k-h)^2\right)\right)/h^2 \\
+                & + \! \left(exp\left((z_k+h)^2\right) + exp\left((z_k-h)^2\right)\right)/h^2 \Bigg{]}
+            \end{split}
+        \end{align}
+        
+        \textbf{Not the best notation but I had to make lemonades out of \LaTeX! \\}
+        
+        For a $d$-dimensional case
+        
+        \begin{align}
+            \begin{split}
+                \prod_{i \neq k} e^{-\alpha |\mathbf{r}_i|^2}\nabla^2_k e^{-\alpha |\mathbf{r}_k|^2} = \frac{- 2\cdot d \mathbf{\Psi}_T(\mathbf{r})}{h^2} + \! \prod_{i \neq k} e^{-\alpha |\mathbf{r}_i|^2} &\bigg{[} \left(exp\left((x_k+h)^2\right) + exp\left((x_k-h)^2\right)\right)/h^2 \\
+                & + \! \left(exp\left((y_k+h)^2\right) + exp\left((y_k-h)^2\right)\right)/h^2 \\
+                & + \! \left(exp\left((z_k+h)^2\right) + exp\left((z_k-h)^2\right)\right)/h^2 \bigg{]}
+            \end{split}
+        \end{align}
+        
+        Setting up for Gradient descent:
+
+        \begin{align}
+            \begin{split}
+                \bar{\mathbf{\Psi}}_T &= \frac{d\mathbf{\Psi}_T}{d\alpha} = \frac{d }{d\alpha} \prod_{i} e^{-\alpha r_i^2} = \frac{d }{d\alpha} e^{-\alpha\sum_i r_i^2} = -\sum_i r_i^2 \cdot e^{-\alpha \sum_i r_i^2}\\
+                \frac{\bar{\mathbf{\Psi}}_T}{\bar{\mathbf{\Psi}}_T} &= \frac{-\sum_i r_i^2 \cdot e^{-\alpha \sum_i r_i^2}}{e^{-\alpha\sum_i r_i^2}} = -\sum_i r_i^2
+            \end{split}
+        \end{align}
+    \end{@twocolumnfalse}
+]
+
+\twocolumn[
+    \begin{@twocolumnfalse}
+        \subsection{Calculations for interacting bosons}
+        \label{subsec:interacting}
+        \subsubsection{Scaling the Hamiltonian}
+         \begin{align}
+             H &= \sum_i^N \left( \frac{-\hbar^2}{2m}\nabla^2_i + V_{ext}(\mathbf{r})  \right) + \sum_{i<j} V_{int}\left( \mathbf{r}_i, \mathbf{r}_j \right) \\
+             &= \sum_i^N \left( \frac{-\hbar^2}{2m}\nabla^2_i + \frac{1}{2} m\Big{[} \omega_{ho}^2\left( x_i^2 + y_i^2 \right) + \omega_z^2 z_i^2 \Big{]}  \right) + \sum_{i<j} V_{int}\left( \mathbf{r}_i, \mathbf{r}_j \right) 
+             \intertext{For convenience we want to express the energy in units of $\hbar\omega$. Therefor we introduce a scaling factor $\hbar\omega_{ho}$}
+             &= \frac{\hbar\omega_{ho}}{2} \sum_i^N \left( -\frac{\hbar}{m\omega_{ho}}\nabla^2_i +  \frac{m \omega_{ho}}{\hbar}\Bigg{[} x_i^2 + y_i^2 + \frac{\omega_z^2}{\omega_{ho}^2} z_i^2 \Bigg{]}  \right) + \sum_{i<j} V_{int}\left( \mathbf{r}_i, \mathbf{r}_j \right)
+             \intertext{Inspecting the $\hbar/m\omega_{ho}$-factor we find that its physical SI unit is $m$. So naturally this our length scale and we define it as}
+             a_{ho} &= \sqrt{\hbar/m\omega_{ho}}
+             \intertext{which helps shape up the scaled lengths}
+             \mathbf{r'} &= \mathbf{r}/a_{ho} \implies \mathbf{r} = a_{ho}\mathbf{r'} \\
+             a' &= a/a_{ho} \implies a = a_{ho}a'
+             \intertext{and naturally the Laplacian becomes}
+             {\nabla'}_i^2 &= a_{ho}^2\nabla_i^2 \implies \nabla_i^2 = \frac{{\nabla'}_i^2}{a_{ho}^2}
+             \intertext{We also define the parameter}
+             \gamma &= \omega_z/\omega_{ho}
+             \intertext{Dividing the Hamiltonian by the scaling factor $\hbar\omega_{ho}$, yields}
+             &= \frac{1}{2} \sum_i^N \left( -a_{ho}^2\nabla^2_i +  a_{ho}^{-2}\Bigg{[} x_i^2 + y_i^2 + \gamma^2 z_i^2 \Bigg{]}  \right) + \sum_{i<j} V_{int}\left( \mathbf{r}_i, \mathbf{r}_j \right) \\
+             \intertext{then scaling the Hamiltonian}
+             &= \frac{1}{2} \sum_i^N \left( -{\nabla'}^2_i + {x'}_i^2 + {y'}_i^2 + \gamma^2 {z'}_i^2  \right) + \sum_{i<j} V_{int}\left( \mathbf{r}_i, \mathbf{r}_j \right)
+         \end{align}
+    \end{@twocolumnfalse}
+]
+
+\twocolumn[
+    \begin{@twocolumnfalse}
+        \subsubsection{The Local Energy}
+        \begin{align*}
+            E_L(\mathbf{r}) &= \frac{1}{\mathbf{\Psi}_T (\mathbf{r})} H \mathbf{\Psi}_T (\mathbf{r}) \\
+            H &= \sum_i^N \left( \frac{-\hbar^2}{2m}\nabla^2_i + V_{ext}(\mathbf{r})  \right) + \sum_{i<j} V_{int}\left( \mathbf{r}_i, \mathbf{r}_j \right)
+        \end{align*}
+        We start by rewriting eq. \ref{eq:correlated-WF} as
+        \begin{align}
+            \begin{split}
+                \mathbf{\Psi}_T \left( \mathbf{r} \right) &= \Bigg{[}\prod_i \phi(\mathbf{r}_i) \Bigg{]} \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right)
+                \label{eq:correlated-WF-App}
+            \end{split}
+            \intertext{where $r_{ij} = \abs{r_i - r_j}$ and where we have rewritten the one-body part}
+            \begin{split}
+                g\left( \alpha, \beta, \mathbf{r}_i \right) = \phi(\mathbf{r}_i)
+            \end{split}
+            \intertext{and the Jastrow factor}
+            \begin{split}
+                f(r_{ij}) &= exp \left( \sum_{i<j}^N u \left( r_{ij} \right) \right)
+            \end{split}
+        \end{align}
+        for $u$ is defined as $u(r_{ij}) = \ln f(r_{ij})$. To keep things tidy we define $\Psi_{OB}$ to be the one body-part and $\Psi_C$ to be the correlated part of eq. \ref{eq:correlated-WF-App}. The gradient $\nabla_k$ of a particle $k$ can be found by solving
+        \begin{align}
+            \nabla_k \Psi_T &= \Psi_C \nabla_k \Psi_{OB} + \Psi_{OB}\nabla_k \Psi_C \\
+            \nabla_k \Psi_{OB} &= \nabla_k \prod_i \phi(\mathbf{r}_i)  = \nabla_k \phi(\mathbf{r}_k)\prod_{i\neq k} \phi(\mathbf{r}_i) \\
+            \nabla_k \Psi_C &= \nabla_k \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) = \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) \sum_{l\neq k} \nabla_k u(r_{kl})
+        \end{align}
+        Where we've used the fact that all the terms $r_{ij}$ that don't contain the position $r_k$ of particle $k$ are zero and we're left with $r_k$ dependent terms. Thus, the first derivative can now be expressed as
+        \begin{align}
+            \nabla_k \Psi_T &= \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) \cdot \nabla_k \phi(\mathbf{r}_k) \prod_{i\neq k} \phi(\mathbf{r}_i) + \prod_i \phi(\mathbf{r}_i)  \cdot \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) \sum_{l\neq k} \nabla_k u(r_{kl})
+        \end{align}
+        The Laplacian
+        \begin{align}
+            \begin{split}
+                \nabla_k^2 \Psi_T = \nabla_k \Bigg{[} \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) \cdot \prod_{i\neq k} \phi(\mathbf{r}_i) \nabla_k \phi(\mathbf{r}_k) + \prod_i \phi(\mathbf{r}_i)  \cdot \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) \sum_{l\neq k} \nabla_k u(r_{kl}) \Bigg{]}
+            \end{split}
+            \intertext{Starting with the first term}
+            \begin{split}
+                \nabla_k \Bigg{[} \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) \cdot \prod_{i\neq k} \phi(\mathbf{r}_i) \nabla_k \phi(\mathbf{r}_k) \Bigg{]} = \nabla_k^2 \phi(\mathbf{r}_k) \prod_{i\neq k} \phi(\mathbf{r}_i) &\cdot \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) \\
+                & + \nabla_k \phi(\mathbf{r}_k) \prod_{i\neq k} \phi(\mathbf{r}_i) \cdot \nabla_k \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) \\
+            \end{split}
+        \end{align}
+    \end{@twocolumnfalse}
+]
+
+\twocolumn[
+    \begin{@twocolumnfalse}
+        \begin{align}
+            &= \nabla_k^2 \phi(\mathbf{r}_k) \prod_{i\neq k} \phi(\mathbf{r}_i) \cdot \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) + \nabla_k \phi(\mathbf{r}_k) \prod_{i\neq k} \phi(\mathbf{r}_i) \cdot \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) \sum_{l\neq k} \nabla_k u(r_{kl})
+        \end{align}
+        Now for the second term
+        \begin{align}
+            \begin{split}
+                \nabla_k \Bigg{[} \prod_i \phi(\mathbf{r}_i) \cdot \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) \sum_{l\neq k} \nabla_k u(r_{kl}) \Bigg{]} &= \nabla_k \prod_i \phi(\mathbf{r}_i) \cdot \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) \sum_{l\neq k} \nabla_k u(r_{kl}) \\
+                &\qquad + \prod_i \phi(\mathbf{r}_i)  \cdot \nabla_k \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) \sum_{l\neq k} \nabla_k u(r_{kl}) \\
+                &\qquad + \prod_i \phi(\mathbf{r}_i)  \cdot \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) \nabla_k \sum_{l\neq k} \nabla_k u(r_{kl}) \\
+                &= \prod_{i\neq k} \phi(\mathbf{r}_i) \nabla_k \phi(\mathbf{r}_k) \cdot \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) \sum_{l\neq k} \nabla_k u(r_{kl}) \\
+                &\qquad + \prod_i \phi(\mathbf{r}_i)  \cdot \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) \sum_{m\neq k} \nabla_k u(r_{km}) \cdot \sum_{l\neq k} \nabla_k u(r_{kl}) \\
+                &\qquad + \prod_i \phi(\mathbf{r}_i)  \cdot \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) \sum_{l\neq k} \nabla_k^2 u(r_{kl})
+            \end{split}
+        \end{align}
+        Which yields
+        \begin{align}
+            \begin{split}
+                \nabla_k^2 \Psi_T =  \nabla_k^2 \phi(\mathbf{r}_k) \prod_{i\neq k} \phi(\mathbf{r}_i) \cdot \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) &+ 2 \nabla_k \phi(\mathbf{r}_k) \prod_{i\neq k} \phi(\mathbf{r}_i) \cdot \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) \sum_{l\neq k} \nabla_k u(r_{kl}) \\
+                & + \prod_i \phi(\mathbf{r}_i)  \cdot \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) \sum_{m\neq k} \nabla_k u(r_{km}) \cdot \sum_{l\neq k} \nabla_k u(r_{kl}) \\
+                & + \prod_i \phi(\mathbf{r}_i)  \cdot \text{exp} \left( \sum_{i<j}^N u \left( r_{ij} \right) \right) \sum_{l\neq k} \nabla_k^2 u(r_{kl})
+            \end{split}
+        \end{align}
+        \begin{align}
+            \intertext{The Laplacian-term in the local energy}
+            \frac{1}{\mathbf{\Psi}_T}\nabla_k^2 \mathbf{\Psi}_T &= \frac{\nabla_k^2 \phi(\mathbf{r}_k)}{\phi(\mathbf{r}_k)} + 2\frac{\nabla_k \phi(\mathbf{r}_k)}{\phi(\mathbf{r}_k)} \sum_{l\neq k} \nabla_k u(r_{kl}) + \sum_{m\neq k} \nabla_k u(r_{km}) \cdot \sum_{l\neq k} \nabla_k u(r_{kl}) + \sum_{l\neq k} \nabla_k^2 u(r_{kl})
+            \intertext{Now for the $\nabla_k \phi$-term}
+            \frac{\nabla_k \phi(\mathbf{r}_k)}{\phi(\mathbf{r}_k)} &= \frac{\nabla_k e^{-\alpha\mathbf{r}_k}}{\phi(\mathbf{r}_k)} = \frac{-2\alpha\mathbf{r}_k e^{-\alpha\mathbf{r}_k^2}}{\phi(\mathbf{r}_k)} = -2\alpha\mathbf{r}_k \frac{\phi(\mathbf{r}_k)}{\phi(\mathbf{r}_k)} = -2\alpha\mathbf{r}_k
+            \intertext{as for the $\nabla_k^2 \phi$-term}
+            \frac{\nabla_k^2 \phi(\mathbf{r}_k)}{\phi(\mathbf{r}_k)} &= -2\alpha \frac{\nabla_k \mathbf{r}_k \phi(\mathbf{r}_k)}{\phi (\mathbf{r}_k)} = -2\alpha \frac{\nabla_k \big{[} x_k, y_k, \beta z_k \big{]}e^{-\alpha\mathbf{r}_k^2}}{\phi (\mathbf{r}_k)}  \\
+            &= -2\alpha \frac{(1+1+\beta)e^{-\alpha\mathbf{r}_k^2} - 2\alpha \mathbf{r}_k^2 e^{-\alpha\mathbf{r}_k^2}}{\phi (\mathbf{r}_k)} = \frac{4\alpha^2\mathbf{r}_k^2 e^{-\alpha\mathbf{r}_k^2} -2\alpha(2 + \beta) e^{-\alpha\mathbf{r}_k^2}}{\phi (\mathbf{r}_k)} \\
+            &= \frac{\Big{[} 4\alpha^2\mathbf{r}_k^2 -2\alpha(2 + \beta) \Big{]} \phi(\mathbf{r}_k)}{\phi (\mathbf{r}_k)} = 4\alpha^2\mathbf{r}_k^2 -2\alpha(2 + \beta)
+        \end{align}
+    \end{@twocolumnfalse}
+]
+
+\twocolumn[
+    \begin{@twocolumnfalse}
+        \begin{align}
+            \intertext{as for $\nabla_k u(r_{kl})$}
+            \nabla_k u(r_{kl}) &=  u'(r_{kl}) \nabla_k r_{kl} = u'(r_{kl}) \nabla_k \sqrt{\left( \mathbf{r}_k - \mathbf{r}_l \right)^2} = u'(r_{kl}) \frac{\mathbf{r}_k - \mathbf{r}_l}{\sqrt{\left( \mathbf{r}_k - \mathbf{r}_l \right)^2}} = u'(r_{kl})\frac{\Delta r_{kl}}{r_{kl}} \\
+            u'(r_{kl}) &= \frac{\partial u(r_{kl})}{\partial r_{kl}} = \frac{a}{r_{kl}\left( r_{kl} - a \right)}
+            \intertext{as for $\nabla_k^2 u(r_{kl})$}
+            \nabla_k^2 u(r_{kl}) &= \nabla_k u'(r_{kl})\frac{\Delta r_{kl}}{r_{kl}} = u''(r_{kl}) + u'(r_{kl}) \nabla_k  \frac{\Delta r_{kl}}{r_{kl}} = u''(r_{kl}) + u'(r_{kl}) \frac{2}{r_{kl}} \\ 
+            u''(r_{kl}) &= \frac{\partial}{\partial r_{kl}} u'(r_{kl}) = \frac{a^2 - 2a r_{kl}}{r_{kl}^2 (r_{kl}-a)^2}
+            \intertext{The full expression for the Laplician-term in the local energy becomes}
+            \frac{1}{\mathbf{\Psi}_T}\nabla_k^2 \mathbf{\Psi}_T &= 4\alpha^2\mathbf{r}_k^2 -2\alpha(2 + \beta) \\
+            &\qquad + 2(-2\alpha\mathbf{r}_k) \sum_{l\neq k} u'(r_{kl})\frac{\Delta r_{kl}}{r_{kl}} \\
+            &\qquad + \sum_{m\neq k} u'(r_{km})\frac{\Delta r_{km}}{r_{km}} \cdot \sum_{l\neq k} u'(r_{kl})\frac{\Delta r_{kl}}{r_{kl}} \\
+            &\qquad + \sum_{l\neq k} u''(r_{kl}) + u'(r_{kl}) \frac{2}{r_{kl}}  \\
+            &= 4\alpha^2\mathbf{r}_k^2 -2\alpha(2 + \beta) \\
+            &\qquad + 2(-2\alpha\mathbf{r}_k) \sum_{l\neq k} \frac{a}{r_{kl}\left( r_{kl} - a \right)} \cdot \frac{\Delta r_{kl}}{r_{kl}} \\
+            &\qquad + \sum_{m\neq k} \frac{a}{r_{km}\left( r_{km} - a \right)} \cdot \frac{\Delta r_{km}}{r_{km}} \cdot \sum_{l\neq k} \frac{a}{r_{kl}\left( r_{kl} - a \right)} \cdot \frac{\Delta r_{kl}}{r_{kl}} \\
+            &\qquad + \sum_{l\neq k} \left(\frac{a^2 - 2a r_{kl}}{r_{kl}^2 (r_{kl}-a)^2} + \frac{a}{r_{kl}\left( r_{kl} - a \right)} \cdot \frac{2}{r_{kl}}\right) \\
+            &= 4\alpha^2\mathbf{r}_k^2 -2\alpha(2 + \beta) \\
+            &\qquad - 4\alpha\mathbf{r}_k \sum_{l\neq k} \frac{a}{\left( r_{kl} - a \right)} \frac{\Delta r_{kl}}{r_{kl}^2} \\
+            &\qquad + \sum_{l, m\neq k} \frac{a^2}{\left( r_{kl} - a \right)\left( r_{km} - a \right)} \frac{\Delta r_{kl} \Delta r_{km}}{r_{kl}^2 r_{km}^2} \\
+            &\qquad + \sum_{l\neq k} \left(\frac{a^2 - 2a r_{kl}}{r_{kl}^2 (r_{kl}-a)^2} + \frac{2a}{r_{kl}^2\left( r_{kl} - a \right)}\right)
+        \end{align}
+    \end{@twocolumnfalse}
+    
+\section{Method}
+
+\subsection{Natural Units}
+* For generality and computation speed we are going to make all our calculation in natural units of the system where all the constants in the Hamiltonian $\hbar = m = \omega_{ho} = 1 $.  These natural units are really useful to avoid dealing with a lot of constants and small numbers that could lead to truncation errors form the computer, moreover,in  order  to  restore  the  normal  units  just  a  trivial  dimensional  analysis  is  needed  and  these  results  can  therefore  be applied to a large variety of physical systems.*
+
+For the spherical case $\beta = 1$ and non-interacting $a=0$, $f= 1$. See \href{}{\color{blue}{GITHUB PROJECT}}. We obtain a special case of the trial function
+
+\begin{align}
+    \mathbf{\Psi}_T \left( \mathbf{r}_1, \mathbf{r}_2, \mathbf{r}_3, \dots, \mathbf{r}_N, a= 0 , \beta = 1  \right)  = \prod_i e^{-\alpha r_i^2}
+\end{align}
+
+\textit{the simple Gaussian wave function}
+
+\subsection{Variational Monte Carlo}
+\textit{Everything here is strictly derived from the lecture notes \cite{VMC} for VMC.}
+
+Given the expectation value of the energy as shown in the \textbf{Introduction}
+
+\begin{align}
+    \left\langle E \right\rangle = \frac{\int d\mathbf{R} \mathbf{\Psi}_T^*(\mathbf{R},\alpha) H(\mathbf{R}) \mathbf{\Psi}_T(\mathbf{R},\alpha)}{\int d\mathbf{R} \mathbf{\Psi}_T^*(\mathbf{R},\alpha)\mathbf{\Psi}_T(\mathbf{R},\alpha)}
+    \label{eq:energy-expectation-value-2}
+\end{align}
+
+Using the quantum properties of the wave function we devise a probability density function (PDF) defined as
+
+\begin{align}
+    P(\mathbf{R}) = \frac{ \abs{\mathbf{\Psi}_T}^2 }{ \int \abs{\mathbf{\Psi}_T}^2 d\mathbf{R} }
+\end{align}
+
+and then another useful quantity referred to as the local energy
+
+\begin{align}
+    E_L(\mathbf{R}) = \frac{1}{\mathbf{\Psi}_T (\mathbf{R})}H \mathbf{\Psi}_T (\mathbf{R})
+\end{align}
+
+Together they yield a new expression for the expectation value
+
+\begin{align}
+    \left\langle E \right\rangle = \int P(\mathbf{R}) E_L (\mathbf{R}; \alpha) d\mathbf{R} \approx \frac{1}{N} \sum_{i=1}^N E_L(\mathbf{R}_i; \alpha)
+\end{align}
+
+$N$ being the number of MC-cycles. This approximation stems from the Bernoulli's law of large numbers, which stats that the sample mean approches the true mean as $N \rightarrow \infty$.
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{|p{0.95\textwidth}|}
+        \hline Preforming a Variational Monte Carlo calculation \\ \hline
+        \begin{itemize}
+            \item For a value of $\alpha$ evaluate the wave function $\psi_{old}$ for the many-body system of $N$ particles located in the position given by $\mathbf{R}$ together with the local energy and it's squared counterpart.
+            \item Draw a random particle and propose a change $R' = R + r\ \cdot\ \text{step}$, where $r \in [ -0.5, 0.5 ]$ is a random variable and step is a tuned MC step length.
+            \item Evaluate the wave function $\psi_{new}$ from that calculate the Metropolis test $\abs{\psi_{old}}^2/\abs{\psi_{new}}^2$ in order to accept or decline the proposed change.
+        \end{itemize}
+        $$A_{i \rightarrow j} = \text{min}\left( 1, \frac{\abs{\psi_{old}}^2}{\abs{\psi_{new}}^2} \right)$$
+        \begin{itemize}
+            \item If the proposed change is accepted calculate the local energy for the new wave function, store these values.
+            \item Repeat $N$ times and compute the averages at the end.
+            \item A true energy minimum is reached when the variance $\sigma_E(\alpha) = \left\langle E^2 \right\rangle - \left\langle E \right\rangle^2 = 0$
+        \end{itemize} \\ \hline
+    \end{tabular}
+    \caption{VMC overview}
+    \label{tab:VMC}
+\end{table}
+
+\subsection{The Metropolis-Hastings Algorithm}
+
+\textit{Everything here is strictly derived from the lecture notes \cite{Importance-Sampling} for Importance Sampling.} \\
+
+The Fokker-Planck equation 
+
+\begin{align}
+    \frac{\partial P(x,t)}{\partial t} = D \frac{\partial}{\partial x}\left( \frac{\partial}{\partial x} - F \right) P(x,t)
+    \label{eq:Flocker-Planck}
+\end{align}
+
+$D$ is the diffusion coefficient, $F$ is the drift term (the quantum force in our case) and $P$ is the probability density. The goal here is to use eq. \ref{eq:Flocker-Planck} to derive a better sampling rule with a higher acceptance ratio. Solving eq. \ref{eq:Flocker-Planck} as shown in \cite{Importance-Sampling}, yields a solution for the quantum force $F$ given by
+
+\begin{align}
+    F = 2\frac{\nabla \mathbf{\Psi}_T}{\mathbf{\Psi}_T}
+    \label{eq:Drift-term}
+\end{align}
+
+The new position is determined by the Langevin equation 
+
+\begin{align}
+    \frac{\partial x(t)}{\partial t} = D F\left( x(t)\right) + \eta
+    \label{eq:Langevin}
+\end{align}
+
+
+where $\eta$ is a random variable, yielding a new position
+
+\begin{align}
+    y = x + DF(x)\Delta t + \eta\sqrt{\Delta t}
+\end{align}
+
+The quantity $D$ is, in atomic units, $1/2$ which stems from the $1/2$ factor in the kinetic energy. $\Delta t$ is a parameter in itself and values of $\Delta t \in \left[ 0.001,0.01 \right]$ yield stable values of the ground state energy, according to \cite{Importance-Sampling}. 
+
+A solution of the Fokker-Planck equation, yields the transition probability that will determine the acceptance ratio. This solution is know as the Green's function
+
+\begin{align}
+    G\left(y,x,\Delta t\right) = \frac{1}{\left( 4\pi D\Delta t \right)^{3N/2}} e^{\left( -\left(y-x-D\Delta t F(x)\right)^2/ 4D\Delta t \right)}
+\end{align}
+
+
+Thus Metropolis-Hastings substitute the transition probabilities from the prior ordinary Metropolis with the Green's function. Yielding an acceptance probability
+
+\begin{align}
+    A(y,x) = min\left( 1, \frac{G(x,y,\Delta t)\abs{\mathbf{\Psi}_T(y)}^2}{G(y,x,\Delta t)\abs{\mathbf{\Psi}_T(x)}^2} \right)
+\end{align}
+
+{\Large CHANGE THIS PART} In the ordinary Metropolis algorithm, we have a so-called brute-force sampling method, and far from all suggestions will actually be accepted (typically less than 50\%).  By using the Langevin equation, this ratio of accepted moves can be increased. A suggested move will still be done on a random particle, but the direction will be biased in the direction given by the Langevin equation,
+
+\subsection{Gradient Descent}
+
+\textit{Everything here is strictly derived from the lecture notes \cite{Gradient-Descent} for Gradient Descent.} \\
+
+For the non-interacting case we managed to determine analytically which value for $\alpha$ coincides with the ground state. It's not always apparent which value of our variational parameter yields the ground state energy and for that we need a method to determine the minimum value. Here's where The Gradient Descent method comes in
+
+\begin{align}
+    \alpha_{i+1} &= \alpha_i + \gamma \nabla \left\langle E_L (\alpha_i) \right\rangle
+\end{align}
+
+Where we've used the derivative of the expectation value for the local energy wrt. $\alpha$ as a cost function to find the best-suited value of $\alpha$ that minimizes the local energy, which in turn approaches the ground state and $\gamma$ is a manually selected step length. So instead of having to manually find the best optimal variational parameter, which might be tough manually now, we will be using this iterative scheme to hopefully determine where the global minimum lies. Since, Gradient descent has one design flaw and that is this approach finds a minimum disregarding whether it's a local or a global one. Meaning the initial guess is very important in regard to finding the global minimum and thus some trial and error must be expected.
+
+As for the cost function 
+
+\begin{align}
+    \bar{E}_\alpha &= \nabla \left\langle E_L (\alpha_i) \right\rangle = \frac{d\left\langle E_L (\alpha_i) \right\rangle}{d\alpha}
+\end{align}
+
+by the chain rule and the hermiticity of the Hamiltonian the derivative wrt. $\alpha$ is given by
+
+\begin{align}
+    \bar{E}_\alpha &= 2\left( \left\langle \frac{\bar{\mathbf{\Psi}}_\alpha}{\mathbf{\Psi}_\alpha} E_L(\alpha) \right\rangle - \left\langle \frac{\bar{\mathbf{\Psi}}_\alpha}{\mathbf{\Psi}_\alpha}  \right\rangle \left\langle E_L(\alpha) \right\rangle \right)
+\end{align}
+
+Where
+
+\begin{align}
+    \bar{\mathbf{\Psi}}_\alpha &= \frac{d \mathbf{\Psi}_\alpha}{d\alpha}
+\end{align}
+
+is the derivative of the wave function wrt. $\alpha$.
