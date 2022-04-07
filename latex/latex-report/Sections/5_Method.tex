@@ -6,3 +6,21 @@
 \subsection{Project Method 1}\label{sec:project method}
 %----------------------------------------------------------------
 
+%----------------------------------------------------------------
+\subsection*{Monte Carlo method for evaluating integrals.}
+%----------------------------------------------------------------
+The Monte Carlo (MC) method for evaluating integrals is a stochastic method that samples evaluations of the function (or a property of the function) uniformly over the domain of the integral, and returns the mean value of these. As we increase the number of evaluations, the law of large numbers tells us that the mean value will approach the expectation value. When the dimensionality of the problem becomes large, it is computationally very costly to evaluate the integral using numerical methods.
+
+%----------------------------------------------------------------
+\subsection*{Markov Chain Monte Carlo}
+%----------------------------------------------------------------
+We want to evaluate the integral 
+\begin{equation}
+    I = \int_{D\in\mathcal{R^{n, d}}}\hat{Q}P(\mathbf{x_1}, \dots, \mathbf{x_n})d\mathbf{x_1}\dots d\mathbf{x_n},
+\end{equation}
+where $\hat{Q}$ is an operator that acts on the $n\times d$-dimensional probability distribution $P(\mathbf{x_1}, \dots, \mathbf{x_n})$, where $\mathbf{x_i}$ is $d$-dimensional vectors for $1\leq i\leq n$, and $i\in\mathbb{N}$. 
+
+%----------------------------------------------------------------
+\subsection*{Variational Monte Carlo}
+%----------------------------------------------------------------
+Given a Hamiltonian $\hat{H}$ and a trial wave function $\Psi_T$, the variational principle states that the expectation value of $\langle \hat{H} \rangle$, defined through
