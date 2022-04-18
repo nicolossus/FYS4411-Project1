@@ -253,10 +253,14 @@ class AIB(WaveFunction):
 
     def dudr(self, r, a=0.00433):
         """
-
+        Parameters:
+        -----------
+        r           : np.ndarray, shape=(n_particles, dim)
+        a           : float,
+                    hard sphere diameter
         Returns:
         ---------
-        dudr        : np.ndarray, shape=(n_particles, dim)
+        dudr        : np.ndarray, shape=(n_particles, n_particles, dim)
         """
         N = self._N
         d = self._d
@@ -268,15 +272,20 @@ class AIB(WaveFunction):
             scaler[j,i] = scaler[i,j]
         unit_matrix = self.unit_matrix(r)
         dudr = unit_matrix*scaler
-        dudr = np.sum(dudr, axis=0)
+        #dudr = np.sum(dudr, axis=0)
         #print("Shape dudr: ", dudr.shape)
         return dudr
 
     def d2udr2(self, r, a=0.00433):
-        """
+        """Returns second derivative of u wrt all distances.
+        Parameters:
+        -----------
+        r           : np.ndarray, shape=(n_particles, dim)
+        a           : float,
+                    hard sphere diameter
 
         Returns:
-        ---------
+        -----------
         d2udr2      : np.ndarray, shape=(n_particles, n_particles)
         """
         N = self._N
@@ -286,6 +295,26 @@ class AIB(WaveFunction):
             rij = distance_matrix[i,j]
             d2udr2[i,j] = a*(a-2*rij)/(rij*rij*(a-rij)*(a-rij))
         return d2udr2
+
+    def fourth_term(self, r, a=0.00433):
+        """Compute terms u'' + 2/r*u'
+        Parameters:
+        -----------
+        r           : np.ndarray, shape=(n_particle, dim)
+        a           : float,
+                    hard sphere diameter
+        Returns:
+        -----------
+        fourth_term : np.ndarray, shape=(n_particles, n_particles)
+        """
+        N = self._N
+        distance_matrix = self.distance_matrix(r)
+        fourth_term = np.zeros((N, N))
+        for i, j in zip(*self._triu_indices):
+            rij = distance_matrix[i,j]
+            fourth_term[i,j] = -a*a/(rij*rij*(a-rij)*(a-rij))
+            fourth_term[j,i] = fourth_term[i,j]
+        return fourth_term
 
 
     def local_energy(self, r, alpha, a=0.00433):
@@ -305,33 +334,34 @@ class AIB(WaveFunction):
         """
         N = self._N
         d = self._d
-        unit_matrix = self.unit_matrix(r)
-        distance_matrix = self.distance_matrix(r)
+        #unit_matrix = self.unit_matrix(r)
+        #distance_matrix = self.distance_matrix(r)
         dudr = self.dudr(r)
+        fourth_term_vals = self.fourth_term(r)
 
         non_interacting_part = self._Nd * alpha + \
             (0.5*self._omega2 - 2 * alpha * alpha) * np.sum(r * r)
         #start = time.time()
-        #second_term = -4*alpha*np.sum(np.diag(np.inner(r, dudr)))
+        second_term = -4*alpha*np.sum(np.diag(np.inner(r, np.sum(dudr, axis=0))))
         #end = time.time()
         #print("second term inner: ", second_term)
         #print("time inner: ", end-start)
         #start = time.time()
-        second_term = -4*alpha*np.sum(np.einsum("nd,nd->n", r, dudr))
+        #opt_path = np.einsum_path("nd, nd->n", r, dudr, optimize="greedy")
+        #second_term = -4*alpha*np.sum(np.einsum("nd,nd->n", r, np.sum(dudr, axis=0), optimize="greedy"))
         #end = time.time()
-        #print("second term einsum: ", second_term_einsum)
+        #print("second term einsum: ", second_term)
         #print("time einsum: ", end-start)
-        scaler = np.zeros((N, N, 1))
-        value_fourth_term = np.zeros((N, N))
-        for i, j in zip(*self._triu_indices):
-            rij = distance_matrix[i,j]
-            scaler[i,j,0] = a/(rij*rij-a*rij)
-            scaler[j,i,0] = scaler[i,j,0]
-            value_fourth_term[i,j] = scaler[i,j]*2/rij
-            value_fourth_term[j,i] = value_fourth_term[i,j]
-            fourth_term_mat = -a*a/(rij*rij*(a-rij)*(a-rij))
+        #scaler = np.zeros((N, N, 1))
+        #value_fourth_term = np.zeros((N, N))
+        #for i, j in zip(*self._triu_indices):
+        #    rij = distance_matrix[i,j]
+        #    scaler[i,j,0] = a/(rij*rij-a*rij)
+        #    scaler[j,i,0] = scaler[i,j,0]
+        #    value_fourth_term[i,j] = a*(a-2*rij)/(rij*rij*(a-rij)*(a-rij)) + scaler[i,j]*2/rij
+        #    value_fourth_term[j,i] = value_fourth_term[i,j]
 
-        scaled_unit_matrix = scaler*unit_matrix
+        #scaled_unit_matrix = scaler*unit_matrix
 
 
         #third_term = 0
@@ -355,11 +385,15 @@ class AIB(WaveFunction):
         #print("third_term : ", third_term)
         #print("double loop elapsed time:", end - start)
         #start = time.time()
-        third_term = np.sum(np.einsum("ijk, ajk -> ija", scaled_unit_matrix, scaled_unit_matrix))
+        #opt_path = np.einsum("ijk, ajk->ija", scaled_unit_matrix, scaled_unit_matrix, optimize="greedy")
+        third_term = np.einsum("ijk, ajk ->", dudr, dudr, optimize="greedy")
         #end = time.time()
         #print("third_term einsum: ", third_term)
         #print("einsum elapsed time:", end - start)
-        fourth_term = np.sum(fourth_term_mat)
+        #fourth_term = np.sum(value_fourth_term)
+        #print("Fourth term prev: ", fourth_term)
+        fourth_term = np.sum(fourth_term_vals)
+        #print("Fourth term: ", fourth_term)
 
         local_energy = non_interacting_part + second_term + third_term + fourth_term
 
@@ -367,20 +401,71 @@ class AIB(WaveFunction):
 
     def drift_force(self, r, alpha):
         dudr = self.dudr(r)
-        drift_force = -4*alpha*r + dudr
+        drift_force = -4*alpha*r + np.sum(dudr, axis=0)
         return drift_force
 
     def grad_alpha(self, r, alpha):
         return -np.sum(r*r)
 
-    def third_term(self, scaled_unit_matrix):
+    def second_inner(self, r, alpha):
+        dudr = self.dudr(r)
+        start = time.time()
+        second_term = -4*alpha*np.sum(np.diag(np.inner(r, np.sum(dudr, axis=0))))
+        end = time.time()
+        return second_term, end-start
+
+    def second_term_for(self, r, alpha):
+        second_term = 0
+        scaled_unit_matrix = self.dudr(r)
+        start = time.time()
+        scaled_unit_matrix = np.sum(scaled_unit_matrix, axis=0)
+        for i in range(self._N):
+            second_term += np.dot(r[i, :], scaled_unit_matrix[i, :])
+        second_term = second_term*(-4*alpha)
+        end = time.time()
+        return second_term, end-start
+
+    def third_term_double_for(self, scaled_unit_matrix):
         val = 0
         N = self._N
+        start = time.time()
         for i in range(N):
             row = scaled_unit_matrix[i, :, :]
             for element in row:
                 val += np.sum(element*row)
-        return val
+        end = time.time()
+        return val, end-start
+
+    def third_term_triple_for(self, scaled_unit_matrix):
+        third_term = 0
+        start = time.time()
+        for i in range(self._N):
+            for j in range(self._N):
+                for k in range(self._N):
+                    third_term += np.dot(scaled_unit_matrix[i, j, :],scaled_unit_matrix[i, k, :])
+        end = time.time()
+        return third_term, end-start
+
+    def test_terms_in_lap(self, r, scaled_unit_matrix, alpha):
+        print("Second terms: ")
+        second_for = self.second_term_for(r, alpha)
+        print("Second for val: {}, time: {}".format(second_for[0], second_for[1]))
+        second_inner = self.second_inner(r, alpha)
+        print("Second inner val: {}, time: {}".format(second_inner[0], second_inner[1]))
+        dudr = np.sum(scaled_unit_matrix, axis=0)
+        start = time.time()
+        second_einsum = -4*alpha*np.einsum("nd,nd->", r, dudr, optimize="greedy")
+        end = time.time()
+        print("Second einsum val: {}, time: {}".format(second_einsum, end-start))
+        print("Third terms: ")
+        triple_for = self.third_term_triple_for(scaled_unit_matrix)
+        print("Triple for val: {}, time: {}".format(triple_for[0], triple_for[1]))
+        double_for = self.third_term_double_for(scaled_unit_matrix)
+        print("Double for val: {}, time: {}".format(triple_for[0], triple_for[1]))
+        start = time.time()
+        third_einsum = np.einsum("ijk, ajk -> ", scaled_unit_matrix, scaled_unit_matrix, optimize="greedy")
+        end = time.time()
+        print("Einsum val: {}, time: {}".format(third_einsum, end-start))
 
 class LogNIB(System):
     """
