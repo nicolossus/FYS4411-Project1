@@ -169,14 +169,23 @@ class AIB(WaveFunction):
 
         Returns
         ---------
-        array_like  :   np.ndarray, shape=(n_particles, dim, n_particles)
+        array_like  :   np.ndarray, shape=(n_particles, dim)
+                    single particle wfs order in dim-dimensional arrays,
+                    all scaled by the Jastrow factor. 
         """
         f = self.f(r)
         return np.exp(-alpha*r*r)*f
 
     def wf_scalar(self, r, alpha):
         """Finds scalar value of the wave function.
-
+        Parameters:
+        -----------
+        r          : np.ndarray, shape=(n_particles, dim)
+        alpha      : float
+        Returns:
+        -----------
+        wf_scalar  : float
+                    sum of all single particle wfs.
         """
         distance_vector = self.distance_vector(r)
         u_vector = self.u(distance_vector)
@@ -198,6 +207,15 @@ class AIB(WaveFunction):
         return distance_matrix
 
     def distance_vector(self, r):
+        """Orders all distances between the particles in a vector of length
+        len(self._triu_indices[0])
+        Parameters:
+        -----------
+        r           : np.ndarray, shape=(n_particles, dim)
+        Returns:
+        -----------
+        distance_vector : np.ndarray, shape=(len(_triu_indices[0]),)
+        """
         distance_matrix = self.distance_matrix(r)
         distance_vector = []
         for i, j in zip(*self._triu_indices):
@@ -243,6 +261,18 @@ class AIB(WaveFunction):
         return u
 
     def f(self, r, a=0.00433):
+        """Jastrow factor
+        Parameters:
+        -----------
+        r           : np.ndarray, shape=(n_particles, dim)
+        a           : float,
+                    hard sphere diameter
+        Returns:
+        -----------
+        float,
+                    product of all interactions (1-a/r)
+
+        """
         N = self._N
         i, j = np.triu_indices(N, 1)
         axis = 1
@@ -336,7 +366,7 @@ class AIB(WaveFunction):
             laplacian in non-interacting case
         second_term          : float
             dot product between all r[i, :] and dudr[i,:] where dudr has had its
-            first axis summed out. 
+            first axis summed out.
         third_term           : float
             dot product between all dudr[i,j, :] and dudr[i, :, :]
         fourth_term          : float
