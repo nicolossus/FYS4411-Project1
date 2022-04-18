@@ -272,8 +272,6 @@ class AIB(WaveFunction):
             scaler[j,i] = scaler[i,j]
         unit_matrix = self.unit_matrix(r)
         dudr = unit_matrix*scaler
-        #dudr = np.sum(dudr, axis=0)
-        #print("Shape dudr: ", dudr.shape)
         return dudr
 
     def d2udr2(self, r, a=0.00433):
@@ -322,78 +320,39 @@ class AIB(WaveFunction):
 
         Parameters
         ----------
-        r : np.ndarray, shape=(n_particles, dim)
+        r               :   np.ndarray, shape=(n_particles, dim)
             Particle positions
-        alpha : float
+        alpha           :   float
             Variational parameter
 
         Returns
-        -------
-        float
+        ----------
+        local_energy    :   float
             Computed local energy
+
+        Intermediates
+        -------------
+        non_interacting_part : float
+            laplacian in non-interacting case
+        second_term          : float
+            dot product between all r[i, :] and dudr[i,:] where dudr has had its
+            first axis summed out. 
+        third_term           : float
+            dot product between all dudr[i,j, :] and dudr[i, :, :]
+        fourth_term          : float
+            sum of all u'' + 2/r*u'
         """
-        N = self._N
-        d = self._d
-        #unit_matrix = self.unit_matrix(r)
-        #distance_matrix = self.distance_matrix(r)
         dudr = self.dudr(r)
         fourth_term_vals = self.fourth_term(r)
 
         non_interacting_part = self._Nd * alpha + \
             (0.5*self._omega2 - 2 * alpha * alpha) * np.sum(r * r)
-        #start = time.time()
+
         second_term = -4*alpha*np.sum(np.diag(np.inner(r, np.sum(dudr, axis=0))))
-        #end = time.time()
-        #print("second term inner: ", second_term)
-        #print("time inner: ", end-start)
-        #start = time.time()
-        #opt_path = np.einsum_path("nd, nd->n", r, dudr, optimize="greedy")
-        #second_term = -4*alpha*np.sum(np.einsum("nd,nd->n", r, np.sum(dudr, axis=0), optimize="greedy"))
-        #end = time.time()
-        #print("second term einsum: ", second_term)
-        #print("time einsum: ", end-start)
-        #scaler = np.zeros((N, N, 1))
-        #value_fourth_term = np.zeros((N, N))
-        #for i, j in zip(*self._triu_indices):
-        #    rij = distance_matrix[i,j]
-        #    scaler[i,j,0] = a/(rij*rij-a*rij)
-        #    scaler[j,i,0] = scaler[i,j,0]
-        #    value_fourth_term[i,j] = a*(a-2*rij)/(rij*rij*(a-rij)*(a-rij)) + scaler[i,j]*2/rij
-        #    value_fourth_term[j,i] = value_fourth_term[i,j]
 
-        #scaled_unit_matrix = scaler*unit_matrix
-
-
-        #third_term = 0
-
-        #start = time.time()
-        #for i in range(N):
-        #    for j in range(N):
-        #        for k in range(N):
-        #            third_term += np.dot(scaled_unit_matrix[i, j, :],scaled_unit_matrix[i, k, :])
-        #end = time.time()
-        #print("Original third term: ", third_term)
-        #print("Loops elapsed time:", end - start)
-        #start = time.time()
-        #second_term = -4*alpha*np.sum(r*scaled_unit_matrix)
-        #end = time.time()
-        #print("second term: ", second_term)
-        #print("time product: ", end-start)
-        #start = time.time()
-        #third_term = self.third_term(scaled_unit_matrix)
-        #end = time.time()
-        #print("third_term : ", third_term)
-        #print("double loop elapsed time:", end - start)
-        #start = time.time()
-        #opt_path = np.einsum("ijk, ajk->ija", scaled_unit_matrix, scaled_unit_matrix, optimize="greedy")
         third_term = np.einsum("ijk, ajk ->", dudr, dudr, optimize="greedy")
-        #end = time.time()
-        #print("third_term einsum: ", third_term)
-        #print("einsum elapsed time:", end - start)
-        #fourth_term = np.sum(value_fourth_term)
-        #print("Fourth term prev: ", fourth_term)
+
         fourth_term = np.sum(fourth_term_vals)
-        #print("Fourth term: ", fourth_term)
 
         local_energy = non_interacting_part + second_term + third_term + fourth_term
 
