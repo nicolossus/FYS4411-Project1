@@ -1,0 +1,2 @@
+,nparticles,dim,scale,eta,alpha,energy,standard_error,accept_rate,nsamples,total_cycles,warmup_cycles,tuning_cycles,optimize_cycles
+0,10,3,1.4641000000000006,0.1,0.49773185882691434,15.392140100291087,0.015520582599215654,0.4830993333333333,50000,181000,1000,10000,120000
