@@ -75,14 +75,14 @@ initial_alpha = 0.5
 #initial_positions = non_interact_initial_positions(wf, initial_alpha, N, dim)
 
 # INTERACTING
-wf = vmc.SHOIB(omega)
+#wf = vmc.SHOIB(omega)
 
-#wf = vmc.EHOIB()
+wf = vmc.EHOIB()
+
 initial_positions, scale = interact_initial_positions(wf,
                                                       initial_alpha,
                                                       N,
                                                       dim)
-
 
 # Instantiate sampler
 sampler = vmc.Metropolis(wf)

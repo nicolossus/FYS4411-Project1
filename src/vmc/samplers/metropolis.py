@@ -31,20 +31,28 @@ class Metropolis(BaseVMC):
         # Advance RNG
         next_gen = advance_PRNG_state(seed, state.delta)
         rng = self._rng(next_gen)
+
         # Sample proposal positions, i.e., move walkers
         proposals = rng.normal(loc=state.positions, scale=scale)
+
         # Sample log uniform rvs
-        log_unif = np.log(rng.random(size=state.positions.shape))
+        #log_unif = np.log(rng.random(size=state.positions.shape))
+        log_unif = np.log(rng.random())
+
         # Compute proposal log density
         logp_proposal = self._logp_fn(proposals, alpha)
+
         # Metroplis acceptance criterion
         accept = log_unif < logp_proposal - state.logp
         # Where accept is True, yield proposal, otherwise keep old state
+
         new_positions = np.where(accept, proposals, state.positions)
         #new_logp = np.where(accept, logp_proposal, state.logp)
+
         new_logp = self._logp_fn(new_positions, alpha)
         new_n_accepted = state.n_accepted + np.sum(accept)
         new_delta = state.delta + 1
+
         # Create new state
         new_state = State(new_positions, new_logp, new_n_accepted, new_delta)
 
