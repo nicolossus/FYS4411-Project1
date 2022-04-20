@@ -24,7 +24,7 @@ def safe_initial_positions(wavefunction, alpha, N, dim, seed=None):
     return positions
 
 
-N = 5 # Number of particles
+N = 3  # Number of particles
 dim = 3      # Dimensionality
 omega = 1.   # Oscillator frequency
 
@@ -32,7 +32,7 @@ omega = 1.   # Oscillator frequency
 # Analytical
 #wf = vmc.AIB(N, dim, omega)
 wf = vmc.LogIB(omega)
-wf2 = vmc.NIBWF(N, dim, omega)
+#wf2 = vmc.NIBWF(N, dim, omega)
 
 # Numerical
 #wf = vmc.LogNIB(omega)
@@ -41,16 +41,18 @@ wf2 = vmc.NIBWF(N, dim, omega)
 sampler = vmc.Metropolis(wf)
 
 # Config
-nsamples = 100000
+nsamples = 20000
 initial_alpha = 0.5
 
 # Set intial positions
 initial_positions = safe_initial_positions(wf, initial_alpha, N, dim)
 
+'''
 print("wf jax : ", wf.wf(initial_positions, initial_alpha))
 print("wf drift : ", wf.drift_force(initial_positions, initial_alpha))
 print("wf jax : ", wf.wf_scalar(initial_positions, initial_alpha))
 print("wf LE : ", wf.local_energy(initial_positions, initial_alpha))
+'''
 """
 print("AIBWF: ", wf(initial_positions, 0.5))
 print("NIBWF: ", wf2(initial_positions, 0.5))
@@ -64,13 +66,13 @@ print("NIBWF drift: ", wf2.drift_force(initial_positions, 0.5))
 print("AIBWF local energy: ", wf.local_energy(initial_positions, 0.5))
 print("NIBWF local energy: ", wf2.local_energy(initial_positions, 0.5))
 """
-"""
+
 start = time.time()
 results = sampler.sample(nsamples,
                          initial_positions,
                          initial_alpha,
                          scale=1.0,
-                         nchains=1,
+                         nchains=4,
                          warm=True,
                          warmup_iter=500,
                          tune=True,
@@ -78,7 +80,7 @@ results = sampler.sample(nsamples,
                          tune_interval=500,
                          tol_tune=1e-8,
                          optimize=True,
-                         max_iter=10000,
+                         max_iter=30000,
                          batch_size=500,
                          gradient_method='adam',
                          eta=0.01,
@@ -87,7 +89,7 @@ results = sampler.sample(nsamples,
 
 end = time.time()
 print("Sampler elapsed time:", end - start)
-"""
+
 """
 
 print("Positions: ", initial_positions)

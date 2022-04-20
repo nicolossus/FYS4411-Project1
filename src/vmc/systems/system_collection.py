@@ -558,16 +558,11 @@ class LogNIB(System):
 
     @partial(jax.jit, static_argnums=(0,))
     def wf(self, r, alpha):
-        # return -alpha * r * r
-        return -alpha * jnp.sum(r * r)
-
-    @partial(jax.jit, static_argnums=(0,))
-    def wf_scalar(self, r, alpha):
         return -alpha * jnp.sum(r * r)
 
     @partial(jax.jit, static_argnums=(0,))
     def potential(self, r):
-        return 0.5 * self._omega2 * r * r
+        return 0.5 * self._omega2 * jnp.sum(r * r)
 
 
 class ElipLogNIB(System):
@@ -618,12 +613,6 @@ class ElipLogNIB(System):
 
 
 class LogIB(System):
-    """
-    Interacting Boson (IB) system in log domain.
-
-    Trial wave function:
-                psi = -alpha * r**2 +np.sum(u)
-    """
 
     def __init__(self, omega, a=0.00433):
         super().__init__()
@@ -632,11 +621,11 @@ class LogIB(System):
 
     @partial(jax.jit, static_argnums=(0,))
     def wf(self, r, alpha):
-        return jnp.sum(self._single(r, alpha)) + jnp.sum(self._correlation(r))
+        return self._single(r, alpha) + self._correlation(r)
 
     @partial(jax.jit, static_argnums=(0,))
     def _single(self, r, alpha):
-        return -alpha * r * r
+        return -alpha * jnp.sum(r * r)
 
     @partial(jax.jit, static_argnums=(0,))
     def _correlation(self, r):
@@ -645,12 +634,8 @@ class LogIB(System):
         axis = r.ndim - 1
         rij = jnp.linalg.norm(r[i] - r[j], ord=2, axis=axis)
         f = 1 - self._a / rij * (rij > self._a)
-        return jnp.log(f)
-
-    @partial(jax.jit, static_argnums=(0,))
-    def wf_scalar(self, r, alpha):
-        return jnp.sum(self._single(r, alpha)) + jnp.sum(self._correlation(r))
+        return jnp.sum(jnp.log(f))
 
     @partial(jax.jit, static_argnums=(0,))
     def potential(self, r):
-        return 0.5 * self._omega2 * r * r
+        return 0.5 * self._omega2 * jnp.sum(r * r)
