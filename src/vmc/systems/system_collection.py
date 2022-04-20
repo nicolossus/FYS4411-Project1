@@ -171,7 +171,7 @@ class AIB(WaveFunction):
         ---------
         array_like  :   np.ndarray, shape=(n_particles, dim)
                     single particle wfs order in dim-dimensional arrays,
-                    all scaled by the Jastrow factor. 
+                    all scaled by the Jastrow factor.
         """
         f = self.f(r)
         return np.exp(-alpha*r*r)*f
@@ -239,9 +239,33 @@ class AIB(WaveFunction):
         unit_matrix = np.zeros((N, N, d))
         for i, j in zip(*self._triu_indices):
             rij = np.linalg.norm(r[i]-r[j])
+            print("Ri: ", r[i])
+            print("Rj: ", r[j])
+            print("rij: ", rij)
             upper_unit_vector = (r[i]-r[j])/rij
             unit_matrix[i,j, :] = upper_unit_vector
             unit_matrix[j,i, :] = -upper_unit_vector
+        return unit_matrix
+
+
+    def unit_matrix_faster(self, r):
+
+        N = self._N
+        d = self._d
+        unit_matrix = np.zeros((N, N, d))
+        axis=1
+        print("fast um")
+        i, j = np.triu_indices(N, 1)
+        #for i, j in zip(*self._triu_indices):
+        q = r[i]-r[j]
+        print("Ri : ", r[i])
+        print("Rj: ", r[j])
+        print("Q: ",q)
+        rij = np.linalg.norm(q, axis=axis)
+        print(rij)
+        upper_unit_vector = q/rij
+        unit_matrix[i,j, :] = upper_unit_vector
+        unit_matrix[j,i, :] = -upper_unit_vector
         return unit_matrix
 
     def u(self, r, a=0.00433):
@@ -282,7 +306,7 @@ class AIB(WaveFunction):
         return np.prod(f)
 
     def dudr(self, r, a=0.00433):
-        """
+        """Derivative of u w.r.t. distances between particles.
         Parameters:
         -----------
         r           : np.ndarray, shape=(n_particles, dim)
@@ -301,6 +325,31 @@ class AIB(WaveFunction):
             scaler[i,j] = a/(rij*rij-a*rij)
             scaler[j,i] = scaler[i,j]
         unit_matrix = self.unit_matrix(r)
+        dudr = unit_matrix*scaler
+        return dudr
+
+    def dudr_faster(self, r, a=0.00433):
+        """Derivative of u w.r.t. distances between particles.
+        Parameters:
+        -----------
+        r           : np.ndarray, shape=(n_particles, dim)
+        a           : float,
+                    hard sphere diameter
+        Returns:
+        ---------
+        dudr        : np.ndarray, shape=(n_particles, n_particles, dim)
+        """
+        N = self._N
+        d = self._d
+        distance_matrix = self.distance_matrix(r)
+        scaler = np.zeros((N, N, 1))
+        #i, j = np.triu_indices(N, 1)
+        for i, j in zip(*self._triu_indices):
+            rij = distance_matrix[i,j]
+            scaler[i,j] = a/(rij*rij-a*rij)
+            scaler[j,i] = scaler[i,j]
+        #rji = distance_matrix[j,i]
+        unit_matrix = self.unit_matrix_faster(r)
         dudr = unit_matrix*scaler
         return dudr
 

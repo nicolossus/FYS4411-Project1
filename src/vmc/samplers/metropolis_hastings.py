@@ -56,13 +56,23 @@ class MetropolisHastings(BaseVMC):
         # Metroplis-Hastings ratio
         ratio = logp_prop + G_prop - state.logp - G_cur
         # Sample log uniform rvs
-        log_unif = np.log(rng.random(size=sys_size))
+        #log_unif = np.log(rng.random(size=sys_size))
+        log_unif = np.log(rng.random())
         # Metroplis acceptance criterion
-        accept = log_unif < ratio
+        accept = log_unif < np.sum(ratio)
         # Where accept is True, yield proposal, otherwise keep old state
-        new_positions = np.where(accept, proposals, state.positions)
-        new_logp = np.where(accept, logp_prop, state.logp)
-        new_n_accepted = state.n_accepted + np.sum(accept)
+        #new_positions = np.where(accept, proposals, state.positions)
+        #new_logp = np.where(accept, logp_prop, state.logp)
+        #new_n_accepted = state.n_accepted + np.sum(accept)
+        if accept:
+            new_positions = proposals
+            new_logp = logp_prop
+            new_n_accepted = state.n_accepted + 1
+        else:
+            new_positions = state.positions
+            new_logp = state.logp
+            new_n_accepted = state.n_accepted
+
         new_delta = state.delta + 1
         # Create new state
         new_state = State(new_positions, new_logp, new_n_accepted, new_delta)
