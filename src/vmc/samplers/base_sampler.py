@@ -51,7 +51,7 @@ class BaseVMC:
         self._rng = rng
 
         # Retrieve callables
-        self._wf_scalar_fn = self._wf.wf_scalar
+        self._wf_fn = self._wf.wf
         self._logp_fn = self._wf.logprob
         self._locE_fn = self._wf.local_energy
         self._driftF_fn = self._wf.drift_force
@@ -91,7 +91,7 @@ class BaseVMC:
         tune_interval=250,
         tol_tune=1e-5,
         optimize=True,
-        max_iter=10000,
+        max_iter=50000,
         batch_size=500,
         gradient_method='adam',
         eta=0.01,
@@ -187,24 +187,34 @@ class BaseVMC:
             actual_warm_iter += state.delta
             subtract_iter = actual_warm_iter
 
+            print("Warm done")
+
         # Tune?
         if self._tune:
             state, kwargs = self.tune_selector(state, alpha, seed, **kwargs)
             actual_tune_iter += state.delta - subtract_iter
             subtract_iter = actual_tune_iter + actual_warm_iter
 
+            print("Tune done")
+
         # Optimize?
         if self._optimize:
             state, alpha = self.optimizer(state, alpha, eta, seed, **kwargs)
             actual_optim_iter += state.delta - subtract_iter
             subtract_iter = actual_optim_iter + actual_tune_iter + actual_warm_iter
-            retune = True
+            #retune = True
+            """
+            ^ TURNED OFF FOR DEBUG
+            """
 
+            print("Optimize done")
         # Retune for good measure
         if retune:
             state, kwargs = self.tune_selector(state, alpha, seed, **kwargs)
             actual_tune_iter += state.delta - subtract_iter
+            print("Retune done")
 
+        print("Sampling energy")
         # Sample energy
         state, energies = self.sample_energy(nsamples,
                                              state,
@@ -404,13 +414,11 @@ class BaseVMC:
 
         # Set initial config
         steps_before_optimize = self._batch_size
-        #wf_evals = []
         energies = []
         grad_alpha = []
 
         for i in range(self._max_iter):
             state = self.step(state, alpha, seed, **kwargs)
-            #wf_evals.append(self._wf_scalar_fn(state.positions, alpha))
             energies.append(self._locE_fn(state.positions, alpha))
             grad_alpha.append(self._grad_alpha_fn(state.positions, alpha))
             steps_before_optimize -= 1

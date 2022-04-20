@@ -24,7 +24,7 @@ class WaveFunction(metaclass=ABCMeta):
         self._d = dim
 
     @abstractmethod
-    def __call__(self):
+    def wf(self):
         """Evaluate the many body trial wave function.
 
         Must be overwritten by sub-class.
@@ -63,12 +63,10 @@ class WaveFunction(metaclass=ABCMeta):
         array_like
             The squared trial wave function
         """
-        wf = self(*args, **kwargs)
-        return wf * wf
+        return np.exp(self.logprob(*args, **kwargs))
 
     def logprob(self, *args, **kwargs):
-        wf = self(*args, **kwargs)
-        return np.log(wf * wf)
+        return 2. * self.wf(*args, **kwargs)
 
     @abstractmethod
     def local_energy(self):
