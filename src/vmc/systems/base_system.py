@@ -7,6 +7,9 @@ import jax
 import jax.numpy as jnp
 from jax import lax
 
+jax.config.update("jax_enable_x64", True)
+jax.config.update('jax_platform_name', 'cpu')
+
 
 class System:
     """Base class for creating a system.
@@ -25,36 +28,6 @@ class System:
         """
 
         raise NotImplementedError
-
-    # Might be a better idea to let the user define the scalar wave function
-    '''
-    @abstractmethod
-    def wf_scalar(self, r, alpha):
-        raise NotImplementedError
-    '''
-
-    @partial(jax.jit, static_argnums=(0,))
-    def wf_scalar(self, r, alpha):
-        """Evaluate the wave function as a scalar.
-
-        This is experimental and might not work for all wave functions.
-        Thus, it might be removed in the future and the responsibility for
-        the implementation will fall to the user's subclass.
-
-        Arguments
-        ---------
-        r : array_like
-            Particle positions
-        alpha : float
-            Variational parameter
-
-        Returns
-        -------
-        float
-            Scalar evaluation of wave function
-        """
-
-        return jnp.sum(self.wf(r, alpha))
 
     @abstractmethod
     def potential(self):
@@ -129,14 +102,14 @@ class System:
         n = r.shape[0]
         eye = jnp.eye(n)
 
-        grad_wf = jax.grad(self.wf_scalar, argnums=0)
+        grad_wf = jax.grad(self.wf, argnums=0)
         def grad_wf_closure(r): return grad_wf(r, alpha)
         primal, dgrad_f = jax.linearize(grad_wf_closure, r)
 
         _, diagonal = lax.scan(
             lambda i, _: (i + 1, dgrad_f(eye[i])[i]), 0, None, length=n)
 
-        return -0.5 * diagonal - 0.5 * primal**2
+        return -0.5 * jnp.sum(diagonal) - 0.5 * jnp.sum(primal**2)
 
     @partial(jax.jit, static_argnums=(0,))
     def local_energy(self, r, alpha):
@@ -159,7 +132,7 @@ class System:
         ke = jnp.sum(jax.vmap(ke_closure)(r))
         pe = self.potential(r)
 
-        return ke + jnp.sum(pe)
+        return ke + pe
 
     @partial(jax.jit, static_argnums=(0,))
     def drift_force(self, r, alpha):
@@ -185,10 +158,10 @@ class System:
             Drift force at each particle's position
         """
 
-        def wf_closure(r): return self.wf(r, alpha)
-        _, tangent = jax.jvp(wf_closure, (r,), (r,))
+        grad_wf = jax.grad(self.wf, argnums=0)
+        F = 2 * grad_wf(r, alpha)
 
-        return 2 * tangent / r
+        return F
 
     @partial(jax.jit, static_argnums=(0,))
     def grad_alpha(self, r, alpha):
@@ -209,5 +182,5 @@ class System:
             Evaluated gradient
         """
 
-        grad_wf_alpha = jax.grad(self.wf_scalar, argnums=1)
+        grad_wf_alpha = jax.grad(self.wf, argnums=1)
         return grad_wf_alpha(r, alpha)

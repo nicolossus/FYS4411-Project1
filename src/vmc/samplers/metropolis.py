@@ -42,6 +42,7 @@ class Metropolis(BaseVMC):
         accept = log_unif < logp_proposal - state.logp
         # Where accept is True, yield proposal, otherwise keep old state
         new_positions = np.where(accept, proposals, state.positions)
+<<<<<<< HEAD
         new_logp = self._logp_fn(new_positions, alpha)
         """
         if (accept):
@@ -53,6 +54,10 @@ class Metropolis(BaseVMC):
             new_logp = state.logp
             n_accepted = state.n_accepted
         """
+=======
+        #new_logp = np.where(accept, logp_proposal, state.logp)
+        new_logp = self._logp_fn(new_positions, alpha)
+>>>>>>> b262c18e8ce9d6c185241233dac8a817c14b82fd
         new_n_accepted = state.n_accepted + np.sum(accept)
         new_delta = state.delta + 1
         # Create new state
