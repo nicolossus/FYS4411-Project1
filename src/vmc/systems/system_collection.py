@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import time
 from functools import partial
+import time
 
 import jax
 import jax.numpy as jnp
@@ -33,83 +33,7 @@ class NIBWF(WaveFunction):
         self._Nd = N * dim
         self._halfomega2 = 0.5 * omega * omega
 
-    def __call__(self, r, alpha):
-        """Evaluate the trial wave function.
-
-        Parameters
-        ----------
-        r : np.ndarray, shape=(n_particles, dim)
-            Particle positions
-        alpha : float
-            Variational parameter
-
-        Returns
-        -------
-        array_like
-            Evaluated trial wave function
-        """
-
-        return np.exp(-alpha * r * r)
-
-    def wf_scalar(self, r, alpha):
-        """Scalar evaluation of the trial wave function"""
-
-        return np.exp(-alpha * np.sum(r * r))
-
-    def local_energy(self, r, alpha):
-        """Compute the local energy.
-
-        Parameters
-        ----------
-        r : np.ndarray, shape=(n_particles, dim)
-            Particle positions
-        alpha : float
-            Variational parameter
-
-        Returns
-        -------
-        float
-            Computed local energy
-        """
-
-        locE = self._Nd * alpha + \
-            (self._halfomega2 - 2 * alpha * alpha) * np.sum(r * r)
-        return locE
-
-    def drift_force(self, r, alpha):
-        """Drift force"""
-
-        return -4 * alpha * r
-
-    def grad_alpha(self, r, alpha):
-        """Gradient of wave function w.r.t. variational parameter alpha"""
-
-        return -np.sum(r * r)
-
-
-class ENIBWF(WaveFunction):
-    """Single particle wave function with Gaussian kernel for a Non-Interacting
-    Boson (NIB) system in an elliptical harmonic oscillator.
-
-    Parameters
-    ----------
-    N : int
-        Number of particles in system
-    dim : int
-        Dimensionality of system
-    omega : float
-        Harmonic oscillator frequency
-    """
-
-    def __init__(self, N, dim, omega):
-        super().__init__(N, dim)
-        self._omega = omega
-
-        # precompute
-        self._Nd = N * dim
-        self._halfomega2 = 0.5 * omega * omega
-
-    def __call__(self, r, alpha):
+    def wf(self, r, alpha):
         """Evaluate the trial wave function.
 
         Parameters
@@ -215,7 +139,6 @@ class ANIB:
     def dim(self):
         return self._d
 
-
 class AIB(WaveFunction):
     """
     Analytical Interacting Boson (AIB) system.
@@ -223,21 +146,21 @@ class AIB(WaveFunction):
     Trial wave function:
             psi = exp(-alpha * r**2) * exp(sum(u(rij)))
     """
-
     def __init__(self, N, dim, omega):
         super().__init__(N, dim)
         self._omega2 = omega * omega
-        self._Nd = N * dim
+        self._Nd = N*dim
         self._triu_indices = np.triu_indices(N, 1)
 
     def prepare_handy_values(self, r):
         self.dist_mat = self.distance_matrix(r)
         dist_vec = []
         for i, j in zip(*self._triu_indices):
-            dist_vec.append(self.dist_mat[i, j])
+            dist_vec.append(self.dist_mat[i,j])
         self.dist_vec = np.array(dist_vec)
 
-    def __call__(self, r, alpha):
+
+    def wf(self, r, alpha):
         """Finds value of wave function.
         Parameters
         ----------
@@ -251,7 +174,7 @@ class AIB(WaveFunction):
                     all scaled by the Jastrow factor.
         """
         f = self.f(r)
-        return np.exp(-alpha * r * r) * f
+        return np.exp(-alpha*np.sum(r*r))*f
 
     def wf_scalar(self, r, alpha):
         """Finds scalar value of the wave function.
@@ -266,7 +189,8 @@ class AIB(WaveFunction):
         """
         distance_vector = self.distance_vector(r)
         u_vector = self.u(distance_vector)
-        return np.exp(-alpha * np.sum(r * r) + np.sum(u_vector))
+        return np.exp(-alpha*np.sum(r*r) + np.sum(u_vector))
+
 
     def distance_matrix(self, r, a=0.00433):
         """Finds distances between particles in n_particles times n_particles matrix.
@@ -279,7 +203,7 @@ class AIB(WaveFunction):
         distance_matrix : np.ndarray, shape=(n_particles, n_particles)
         """
         distance_matrix = distance.cdist(r, r, metric="Euclidean")
-        distance_matrix = np.where(distance_matrix < a, 0, distance_matrix)
+        distance_matrix = np.where(distance_matrix<a, 0, distance_matrix)
         return distance_matrix
 
     def distance_vector(self, r):
@@ -295,7 +219,7 @@ class AIB(WaveFunction):
         distance_matrix = self.distance_matrix(r)
         distance_vector = []
         for i, j in zip(*self._triu_indices):
-            distance_vector.append(distance_matrix[i, j])
+            distance_vector.append(distance_matrix[i,j])
         return np.array(distance_vector)
 
     def unit_matrix(self, r):
@@ -314,20 +238,10 @@ class AIB(WaveFunction):
         d = self._d
         unit_matrix = np.zeros((N, N, d))
         for i, j in zip(*self._triu_indices):
-<<<<<<< HEAD
             rij = np.linalg.norm(r[i]-r[j])
-            print("Ri: ", r[i])
-            print("Rj: ", r[j])
-            print("rij: ", rij)
             upper_unit_vector = (r[i]-r[j])/rij
             unit_matrix[i,j, :] = upper_unit_vector
             unit_matrix[j,i, :] = -upper_unit_vector
-=======
-            rij = np.linalg.norm(r[i] - r[j])
-            upper_unit_vector = (r[i] - r[j]) / rij
-            unit_matrix[i, j, :] = upper_unit_vector
-            unit_matrix[j, i, :] = -upper_unit_vector
->>>>>>> b262c18e8ce9d6c185241233dac8a817c14b82fd
         return unit_matrix
 
 
@@ -336,20 +250,35 @@ class AIB(WaveFunction):
         N = self._N
         d = self._d
         unit_matrix = np.zeros((N, N, d))
-        axis=1
-        print("fast um")
         i, j = np.triu_indices(N, 1)
-        #for i, j in zip(*self._triu_indices):
-        q = r[i]-r[j]
-        print("Ri : ", r[i])
-        print("Rj: ", r[j])
-        print("Q: ",q)
-        rij = np.linalg.norm(q, axis=axis)
-        print(rij)
-        upper_unit_vector = q/rij
-        unit_matrix[i,j, :] = upper_unit_vector
-        unit_matrix[j,i, :] = -upper_unit_vector
-        return unit_matrix
+        M = len(i)
+        distance_matrix = self.distance_matrix(r)
+        distance_matrix_select = np.reshape(distance_matrix[i,j], (M,1))
+        unit_matrix[i,j,:] = (r[i, :]-r[j,:])/distance_matrix_select
+        unit_matrix[j,i,:] = (r[j,:]-r[i,:])/distance_matrix_select
+        return unit_matrix, distance_matrix
+
+    def _gradient_jastrow(self, r, alpha, a=0.00433):
+        # Correlation gradient
+        N = r.shape[0]
+        axis = r.ndim - 1
+
+        # Generate indices
+        ii, jj = np.meshgrid(range(N), range(N), indexing='ij')
+        i, j = (ii != jj).nonzero()
+
+        # Compute quantities
+        rij = r[i] - r[j]
+        dij = np.linalg.norm(rij, ord=2, axis=axis)
+        du_tmp = a / (dij * dij * (dij - a))
+        du_dij = rij * du_tmp[:, np.newaxis]
+
+        # Sum contributions
+        _, indices = np.unique(i, return_counts=True)
+        row_summing = np.append([0], np.cumsum(indices))[:-1]
+        grad_jastrow = np.add.reduceat(du_dij, row_summing, axis=0)
+
+        return du_dij, grad_jastrow
 
     def u(self, r, a=0.00433):
         """Vector of exponent values.
@@ -364,8 +293,7 @@ class AIB(WaveFunction):
                     vector containing values of u, (ln(f))
         """
         distance_vector = self.distance_vector(r)
-        u = np.where(distance_vector < a, -1e20,
-                     np.log(1 - a / distance_vector))
+        u = np.where(distance_vector<a, -1e20, np.log(1-a/distance_vector))
         return u
 
     def f(self, r, a=0.00433):
@@ -387,7 +315,7 @@ class AIB(WaveFunction):
         q = r[i] - r[j]
         rij = np.linalg.norm(q, ord=2, axis=axis)
         f = 1 - a / rij * (rij > a)
-        return np.prod(f)
+        return np.sum(np.log(f))
 
     def dudr(self, r, a=0.00433):
         """Derivative of u w.r.t. distances between particles.
@@ -405,11 +333,11 @@ class AIB(WaveFunction):
         distance_matrix = self.distance_matrix(r)
         scaler = np.zeros((N, N, 1))
         for i, j in zip(*self._triu_indices):
-            rij = distance_matrix[i, j]
-            scaler[i, j] = a / (rij * rij - a * rij)
-            scaler[j, i] = scaler[i, j]
+            rij = distance_matrix[i,j]
+            scaler[i,j] = a/(rij*rij-a*rij)
+            scaler[j,i] = scaler[i,j]
         unit_matrix = self.unit_matrix(r)
-        dudr = unit_matrix * scaler
+        dudr = unit_matrix*scaler
         return dudr
 
     def dudr_faster(self, r, a=0.00433):
@@ -425,15 +353,15 @@ class AIB(WaveFunction):
         """
         N = self._N
         d = self._d
-        distance_matrix = self.distance_matrix(r)
+        unit_matrix, distance_matrix = self.unit_matrix_faster(r)
         scaler = np.zeros((N, N, 1))
-        #i, j = np.triu_indices(N, 1)
-        for i, j in zip(*self._triu_indices):
-            rij = distance_matrix[i,j]
-            scaler[i,j] = a/(rij*rij-a*rij)
-            scaler[j,i] = scaler[i,j]
-        #rji = distance_matrix[j,i]
-        unit_matrix = self.unit_matrix_faster(r)
+        i, j = np.triu_indices(N, 1)
+        M = len(np.triu_indices(N,1)[0])
+        #for i, j in zip(*self._triu_indices):
+        rij = np.reshape(distance_matrix[i,j], (M,1))
+        scaler[i,j] = a/(rij*rij-a*rij)
+        scaler[j,i] = scaler[i,j]
+
         dudr = unit_matrix*scaler
         return dudr
 
@@ -453,9 +381,8 @@ class AIB(WaveFunction):
         distance_matrix = self.distance_matrix(r)
         d2udr2 = np.zeros((N, N))
         for i, j in zip(*self._triu_indices):
-            rij = distance_matrix[i, j]
-            d2udr2[i, j] = a * (a - 2 * rij) / \
-                (rij * rij * (a - rij) * (a - rij))
+            rij = distance_matrix[i,j]
+            d2udr2[i,j] = a*(a-2*rij)/(rij*rij*(a-rij)*(a-rij))
         return d2udr2
 
     def fourth_term(self, r, a=0.00433):
@@ -473,11 +400,42 @@ class AIB(WaveFunction):
         distance_matrix = self.distance_matrix(r)
         fourth_term = np.zeros((N, N))
         for i, j in zip(*self._triu_indices):
-            rij = distance_matrix[i, j]
-            fourth_term[i, j] = -a * a / (rij * rij * (a - rij) * (a - rij))
-            fourth_term[j, i] = fourth_term[i, j]
+            rij = distance_matrix[i,j]
+            fourth_term[i,j] = -a**2/(rij**2*(rij-a)**2)
+            fourth_term[j,i] = fourth_term[i,j]
         return fourth_term
 
+
+    def u_der(self, r, a=0.00433):
+        distance_matrix = self.distance_matrix(r)
+        N = self._N
+        u_der = np.zeros((N, N, 1))
+
+        for i,j in zip(*np.triu_indices(N, 1)):
+            rij = distance_matrix[i,j]
+            u_der[i,j,0] = a/(rij**2-a*rij)
+        return u_der
+
+    def fourth_term_alternative(self, r, a=0.004333):
+        N = self._N
+        distance_matrix = self.distance_matrix(r)
+        u_der = self.u_der(r)
+        u_der2 = self.d2udr2(r)
+        fourth_term = np.zeros((N, N))
+        for i,j in zip(*np.triu_indices(N, 1)):
+            rij = distance_matrix[i,j]
+            fourth_term[i,j] = u_der2[i,j] + 2*u_der[i,j]/rij
+            fourth_term[j,i] = fourth_term[i,j]
+        return fourth_term
+
+
+    def fourth_term_last(self, r, alpha, a=0.00433):
+        fourth_term = 0
+        N = self._N
+        for i in range(N):
+            for j in range(N):
+                pass#fourth_term += (a**2-2*)
+        return 0
     def local_energy(self, r, alpha, a=0.00433):
         """Compute the local energy.
 
@@ -505,38 +463,53 @@ class AIB(WaveFunction):
         fourth_term          : float
             sum of all u'' + 2/r*u'
         """
-        dudr = self.dudr(r)
-        fourth_term_vals = self.fourth_term(r)
+        dudr = self.dudr_faster(r)
+        fourth_term_vals = self.fourth_term_alternative(r)
 
         non_interacting_part = self._Nd * alpha + \
-            (0.5 * self._omega2 - 2 * alpha * alpha) * np.sum(r * r)
+            (0.5*self._omega2 - 2 * alpha * alpha) * np.sum(r * r)
+        print("NI part: ", non_interacting_part)
 
-        second_term = -4 * alpha * \
-            np.sum(np.diag(np.inner(r, np.sum(dudr, axis=0))))
+        second_term = -4*alpha*np.sum(np.diag(np.inner(r, np.sum(dudr, axis=0))))
+        #second_term_test = -4*alpha*np.sum(np.diag(np.inner(r, np.sum(dudr, axis=0))))
+        print("Second term: ", second_term)
+        #assert abs(second_term-second_term_test) <1e-12
+        #if (abs(second_term)>abs(non_interacting_part)):
+        #    print("Second term fuckup: ", second_term)
+        #print("Second term: ", second_term)
 
-        third_term = np.einsum("ijk, ajk ->", dudr, dudr, optimize="greedy")
+        third_term = np.einsum("ijk, ajk -> ", dudr, dudr, optimize="greedy")
+        print("Third term: ", third_term)
+        #if (abs(third_term)>abs(non_interacting_part)):
+        #    print("Third term fuckup: ", third_term)
+        #    print("log|wf|^2: ", self.logprob(r, alpha))
+        #print("Third term: ", third_term)
 
         fourth_term = np.sum(fourth_term_vals)
-
+        print("Fourth term: ", fourth_term)
+        #if (abs(fourth_term)>abs(non_interacting_part)):
+        #    print("Fourth term fuckup: ", fourth_term)
+        #    print("log|wf|^2: ", self.logprob(r, alpha))
+        #print("Fourth term: ", fourth_term)
+        #print("Third and fourth term added: ", non_interacting_part-third_term-fourth_term)
         local_energy = non_interacting_part + second_term + third_term + fourth_term
-
+        #print(local_energy)
         return local_energy
 
     def drift_force(self, r, alpha):
-        dudr = self.dudr(r)
-        drift_force = -4 * alpha * r + np.sum(dudr, axis=0)
+        dudr = self.dudr_faster(r)
+        drift_force = -4*alpha*r + np.sum(dudr, axis=0)
         return drift_force
 
     def grad_alpha(self, r, alpha):
-        return -np.sum(r * r)
+        return -np.sum(r*r)
 
     def second_inner(self, r, alpha):
         dudr = self.dudr(r)
         start = time.time()
-        second_term = -4 * alpha * \
-            np.sum(np.diag(np.inner(r, np.sum(dudr, axis=0))))
+        second_term = -4*alpha*np.sum(np.diag(np.inner(r, np.sum(dudr, axis=0))))
         end = time.time()
-        return second_term, end - start
+        return second_term, end-start
 
     def second_term_for(self, r, alpha):
         second_term = 0
@@ -545,9 +518,9 @@ class AIB(WaveFunction):
         scaled_unit_matrix = np.sum(scaled_unit_matrix, axis=0)
         for i in range(self._N):
             second_term += np.dot(r[i, :], scaled_unit_matrix[i, :])
-        second_term = second_term * (-4 * alpha)
+        second_term = second_term*(-4*alpha)
         end = time.time()
-        return second_term, end - start
+        return second_term, end-start
 
     def third_term_double_for(self, scaled_unit_matrix):
         val = 0
@@ -556,9 +529,9 @@ class AIB(WaveFunction):
         for i in range(N):
             row = scaled_unit_matrix[i, :, :]
             for element in row:
-                val += np.sum(element * row)
+                val += np.sum(element*row)
         end = time.time()
-        return val, end - start
+        return val, end-start
 
     def third_term_triple_for(self, scaled_unit_matrix):
         third_term = 0
@@ -566,39 +539,40 @@ class AIB(WaveFunction):
         for i in range(self._N):
             for j in range(self._N):
                 for k in range(self._N):
-                    third_term += np.dot(
-                        scaled_unit_matrix[i, j, :], scaled_unit_matrix[i, k, :])
+                    third_term += np.dot(scaled_unit_matrix[i, j, :],scaled_unit_matrix[i, k, :])
         end = time.time()
-        return third_term, end - start
+        return third_term, end-start
 
     def test_terms_in_lap(self, r, scaled_unit_matrix, alpha):
+        dudr_jastrow, _gradient_jastrow = self._gradient_jastrow(r, alpha)
         print("Second terms: ")
         second_for = self.second_term_for(r, alpha)
-        print("Second for val: {}, time: {}".format(
-            second_for[0], second_for[1]))
+        print("Second for val: {}, time: {}".format(second_for[0], second_for[1]))
         second_inner = self.second_inner(r, alpha)
-        print("Second inner val: {}, time: {}".format(
-            second_inner[0], second_inner[1]))
+        print("Second inner val: {}, time: {}".format(second_inner[0], second_inner[1]))
         dudr = np.sum(scaled_unit_matrix, axis=0)
         start = time.time()
-        second_einsum = -4 * alpha * \
-            np.einsum("nd,nd->", r, dudr, optimize="greedy")
+        second_einsum = -4*alpha*np.einsum("nd,nd->", r, dudr, optimize="greedy")
         end = time.time()
-        print("Second einsum val: {}, time: {}".format(
-            second_einsum, end - start))
+        print("Second einsum val: {}, time: {}".format(second_einsum, end-start))
         print("Third terms: ")
         triple_for = self.third_term_triple_for(scaled_unit_matrix)
-        print("Triple for val: {}, time: {}".format(
-            triple_for[0], triple_for[1]))
+        print("Triple for val: {}, time: {}".format(triple_for[0], triple_for[1]))
         double_for = self.third_term_double_for(scaled_unit_matrix)
-        print("Double for val: {}, time: {}".format(
-            triple_for[0], triple_for[1]))
+        print("Double for val: {}, time: {}".format(triple_for[0], triple_for[1]))
         start = time.time()
-        third_einsum = np.einsum(
-            "ijk, ajk -> ", scaled_unit_matrix, scaled_unit_matrix, optimize="greedy")
+        third_einsum = np.einsum("ijk, ajk -> ", scaled_unit_matrix, scaled_unit_matrix, optimize="greedy")
         end = time.time()
-        print("Einsum val: {}, time: {}".format(third_einsum, end - start))
+        print("Einsum val: {}, time: {}".format(third_einsum, end-start))
 
+        fourth_term = self.fourth_term(r)
+        fourth_term_alternative = self.fourth_term_alternative(r)
+
+        print("Fourth term: ", np.sum(fourth_term))
+        print("Fourth term alternative: ", np.sum(fourth_term_alternative))
+        #start = time.time()
+        #third_jastrow = np.einsum()
+        #end = time.time()
 
 class LogNIB(System):
     """
@@ -614,64 +588,17 @@ class LogNIB(System):
 
     @partial(jax.jit, static_argnums=(0,))
     def wf(self, r, alpha):
-        # return -alpha * r * r
-        return -alpha * jnp.sum(r * r)
+        return -alpha * r * r
 
+    '''
     @partial(jax.jit, static_argnums=(0,))
     def wf_scalar(self, r, alpha):
         return -alpha * jnp.sum(r * r)
+    '''
 
     @partial(jax.jit, static_argnums=(0,))
     def potential(self, r):
         return 0.5 * self._omega2 * r * r
-
-
-class ElipLogNIB(System):
-    """
-    Non-Interacting Boson (NIB) system in log domain.
-
-    Trial wave function:
-                psi = -alpha * r**2
-    """
-
-    def __init__(self):
-        super().__init__()
-
-        #self._scaling = 1 / np.sqrt(1 / omega)
-        self._beta = 2.82843
-        self._gamma2 = self._beta * self._beta
-
-    @partial(jax.jit, static_argnums=(0,))
-    def wf(self, r, alpha):
-        r2 = jnp.square(r)
-
-        if r.shape[1] > 2:
-            #r[:, 2] *= self._beta
-            r = r.at[:, 2].multiply(self._beta)
-
-        return -alpha * r2
-
-    @partial(jax.jit, static_argnums=(0,))
-    def wf_scalar(self, r, alpha):
-
-        r2 = jnp.square(r)
-
-        # if r.shape[1] > 2:
-        #r[:, 2] *= self._beta
-        r2 = r2.at[-1].multiply(self._beta)
-
-        return -alpha * jnp.sum(r)
-
-    @partial(jax.jit, static_argnums=(0,))
-    def potential(self, r):
-
-        r2 = jnp.square(r)
-        # if r.shape[1] > 2:
-        #r2[:, 2] *= self._gamma2
-        #r2 = r2.at[:, 2].multiply(self._gamma2)
-        r2 = r2.at[-1].multiply(self._gamma2)
-        return 0.5 * r2
-
 
 class LogIB(System):
     """
@@ -681,31 +608,30 @@ class LogIB(System):
                 psi = -alpha * r**2 +np.sum(u)
     """
 
-    def __init__(self, omega, a=0.00433):
+    def __init__(self, omega):
         super().__init__()
         self._omega2 = omega * omega
-        self._a = a
 
     @partial(jax.jit, static_argnums=(0,))
     def wf(self, r, alpha):
-        return jnp.sum(self._single(r, alpha)) + jnp.sum(self._correlation(r))
+        print("Shape: ", r.shape)
+        wf = -alpha * r * r + self.f(r)/(r.shape[0]*r.shape[1])
+        return wf
 
     @partial(jax.jit, static_argnums=(0,))
-    def _single(self, r, alpha):
-        return -alpha * r * r
-
-    @partial(jax.jit, static_argnums=(0,))
-    def _correlation(self, r):
+    def f(self, r, a=0.0043):
         N = r.shape[0]
-        i, j = jnp.triu_indices(N, 1)
+        i, j = np.triu_indices(N, 1)
         axis = r.ndim - 1
-        rij = jnp.linalg.norm(r[i] - r[j], ord=2, axis=axis)
-        f = 1 - self._a / rij * (rij > self._a)
+        q = r[i] - r[j]
+        rij = jnp.linalg.norm(q, ord=2, axis=axis)
+        f = 1 - a / rij # * (rij > a)
         return jnp.log(f)
-
+    '''
     @partial(jax.jit, static_argnums=(0,))
     def wf_scalar(self, r, alpha):
-        return jnp.sum(self._single(r, alpha)) + jnp.sum(self._correlation(r))
+        return -alpha * jnp.sum(r * r)
+    '''
 
     @partial(jax.jit, static_argnums=(0,))
     def potential(self, r):
