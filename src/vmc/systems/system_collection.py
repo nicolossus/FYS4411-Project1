@@ -588,25 +588,22 @@ class LogNIB(System):
 
     @partial(jax.jit, static_argnums=(0,))
     def wf(self, r, alpha):
+<<<<<<< HEAD
         return -alpha * r * r
 
     '''
     @partial(jax.jit, static_argnums=(0,))
     def wf_scalar(self, r, alpha):
+=======
+>>>>>>> cc5939f28d3cdd889fa05371d149eeed9df569d7
         return -alpha * jnp.sum(r * r)
     '''
 
     @partial(jax.jit, static_argnums=(0,))
     def potential(self, r):
-        return 0.5 * self._omega2 * r * r
+        return 0.5 * self._omega2 * jnp.sum(r * r)
 
 class LogIB(System):
-    """
-    Interacting Boson (IB) system in log domain.
-
-    Trial wave function:
-                psi = -alpha * r**2 +np.sum(u)
-    """
 
     def __init__(self, omega):
         super().__init__()
@@ -614,15 +611,24 @@ class LogIB(System):
 
     @partial(jax.jit, static_argnums=(0,))
     def wf(self, r, alpha):
+<<<<<<< HEAD
         print("Shape: ", r.shape)
         wf = -alpha * r * r + self.f(r)/(r.shape[0]*r.shape[1])
         return wf
+=======
+        return self._single(r, alpha) + self._correlation(r)
+
+    @partial(jax.jit, static_argnums=(0,))
+    def _single(self, r, alpha):
+        return -alpha * jnp.sum(r * r)
+>>>>>>> cc5939f28d3cdd889fa05371d149eeed9df569d7
 
     @partial(jax.jit, static_argnums=(0,))
     def f(self, r, a=0.0043):
         N = r.shape[0]
         i, j = np.triu_indices(N, 1)
         axis = r.ndim - 1
+<<<<<<< HEAD
         q = r[i] - r[j]
         rij = jnp.linalg.norm(q, ord=2, axis=axis)
         f = 1 - a / rij # * (rij > a)
@@ -632,7 +638,12 @@ class LogIB(System):
     def wf_scalar(self, r, alpha):
         return -alpha * jnp.sum(r * r)
     '''
+=======
+        rij = jnp.linalg.norm(r[i] - r[j], ord=2, axis=axis)
+        f = 1 - self._a / rij * (rij > self._a)
+        return jnp.sum(jnp.log(f))
+>>>>>>> cc5939f28d3cdd889fa05371d149eeed9df569d7
 
     @partial(jax.jit, static_argnums=(0,))
     def potential(self, r):
-        return 0.5 * self._omega2 * r * r
+        return 0.5 * self._omega2 * jnp.sum(r * r)

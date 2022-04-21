@@ -148,15 +148,15 @@ class BaseVMC:
             # nsamples, initial_positions, alpha, eta, **kwargs
 
             with ProcessPool(nchains) as pool:
-                #, self._distances
+                # , self._distances
                 self._final_state, results, self._energies = zip(*pool.map(self._sample,
-                                                                  nsamples,
-                                                                  initial_positions,
-                                                                  alpha,
-                                                                  eta,
-                                                                  seeds,
-                                                                  kwargs,
-                                                                  ))
+                                                                           nsamples,
+                                                                           initial_positions,
+                                                                           alpha,
+                                                                           eta,
+                                                                           seeds,
+                                                                           kwargs,
+                                                                           ))
 
                 self._results_full = pd.DataFrame(results)
 
@@ -216,7 +216,7 @@ class BaseVMC:
 
         print("Sampling energy")
         # Sample energy
-        #, distances
+        # , distances
         state, energies = self.sample_energy(nsamples,
                                              state,
                                              alpha,
@@ -234,7 +234,7 @@ class BaseVMC:
                                            actual_optim_iter,
                                            **kwargs
                                            )
-        #, distances
+        # , distances
         return state, results, energies
 
     def _accumulate_results(
@@ -254,7 +254,12 @@ class BaseVMC:
         """
 
         N, d = state.positions.shape
+<<<<<<< HEAD
         total_moves = nsamples#*N*d
+=======
+        #total_moves = nsamples * N * d
+        total_moves = nsamples
+>>>>>>> cc5939f28d3cdd889fa05371d149eeed9df569d7
         acc_rate = state.n_accepted / total_moves
         energy = np.mean(energies)
         # blocking
@@ -349,7 +354,12 @@ class BaseVMC:
         # Reset n_accepted
         state = State(state.positions, state.logp, 0, state.delta)
         N, d = state.positions.shape
+<<<<<<< HEAD
         total_moves = self._tune_interval#*N*d
+=======
+        #total_moves = self._tune_interval * N * d
+        total_moves = self._tune_interval
+>>>>>>> cc5939f28d3cdd889fa05371d149eeed9df569d7
 
         for i in range(self._tune_iter):
             state = self.step(state, alpha, seed, scale=scale, **kwargs)
@@ -378,8 +388,13 @@ class BaseVMC:
         # Reset n_accepted
         state = State(state.positions, state.logp, 0, state.delta)
         N, d = state.positions.shape
+        #total_moves = self._tune_interval * N * d
         total_moves = self._tune_interval
+<<<<<<< HEAD
         #print("Tuning..")
+=======
+
+>>>>>>> cc5939f28d3cdd889fa05371d149eeed9df569d7
         for i in range(self._tune_iter):
             state = self.step(state, alpha, seed, dt=dt, **kwargs)
             steps_before_tune -= 1
@@ -465,7 +480,7 @@ class BaseVMC:
 
         # Reset n_accepted
         state = State(state.positions, state.logp, 0, state.delta)
-        #nparticles = state.positions.shape[0] # For one body density calculation
+        # nparticles = state.positions.shape[0] # For one body density calculation
         #distances = np.zeros(nsamples, nparticles)
         energies = np.zeros(nsamples)
 
@@ -473,7 +488,7 @@ class BaseVMC:
             state = self.step(state, alpha, seed, **kwargs)
             energies[i] = self._locE_fn(state.positions, alpha)
             #distances[i, :] = np.linalg.norm(state.positions, axis=1)**2
-        #, distances
+        # , distances
         return state, energies
     """
     def sample_distance(self, nsamples, state, alpha, seed, **kwargs):
