@@ -66,7 +66,7 @@ class WaveFunction(metaclass=ABCMeta):
         return np.exp(self.logprob(*args, **kwargs))
 
     def logprob(self, *args, **kwargs):
-        return 2. * self.wf(*args, **kwargs)
+        return 2. * self.wf(*args, **kwargs)#np.log(self.wf(*args, **kwargs)*self.wf(*args, **kwargs))
 
     @abstractmethod
     def local_energy(self):

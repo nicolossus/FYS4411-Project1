@@ -27,23 +27,28 @@ class Metropolis(BaseVMC):
         scale : float
             Scale of proposal distribution. Default: 1.0
         """
-
         # Advance RNG
         next_gen = advance_PRNG_state(seed, state.delta)
         rng = self._rng(next_gen)
         # Sample proposal positions, i.e., move walkers
         proposals = rng.normal(loc=state.positions, scale=scale)
         # Sample log uniform rvs
-        #log_unif = np.log(rng.random(size=state.positions.shap))
-        log_unif = np.log(rng.random(size=state.positions.shape))
+        log_unif = np.log(rng.random())
+        #log_unif = np.log(rng.random(size=state.positions.shape))
         # Compute proposal log density
         logp_proposal = self._logp_fn(proposals, alpha)
         # Metroplis acceptance criterion
         accept = log_unif < logp_proposal - state.logp
+        #print(accept)
+        #print(log_unif)
+        #print(logp_proposal)
+        #print(state.logp)
         # Where accept is True, yield proposal, otherwise keep old state
         new_positions = np.where(accept, proposals, state.positions)
-<<<<<<< HEAD
+
         new_logp = self._logp_fn(new_positions, alpha)
+
+
         """
         if (accept):
             new_positions = proposals
@@ -54,12 +59,17 @@ class Metropolis(BaseVMC):
             new_logp = state.logp
             n_accepted = state.n_accepted
         """
-=======
-        #new_logp = np.where(accept, logp_proposal, state.logp)
-        new_logp = self._logp_fn(new_positions, alpha)
->>>>>>> b262c18e8ce9d6c185241233dac8a817c14b82fd
+
         new_n_accepted = state.n_accepted + np.sum(accept)
         new_delta = state.delta + 1
+
+        if (np.sum(new_logp-state.logp)<np.sum(log_unif)):
+            print("New logp: ", np.sum(new_logp))
+            print("statelogp: ", np.sum(state.logp))
+            new_positions = state.positions
+            new_logp = state.logp
+            new_n_accepted = state.n_accepted
+
         # Create new state
         new_state = State(new_positions, new_logp, new_n_accepted, new_delta)
 

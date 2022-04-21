@@ -208,7 +208,7 @@ class Metropolis(VMC):
     def __init__(self, wavefunction, rng=None):
         super().__init__(wavefunction, rng=rng)
 
-    def step(self, state, alpha, seed, scale=1.0):
+    def step(self, state, alpha, seed, scale=0.03):
         # Advance RNG
         next_gen = advance_PRNG_state(seed, state.delta)
         rng = self._rng(next_gen)
@@ -337,8 +337,8 @@ if __name__ == "__main__":
 
     #wf = LogNIB(omega)
     wf = LogIB(omega)
-    #sampler = Metropolis(wf)
-    sampler = MetropolisHastings(wf)
+    sampler = Metropolis(wf)
+    #sampler = MetropolisHastings(wf)
     r = interacting_initial_positions(wf, alpha, N, dim)
 
     print(wf.logprob(r, alpha))
