@@ -65,25 +65,25 @@ omega = 1.   # Oscillator frequency
 
 # Config
 nsamples = 20000
-initial_alpha = 0.5
+initial_alpha = 0.4
 
 # NON-INTERACTING
 
-#wf = vmc.ASHONIB(N, dim, omega)
+wf = vmc.ASHONIB(N, dim, omega)
 #wf = vmc.SHONIB(omega)
 #wf = vmc.EHONIB()
-#initial_positions = non_interact_initial_positions(wf, initial_alpha, N, dim)
+initial_positions = non_interact_initial_positions(wf, initial_alpha, N, dim)
 
 # INTERACTING
 #wf = vmc.SHOIB(omega)
 
-wf = vmc.EHOIB()
-
+#wf = vmc.EHOIB()
+'''
 initial_positions, scale = interact_initial_positions(wf,
                                                       initial_alpha,
                                                       N,
                                                       dim)
-
+'''
 # Instantiate sampler
 sampler = vmc.Metropolis(wf)
 #sampler = vmc.MetropolisHastings(wf)
