@@ -25,15 +25,20 @@ def safe_initial_positions(wavefunction, alpha, N, dim, seed=None):
     return positions
 
 
-N = 3   # Number of particles
+N = 100 # Number of particles
 dim = 3      # Dimensionality
 omega = 1.   # Oscillator frequency
 
 # Instantiate wave function
 # Analytical
 wf = vmc.AIB(N, dim, omega)
+<<<<<<< HEAD
+#wf = vmc.LogIB(omega)
+#wf = vmc.NIBWF(N, dim, omega)
+=======
 # wf = vmc.LogIB(omega)
 wf2 = vmc.NIBWF(N, dim, omega)
+>>>>>>> cc5939f28d3cdd889fa05371d149eeed9df569d7
 
 # Numerical
 # wf = vmc.LogNIB(omega)
@@ -47,7 +52,8 @@ initial_alpha = 0.5
 
 # Set intial positions
 initial_positions = safe_initial_positions(wf, initial_alpha, N, dim)
-
+wf.test_terms_in_lap(initial_positions, wf.dudr_faster(initial_positions), initial_alpha)
+print(f"Local energy={wf.local_energy(initial_positions, initial_alpha)}")
 '''
 print("wf jax : ", wf.wf(initial_positions, initial_alpha))
 print("wf drift : ", wf.drift_force(initial_positions, initial_alpha))
@@ -69,6 +75,10 @@ start = time.time()
 dudr_faster = wf.dudr_faster(initial_positions)
 end = time.time()
 print("Time dudr faster: ", end-start)
+print("Dudr: ", dudr_faster)
+print("Shape dudr: ", dudr_faster.shape)
+"""
+"""
 start = time.time()
 unit_matrix = wf.unit_matrix(initial_positions)
 end = time.time()
@@ -88,20 +98,62 @@ fourth_term_fast = wf.fourth_term_faster(initial_positions)
 end = time.time()
 print("Fourth term faster: ", end-start)
 """
+<<<<<<< HEAD
+"""
+#dudr = wf.dudr(initial_positions)
+#dudr_faster = wf.dudr_faster(initial_positions)
+#print("fourth term: ", fourth_term)
+#print("fourth term faster: ", fourth_term_fast)
+#print("Dudr: ", dudr)
+#print("Dudr faster: ", dudr_faster)
+start = time.time()
+=======
 # dudr = wf.dudr(initial_positions)
 # dudr_faster = wf.dudr_faster(initial_positions)
 # print("fourth term: ", fourth_term)
 # print("fourth term faster: ", fourth_term_fast)
 # print("Dudr: ", dudr)
 # print("Dudr faster: ", dudr_faster)
+>>>>>>> cc5939f28d3cdd889fa05371d149eeed9df569d7
 unit_matrix = wf.unit_matrix(initial_positions)
+end = time.time()
 print("Unit matrix slow: ", unit_matrix)
+print("Speed: ", end-start)
+start = time.time()
 unit_matrix_faster = wf.unit_matrix_faster(initial_positions)
+end = time.time()
 print("Unit matrix fast: ", unit_matrix_faster)
+<<<<<<< HEAD
+print("Speed: ", end-start)
+start = time.time()
+dudr = wf.dudr(initial_positions)
+end = time.time()
+print("Dudr: ", dudr)
+print("Sum dudr: ", np.sum(dudr, axis=1))
+print("TIme: ", end-start)
+start = time.time()
+dudr_faster = wf.dudr_faster(initial_positions)
+end = time.time()
+print("Dudr fast: ", dudr_faster)
+print("time: ", end-start)
+#start = time.time()
+#dudr_jastrow, grad_jastrow = wf._gradient_jastrow(initial_positions, 0.5)
+#end = time.time()
+#print("Gradient jastrow: ", grad_jastrow)
+#print("dudr_jastrow: ", dudr_jastrow)
+#print("Speed: ", end-start)
+#print(initial_positions)
+#wf.test_terms_in_lap(initial_positions, dudr, 0.5)
+#wf.test_terms_in_lap(initial_positions, dudr_faster, 0.5)
+#print(unit_matrix_faster)
+#LE = wf.local_energy(initial_positions, 0.5)
+"""
+=======
 print(initial_positions)
 # wf.test_terms_in_lap(initial_positions, dudr, 0.5)
 # wf.test_terms_in_lap(initial_positions, dudr_faster, 0.5)
 # print(unit_matrix_faster)
+>>>>>>> cc5939f28d3cdd889fa05371d149eeed9df569d7
 """
 print("AIBWF: ", wf(initial_positions, initial_alpha))
 print("NIBWF: ", wf2(initial_positions, initial_alpha))
@@ -113,10 +165,16 @@ print("Dudr: ", wf.dudr(initial_positions))
 print("AIBWF drift: ", wf.drift_force(initial_positions, initial_alpha))
 print("NIBWF drift: ", wf2.drift_force(initial_positions, initial_alpha))
 print("AIBWF local energy: ", wf.local_energy(initial_positions, initial_alpha))
+<<<<<<< HEAD
+print("NIBWF local energy: ", wf2.local_energy(initial_positions, initial_alpha))
+"""
+print(wf.logprob(initial_positions, 0.5))
+=======
 print("NIBWF local energy: ", wf2.local_energy(
     initial_positions, initial_alpha))
 """
 
+>>>>>>> cc5939f28d3cdd889fa05371d149eeed9df569d7
 start = time.time()
 results = sampler.sample(nsamples,
                          initial_positions,
@@ -126,8 +184,8 @@ results = sampler.sample(nsamples,
                          warm=True,
                          warmup_iter=1000,
                          tune=True,
-                         tune_iter=2500,
-                         tune_interval=250,
+                         tune_iter=5000,
+                         tune_interval=500,
                          tol_tune=1e-7,
                          optimize=False,
                          max_iter=20000,
@@ -140,7 +198,7 @@ results = sampler.sample(nsamples,
 
 end = time.time()
 print("Sampler elapsed time:", end - start)
-"""
+
 
 """
 # Instantiate sampler
@@ -191,13 +249,21 @@ print("NIBWF local energy: ", wf2.local_energy(initial_positions, 0.5))
 # print("AIBWF u: ", np.exp(np.sum(wf.u(initial_positions))))
 # print("AIBWF f: ", wf.f(initial_positions))
 """
-"""
+
 exact_E = exact_energy(N, dim, omega)
 print(f"Exact energy: {exact_E}")
 print(results)
+<<<<<<< HEAD
+#cwd = os.getcwd()
+#filename = "/FiftyNInteractions.csv"
+#data_path = "/data/interactions"
+#os.makedirs(cwd+data_path, exist_ok=True)
+#sampler._results_full.to_csv(cwd+data_path+filename)
+=======
 cwd = os.getcwd()
 filename = "/FiftyNInteractions.csv"
 data_path = "/data/interactions"
 os.makedirs(cwd + data_path, exist_ok=True)
 sampler._results_full.to_csv(cwd + data_path + filename)
 """
+>>>>>>> cc5939f28d3cdd889fa05371d149eeed9df569d7

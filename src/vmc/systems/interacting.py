@@ -106,7 +106,8 @@ class ASHOIB(WaveFunction):
         # Generate indices
         ii, jj = np.meshgrid(range(N), range(N), indexing='ij')
         i, j = (ii != jj).nonzero()
-
+        #print("Jastrow indices: ", i)
+        #print(j)
         # Compute quantities
         rij = r[i] - r[j]
         dij = np.linalg.norm(rij, ord=2, axis=axis)
@@ -116,6 +117,7 @@ class ASHOIB(WaveFunction):
         # Sum contributions
         _, indices = np.unique(i, return_counts=True)
         row_summing = np.append([0], np.cumsum(indices))[:-1]
+        #print(row_summing)
         grad_jastrow = np.add.reduceat(du_dij, row_summing, axis=0)
 
         return grad_jastrow
@@ -129,7 +131,7 @@ class ASHOIB(WaveFunction):
 
     def _laplacian_spf(self, r, alpha):
         N, d = r.shape
-        return -2 * d * alpha
+        return -2 * d * alpha * N
 
     def _laplacian_jastrow(self, r, alpha):
         # Correlation gradient
@@ -156,12 +158,49 @@ class ASHOIB(WaveFunction):
 
     def _laplacian(self, r, alpha):
         grad2_spf = self._laplacian_spf(r, alpha)
+        grad_spf = self._gradient_spf(r, alpha)
+        grad_jastrow = self._gradient_jastrow(r, alpha)
         grad2_jastrow = self._laplacian_jastrow(r, alpha)
-        grad2 = np.sum(grad2_spf + grad2_jastrow)
-        # experimental
+        grad2 = np.sum(grad2_spf) + np.sum(grad2_jastrow)
+        grad = grad_spf*grad_spf + 2*grad_spf*grad_jastrow + grad_jastrow*grad_jastrow
         grad = self._gradient(r, alpha)
-        grad_fix = np.sum((grad @ grad.T))
-        return grad2 + grad_fix
+        laplacian = grad2 + np.sum(grad*grad)
+        non_interacting_part = np.sum(grad2_spf) + np.sum(grad_spf*grad_spf)
+        second_term = np.sum(2*grad_spf*grad_jastrow)
+        third_term = np.sum(grad_jastrow*grad_jastrow)
+        fourth_term = np.sum(grad2_jastrow)
+        """
+        print("Non-interacting part: ", non_interacting_part)
+        print(f"Parts of non_interact: grad2_spf={grad2_spf}, grad_spf={np.sum(grad_spf*grad_spf)}")
+        print("Second term: ", second_term)
+        print("Third term: ", third_term)
+        print("Fourth term: ", fourth_term)
+        print("Sum grad2: ", grad2)
+        print("Sum grad: ", np.sum(grad))
+        """
+        """
+        grad2_spf = self._laplacian_spf(r, alpha)
+        print("Grad2_spf: ", grad2_spf)
+        grad2_jastrow = self._laplacian_jastrow(r, alpha)
+        grad2 = np.sum(grad2_spf)+np.sum(grad2_jastrow)
+        print("Grad2: ", grad2)
+        print("Grad2 jastrow: ", np.sum(grad2_jastrow))
+
+        # experimental
+        #grad = self._gradient(r, alpha)
+        grad_direct = self._gradient(r, alpha)
+        grad_spf = self._gradient_spf(r, alpha)
+        grad_jastrow = self._gradient_jastrow(r, alpha)
+        #print("Grad direct: ", np.sum(grad_direct*grad_direct))
+        grad = grad_spf*grad_spf + 2*grad_spf*grad_jastrow + grad_jastrow*grad_jastrow
+        #grad_fix = grad_spf*grad_spf#+2*grad_spf*grad_jastrow+grad_jastrow*grad_jastrow
+        non_interacting_part = grad2_spf + np.sum(grad_spf*grad_spf)
+        #print("Non-interact: ", non_interacting_part)
+        #print("2 GradSPF GradJ: ", np.sum(2*grad_spf*grad_jastrow))
+        #print("GradJ*GradJ: ", np.sum(grad_jastrow*grad_jastrow))
+        #print("Grad spf: ", np.sum(grad_spf*grad_spf))
+        """
+        return laplacian
 
     def _kinetic_energy(self, r, alpha):
         return -0.5 * self._laplacian(r, alpha)
@@ -195,3 +234,5 @@ if __name__ == "__main__":
 
     print("ASHOIB drift force=", wf_a.drift_force(r, alpha))
     print("SHOIB drift force=", wf_n.drift_force(r, alpha))
+    print("ASHOIB local_energy=", wf_a.local_energy(r, alpha))
+    print("SHOIB local energy=", wf_n.local_energy(r, alpha))

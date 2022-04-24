@@ -100,7 +100,7 @@ class BaseVMC:
         **kwargs
     ):
         """Sampling procedure"""
-
+        self._reject_batch = False
         # Settings for warm-up
         self._warm = warm
         self._warmup_iter = warmup_iter
@@ -254,8 +254,7 @@ class BaseVMC:
         """
 
         N, d = state.positions.shape
-        #total_moves = nsamples * N * d
-        total_moves = nsamples
+        total_moves = nsamples  # *N*d
         acc_rate = state.n_accepted / total_moves
         energy = np.mean(energies)
         # blocking
@@ -350,8 +349,7 @@ class BaseVMC:
         # Reset n_accepted
         state = State(state.positions, state.logp, 0, state.delta)
         N, d = state.positions.shape
-        #total_moves = self._tune_interval * N * d
-        total_moves = self._tune_interval
+        total_moves = self._tune_interval  # *N*d
 
         for i in range(self._tune_iter):
             state = self.step(state, alpha, seed, scale=scale, **kwargs)
@@ -382,7 +380,7 @@ class BaseVMC:
         N, d = state.positions.shape
         #total_moves = self._tune_interval * N * d
         total_moves = self._tune_interval
-
+        # print("Tuning..")
         for i in range(self._tune_iter):
             state = self.step(state, alpha, seed, dt=dt, **kwargs)
             steps_before_tune -= 1
