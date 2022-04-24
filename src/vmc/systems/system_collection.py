@@ -470,7 +470,7 @@ class AIB(WaveFunction):
             (0.5*self._omega2 - 2 * alpha * alpha) * np.sum(r * r)
         print("NI part: ", non_interacting_part)
 
-        second_term = -4*alpha*np.sum(np.diag(np.inner(r, np.sum(dudr, axis=0))))
+        second_term = -0.5*(-4)*alpha*np.sum(np.diag(np.inner(r, np.sum(dudr, axis=1))))
         #second_term_test = -4*alpha*np.sum(np.diag(np.inner(r, np.sum(dudr, axis=0))))
         print("Second term: ", second_term)
         #assert abs(second_term-second_term_test) <1e-12
@@ -478,21 +478,21 @@ class AIB(WaveFunction):
         #    print("Second term fuckup: ", second_term)
         #print("Second term: ", second_term)
 
-        third_term = np.einsum("ijk, ajk -> ", dudr, dudr, optimize="greedy")
+        third_term = -0.5*np.einsum("ijk, ajk -> ", dudr, dudr, optimize="greedy")
         print("Third term: ", third_term)
         #if (abs(third_term)>abs(non_interacting_part)):
         #    print("Third term fuckup: ", third_term)
         #    print("log|wf|^2: ", self.logprob(r, alpha))
         #print("Third term: ", third_term)
 
-        fourth_term = np.sum(fourth_term_vals)
+        fourth_term = -0.5*np.sum(fourth_term_vals)
         print("Fourth term: ", fourth_term)
         #if (abs(fourth_term)>abs(non_interacting_part)):
         #    print("Fourth term fuckup: ", fourth_term)
         #    print("log|wf|^2: ", self.logprob(r, alpha))
         #print("Fourth term: ", fourth_term)
         #print("Third and fourth term added: ", non_interacting_part-third_term-fourth_term)
-        local_energy = non_interacting_part + second_term + third_term + fourth_term
+        local_energy = non_interacting_part + second_term + third_term + fourth_term#+ second_term + third_term + fourth_term
         #print(local_energy)
         return local_energy
 
@@ -521,6 +521,23 @@ class AIB(WaveFunction):
         second_term = second_term*(-4*alpha)
         end = time.time()
         return second_term, end-start
+
+    def second_term_for_double(self, r, alpha, a=0.00433):
+        second_term = 0
+        N = self._N
+        d = self._d
+        for k in range(N):
+            rk = r[k, :]
+            sum_jastrow = np.zeros(d)
+            for j in range(N):
+                if j==k:
+                    pass
+                else:
+                    rj = r[j, :]
+                    rkj = np.linalg.norm(rk-rj)
+                    sum_jastrow += (rk-rj)*a/(rkj**2*(rkj-a))
+            second_term += -4*alpha*np.dot(rk, sum_jastrow)
+        return second_term
 
     def third_term_double_for(self, scaled_unit_matrix):
         val = 0
@@ -555,6 +572,10 @@ class AIB(WaveFunction):
         second_einsum = -4*alpha*np.einsum("nd,nd->", r, dudr, optimize="greedy")
         end = time.time()
         print("Second einsum val: {}, time: {}".format(second_einsum, end-start))
+        start = time.time()
+        second_double_for = self.second_term_for_double(r, alpha)
+        end = time.time()
+        print(f"Second term double: {second_double_for} with time: {end-start}")
         print("Third terms: ")
         triple_for = self.third_term_triple_for(scaled_unit_matrix)
         print("Triple for val: {}, time: {}".format(triple_for[0], triple_for[1]))
@@ -588,14 +609,13 @@ class LogNIB(System):
 
     @partial(jax.jit, static_argnums=(0,))
     def wf(self, r, alpha):
-<<<<<<< HEAD
+
         return -alpha * r * r
 
     '''
     @partial(jax.jit, static_argnums=(0,))
     def wf_scalar(self, r, alpha):
-=======
->>>>>>> cc5939f28d3cdd889fa05371d149eeed9df569d7
+
         return -alpha * jnp.sum(r * r)
     '''
 
@@ -611,38 +631,25 @@ class LogIB(System):
 
     @partial(jax.jit, static_argnums=(0,))
     def wf(self, r, alpha):
-<<<<<<< HEAD
-        print("Shape: ", r.shape)
-        wf = -alpha * r * r + self.f(r)/(r.shape[0]*r.shape[1])
-        return wf
-=======
+
         return self._single(r, alpha) + self._correlation(r)
 
     @partial(jax.jit, static_argnums=(0,))
     def _single(self, r, alpha):
+
         return -alpha * jnp.sum(r * r)
->>>>>>> cc5939f28d3cdd889fa05371d149eeed9df569d7
+
 
     @partial(jax.jit, static_argnums=(0,))
     def f(self, r, a=0.0043):
         N = r.shape[0]
         i, j = np.triu_indices(N, 1)
         axis = r.ndim - 1
-<<<<<<< HEAD
-        q = r[i] - r[j]
-        rij = jnp.linalg.norm(q, ord=2, axis=axis)
-        f = 1 - a / rij # * (rij > a)
-        return jnp.log(f)
-    '''
-    @partial(jax.jit, static_argnums=(0,))
-    def wf_scalar(self, r, alpha):
-        return -alpha * jnp.sum(r * r)
-    '''
-=======
+
         rij = jnp.linalg.norm(r[i] - r[j], ord=2, axis=axis)
         f = 1 - self._a / rij * (rij > self._a)
         return jnp.sum(jnp.log(f))
->>>>>>> cc5939f28d3cdd889fa05371d149eeed9df569d7
+
 
     @partial(jax.jit, static_argnums=(0,))
     def potential(self, r):

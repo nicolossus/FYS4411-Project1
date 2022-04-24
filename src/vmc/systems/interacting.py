@@ -163,17 +163,21 @@ class ASHOIB(WaveFunction):
         grad2_jastrow = self._laplacian_jastrow(r, alpha)
         grad2 = np.sum(grad2_spf) + np.sum(grad2_jastrow)
         grad = grad_spf*grad_spf + 2*grad_spf*grad_jastrow + grad_jastrow*grad_jastrow
-        laplacian = grad2 + np.sum(grad)
+        grad = self._gradient(r, alpha)
+        laplacian = grad2 + np.sum(grad*grad)
         non_interacting_part = np.sum(grad2_spf) + np.sum(grad_spf*grad_spf)
         second_term = np.sum(2*grad_spf*grad_jastrow)
         third_term = np.sum(grad_jastrow*grad_jastrow)
         fourth_term = np.sum(grad2_jastrow)
-
+        """
         print("Non-interacting part: ", non_interacting_part)
         print(f"Parts of non_interact: grad2_spf={grad2_spf}, grad_spf={np.sum(grad_spf*grad_spf)}")
         print("Second term: ", second_term)
         print("Third term: ", third_term)
         print("Fourth term: ", fourth_term)
+        print("Sum grad2: ", grad2)
+        print("Sum grad: ", np.sum(grad))
+        """
         """
         grad2_spf = self._laplacian_spf(r, alpha)
         print("Grad2_spf: ", grad2_spf)
