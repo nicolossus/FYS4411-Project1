@@ -52,9 +52,9 @@ class System:
 
     @partial(jax.jit, static_argnums=(0,))
     def logprob(self, r, alpha):
-        # return 2. * self.wf(r, alpha)
-        wf = self.wf(r, alpha)
-        return wf * wf
+        return 2. * self.wf(r, alpha)
+        #wf = self.wf(r, alpha)
+        # return wf * wf
 
     @partial(jax.jit, static_argnums=(0,))
     def _local_kinetic_energy(self, r, alpha):
@@ -214,21 +214,29 @@ class Metropolis(VMC):
         # Advance RNG
         next_gen = advance_PRNG_state(seed, state.delta)
         rng = self._rng(next_gen)
+
         # Sample proposal positions, i.e., move walkers
         proposals = rng.normal(loc=state.positions, scale=scale)
+
         # Sample log uniform rvs
         #log_unif = np.log(rng.random(size=state.positions.shape))
         log_unif = np.log(rng.random())
+
         # Compute proposal log density
         logp_proposal = self._logp_fn(proposals, alpha)
+
         # Metroplis acceptance criterion
         accept = log_unif < logp_proposal - state.logp
         # Where accept is True, yield proposal, otherwise keep old state
-        new_positions = np.where(accept, proposals, state.positions)
+        #new_positions = np.where(accept, proposals, state.positions)
+        new_positions = proposals if accept else state.positions
+
         #new_logp = np.where(accept, logp_proposal, state.logp)
         new_logp = self._logp_fn(new_positions, alpha)
-        new_n_accepted = state.n_accepted + np.sum(accept)
+        #new_n_accepted = state.n_accepted + np.sum(accept)
+        new_n_accepted = state.n_accepted + accept  # np.sum(accept)
         new_delta = state.delta + 1
+
         # Create new state
         new_state = State(new_positions, new_logp, new_n_accepted, new_delta)
 
@@ -281,13 +289,17 @@ class MetropolisHastings(VMC):
         # Sample log uniform rvs
         #log_unif = np.log(rng.random(size=sys_size))
         log_unif = np.log(rng.random())
+
         # Metroplis acceptance criterion
         accept = log_unif < ratio
+
         # Where accept is True, yield proposal, otherwise keep old state
         new_positions = np.where(accept, proposals, state.positions)
+
         #new_logp = np.where(accept, logp_prop, state.logp)
         new_logp = self._logp_fn(new_positions, alpha)
-        new_n_accepted = state.n_accepted + np.sum(accept)
+        new_n_accepted = state.n_accepted + accept  # np.sum(accept)
+        print(state.n_accepted)
         new_delta = state.delta + 1
         # Create new state
         new_state = State(new_positions, new_logp, new_n_accepted, new_delta)
@@ -331,7 +343,7 @@ if __name__ == "__main__":
 
         return r
 
-    N = 100        # Number of particles
+    N = 10        # Number of particles
     dim = 3        # Dimensionality
     omega = 1.     # Oscillator frequency
     a = 0.00433
@@ -339,17 +351,19 @@ if __name__ == "__main__":
 
     #wf = LogNIB(omega)
     wf = LogIB(omega)
-    #sampler = Metropolis(wf)
-    sampler = MetropolisHastings(wf)
-    r = interacting_initial_positions(wf, alpha, N, dim)
+    sampler = Metropolis(wf)
+    #sampler = MetropolisHastings(wf)
+    r = np.random.randn(N, dim)  # * 0.01
+    #r = interacting_initial_positions(wf, alpha, N, dim)
 
-    print(wf.logprob(r, alpha))
+    #print(wf.logprob(r, alpha))
 
     # r = np.random.rand(N, dim) * 3.0
     # r = safe_initial_positions(wf, alpha, N, dim)
     nsamples = 10000
 
-    energies, state = sampler.sample(nsamples, r, alpha,)
-    print(np.mean(energies[1000:]))
+    energies, state = sampler.sample(nsamples, r, alpha, scale=0.8)
+    print(np.mean(energies[1000:]), state.n_accepted)
+    # print(np.mean(energies[1000:]))
     print("exact=", exact_energy(N, dim, omega))
-    print("accepted:", state.n_accepted)
+    #print("accepted:", state.n_accepted)
