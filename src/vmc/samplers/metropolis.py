@@ -45,20 +45,14 @@ class Metropolis(BaseVMC):
         # Metroplis acceptance criterion
         accept = log_unif < logp_proposal - state.logp
         # Where accept is True, yield proposal, otherwise keep old state
+        #new_positions = np.where(accept, proposals, state.positions)
+        new_positions = proposals if accept else state.positions
 
-        new_positions = np.where(accept, proposals, state.positions)
         new_logp = self._logp_fn(new_positions, alpha)
-        """
-        if (accept):
-            new_positions = proposals
-            new_logp = logp_proposal
-            n_accepted = state.n_accepted + 1
-        else:
-            new_positions = state.positions
-            new_logp = state.logp
-            n_accepted = state.n_accepted
-        """
-        new_n_accepted = state.n_accepted + np.sum(accept)
+
+        #new_n_accepted = state.n_accepted + np.sum(accept)
+        new_n_accepted = state.n_accepted + accept
+
         new_delta = state.delta + 1
 
         # Create new state

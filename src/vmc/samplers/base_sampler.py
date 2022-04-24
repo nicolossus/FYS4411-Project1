@@ -370,7 +370,7 @@ class BaseVMC:
                 if self._early_stop:
                     if early_stopping(scale, old_scale, tolerance=self._tol_tune):
                         break
-        print(f"Final acceptance rate {accept_rate} and scale {scale}")
+        #print(f"Final acceptance rate {accept_rate} and scale {scale}")
         return state, scale
 
     def tune_dt(self, state, alpha, seed, dt, **kwargs):
@@ -391,7 +391,7 @@ class BaseVMC:
                 old_dt = dt
                 accept_rate = state.n_accepted / total_moves
                 dt = tune_dt_table(old_dt, accept_rate)
-                print(f'Accept rate: {accept_rate}, dt: {dt}')
+                #print(f'Accept rate: {accept_rate}, dt: {dt}')
 
                 # Reset
                 steps_before_tune = self._tune_interval
@@ -401,7 +401,7 @@ class BaseVMC:
                 if self._early_stop:
                     if early_stopping(dt, old_dt, tolerance=self._tol_tune):
                         break
-        print(f"Final dt val: {dt}, with accept rate: {accept_rate}")
+        #print(f"Final dt val: {dt}, with accept rate: {accept_rate}")
         return state, dt
 
     def optimizer(self, state, alpha, eta, seed, **kwargs):

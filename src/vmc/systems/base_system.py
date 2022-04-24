@@ -80,9 +80,10 @@ class System:
             Log density for each particle
         """
 
-        # return 2. * self.wf(r, alpha)
-        wf = self.wf(r, alpha)
-        return wf * wf
+        return 2. * self.wf(r, alpha)
+        #wf = self.wf(r, alpha)
+        # return wf * wf
+        # return 2 * jnp.abs(wf)
 
     @partial(jax.jit, static_argnums=(0,))
     def _local_kinetic_energy(self, r, alpha):
