@@ -46,6 +46,7 @@ r = np.random.rand(N, dim) * 2.0
 # Analyticalhttps://msu.zoom.us/j/99553919750?pwd=NDFsYno2OVRxdU1iYUdHeThXTEp4UT09
 
 
+
 wf_a = vmc.ASHOIB(N, dim, omega)
 wf_AI = vmc.AIB(N, dim, omega)
 # Numerical

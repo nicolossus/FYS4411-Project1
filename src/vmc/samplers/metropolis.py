@@ -30,19 +30,37 @@ class Metropolis(BaseVMC):
         # Advance RNG
         next_gen = advance_PRNG_state(seed, state.delta)
         rng = self._rng(next_gen)
-
+        N, dim = state.positions.shape
         # Sample proposal positions, i.e., move walkers
         proposals = rng.normal(loc=state.positions, scale=scale)
-
+        new_positions = state.positions
         # Sample log uniform rvs
-<<<<<<< HEAD
+        #       <<<<<<< HEAD
         log_unif = np.log(rng.random())
         #log_unif = np.log(rng.random(size=state.positions.shape))
-=======
+        #       =======
         #log_unif = np.log(rng.random(size=state.positions.shape))
-        log_unif = np.log(rng.random())
+        #log_unif = np.log(rng.random())
+        """
+        move one and one and compute logp for each round
+        n_accepted = 0
+        log_unif = np.log(rng.random(size=N))
+        logp = state.logp
+        for i in range(N):
+            proposal = proposals[i, :]
+            new_positions[i, :] = proposal
+            logp_proposal = self._logp_fn(new_positions, alpha)
+            if (log_unif[i] < (logp_proposal-logp)):
+                n_accepted += 1
+                logp = logp_proposal
+            else:
+                new_positions[i, :] = state.positions[i, :]
 
->>>>>>> cc5939f28d3cdd889fa05371d149eeed9df569d7
+        new_n_accepted = state.n_accepted + n_accepted
+        new_delta = state.delta + 1
+        new_logp =self._logp_fn(new_positions, alpha)
+        """
+        #>>>>>>> cc5939f28d3cdd889fa05371d149eeed9df569d7
         # Compute proposal log density
         logp_proposal = self._logp_fn(proposals, alpha)
 
@@ -54,15 +72,8 @@ class Metropolis(BaseVMC):
         #print(state.logp)
         # Where accept is True, yield proposal, otherwise keep old state
 
-        new_positions = np.where(accept, proposals, state.positions)
-<<<<<<< HEAD
+        #new_positions = np.where(accept, proposals, state.positions)
 
-=======
->>>>>>> cc5939f28d3cdd889fa05371d149eeed9df569d7
-        new_logp = self._logp_fn(new_positions, alpha)
-
-
-        """
         if (accept):
             new_positions = proposals
             new_logp = logp_proposal
@@ -71,25 +82,14 @@ class Metropolis(BaseVMC):
             new_positions = state.positions
             new_logp = state.logp
             n_accepted = state.n_accepted
-        """
-<<<<<<< HEAD
 
-        new_n_accepted = state.n_accepted + np.sum(accept)
+
+        new_n_accepted = n_accepted
         new_delta = state.delta + 1
 
-        if (np.sum(new_logp-state.logp)<np.sum(log_unif)):
-            print("New logp: ", np.sum(new_logp))
-            print("statelogp: ", np.sum(state.logp))
-            new_positions = state.positions
-            new_logp = state.logp
-            new_n_accepted = state.n_accepted
 
-=======
-        new_n_accepted = state.n_accepted + np.sum(accept)
-        new_delta = state.delta + 1
-
->>>>>>> cc5939f28d3cdd889fa05371d149eeed9df569d7
         # Create new state
+        
         new_state = State(new_positions, new_logp, new_n_accepted, new_delta)
 
         return new_state
