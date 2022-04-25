@@ -238,18 +238,47 @@ class AIB(WaveFunction):
         d = self._d
         unit_matrix = np.zeros((N, N, d))
         for i, j in zip(*self._triu_indices):
+<<<<<<< HEAD
+            rij = np.linalg.norm(r[i] - r[j])
+            print("Ri: ", r[i])
+            print("Rj: ", r[j])
+            print("rij: ", rij)
+            upper_unit_vector = (r[i] - r[j]) / rij
+            unit_matrix[i, j, :] = upper_unit_vector
+            unit_matrix[j, i, :] = -upper_unit_vector
+            rij = np.linalg.norm(r[i] - r[j])
+            upper_unit_vector = (r[i] - r[j]) / rij
+            unit_matrix[i, j, :] = upper_unit_vector
+            unit_matrix[j, i, :] = -upper_unit_vector
+=======
             rij = np.linalg.norm(r[i]-r[j])
             upper_unit_vector = (r[i]-r[j])/rij
             unit_matrix[i,j, :] = upper_unit_vector
             unit_matrix[j,i, :] = -upper_unit_vector
+>>>>>>> ffde512db50c735bb0ff277b65ef3d005db2cf03
         return unit_matrix
-
 
     def unit_matrix_faster(self, r):
 
         N = self._N
         d = self._d
         unit_matrix = np.zeros((N, N, d))
+<<<<<<< HEAD
+        axis = 1
+        print("fast um")
+        i, j = np.triu_indices(N, 1)
+        # for i, j in zip(*self._triu_indices):
+        q = r[i] - r[j]
+        print("Ri : ", r[i])
+        print("Rj: ", r[j])
+        print("Q: ", q)
+        rij = np.linalg.norm(q, axis=axis)
+        print(rij)
+        upper_unit_vector = q / rij
+        unit_matrix[i, j, :] = upper_unit_vector
+        unit_matrix[j, i, :] = -upper_unit_vector
+        return unit_matrix
+=======
         i, j = np.triu_indices(N, 1)
         M = len(i)
         distance_matrix = self.distance_matrix(r)
@@ -279,6 +308,7 @@ class AIB(WaveFunction):
         grad_jastrow = np.add.reduceat(du_dij, row_summing, axis=0)
 
         return du_dij, grad_jastrow
+>>>>>>> ffde512db50c735bb0ff277b65ef3d005db2cf03
 
     def u(self, r, a=0.00433):
         """Vector of exponent values.
@@ -355,6 +385,16 @@ class AIB(WaveFunction):
         d = self._d
         unit_matrix, distance_matrix = self.unit_matrix_faster(r)
         scaler = np.zeros((N, N, 1))
+<<<<<<< HEAD
+        #i, j = np.triu_indices(N, 1)
+        for i, j in zip(*self._triu_indices):
+            rij = distance_matrix[i, j]
+            scaler[i, j] = a / (rij * rij - a * rij)
+            scaler[j, i] = scaler[i, j]
+        #rji = distance_matrix[j,i]
+        unit_matrix = self.unit_matrix_faster(r)
+        dudr = unit_matrix * scaler
+=======
         i, j = np.triu_indices(N, 1)
         M = len(np.triu_indices(N,1)[0])
         #for i, j in zip(*self._triu_indices):
@@ -363,6 +403,7 @@ class AIB(WaveFunction):
         scaler[j,i] = scaler[i,j]
 
         dudr = unit_matrix*scaler
+>>>>>>> ffde512db50c735bb0ff277b65ef3d005db2cf03
         return dudr
 
     def d2udr2(self, r, a=0.00433):

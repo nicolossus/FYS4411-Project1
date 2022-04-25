@@ -35,6 +35,7 @@ class Metropolis(BaseVMC):
         proposals = rng.normal(loc=state.positions, scale=scale)
         new_positions = state.positions
         # Sample log uniform rvs
+<<<<<<< HEAD
         #       <<<<<<< HEAD
         log_unif = np.log(rng.random())
         #log_unif = np.log(rng.random(size=state.positions.shape))
@@ -61,17 +62,24 @@ class Metropolis(BaseVMC):
         new_logp =self._logp_fn(new_positions, alpha)
         """
         #>>>>>>> cc5939f28d3cdd889fa05371d149eeed9df569d7
+=======
+        log_unif = np.log(rng.random())
+        #log_unif = np.log(rng.random(size=state.positions.shape))
+>>>>>>> 0114044e9020b2db0779e4aeea347c16a54020e6
         # Compute proposal log density
         logp_proposal = self._logp_fn(proposals, alpha)
 
         # Metroplis acceptance criterion
         accept = log_unif < logp_proposal - state.logp
-        #print(accept)
-        #print(log_unif)
-        #print(logp_proposal)
-        #print(state.logp)
+        # print(accept)
+        # print(log_unif)
+        # print(logp_proposal)
+        # print(state.logp)
         # Where accept is True, yield proposal, otherwise keep old state
+        #new_positions = np.where(accept, proposals, state.positions)
+        new_positions = proposals if accept else state.positions
 
+<<<<<<< HEAD
         #new_positions = np.where(accept, proposals, state.positions)
 
         if (accept):
@@ -88,6 +96,17 @@ class Metropolis(BaseVMC):
         new_delta = state.delta + 1
 
 
+=======
+        new_logp = self._logp_fn(new_positions, alpha)
+
+        #new_n_accepted = state.n_accepted + np.sum(accept)
+        new_n_accepted = state.n_accepted + accept
+
+        new_logp = self._logp_fn(new_positions, alpha)
+
+        new_delta = state.delta + 1
+
+>>>>>>> 0114044e9020b2db0779e4aeea347c16a54020e6
         # Create new state
         
         new_state = State(new_positions, new_logp, new_n_accepted, new_delta)

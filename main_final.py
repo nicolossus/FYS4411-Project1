@@ -41,7 +41,7 @@ def interact_initial_positions(wf, alpha, N, dim, a=0.00433):
 
     scale = 2.
     r = np.random.randn(N, dim) * scale
-    #r = rng.random(size=(N, dim))
+    # r = rng.random(size=(N, dim))
 
     rerun = True
     while rerun:
@@ -64,17 +64,23 @@ dim = 3      # Dimensionality
 omega = 1.   # Oscillator frequency
 
 # Config
+<<<<<<< HEAD
 nsamples = 10000
 initial_alpha = 0.5
+=======
+nsamples = 20000
+initial_alpha = 0.4
+>>>>>>> 0114044e9020b2db0779e4aeea347c16a54020e6
 
 # NON-INTERACTING
 
-#wf = vmc.ASHONIB(N, dim, omega)
-#wf = vmc.SHONIB(omega)
-#wf = vmc.EHONIB()
-#initial_positions = non_interact_initial_positions(wf, initial_alpha, N, dim)
+wf = vmc.ASHONIB(N, dim, omega)
+# wf = vmc.SHONIB(omega)
+# wf = vmc.EHONIB()
+initial_positions = non_interact_initial_positions(wf, initial_alpha, N, dim)
 
 # INTERACTING
+<<<<<<< HEAD
 wf = vmc.SHOIB(omega)
 
 wf = vmc.ASHOIB(N, dim, omega)
@@ -85,26 +91,41 @@ wf = vmc.ASHOIB(N, dim, omega)
 
 #wf = vmc.EHOIB()
 
+=======
+# wf = vmc.SHOIB(omega)
+wf = vmc.ASHOIB(N, dim, omega)
+# wf = vmc.EHOIB()
+>>>>>>> 0114044e9020b2db0779e4aeea347c16a54020e6
 initial_positions, scale = interact_initial_positions(wf,
                                                       initial_alpha,
                                                       N,
                                                       dim)
-
+'''
 # Instantiate sampler
+<<<<<<< HEAD
 sampler = vmc.Metropolis(wf)
 #sampler = vmc.MetropolisHastings(wf)
+=======
+# sampler = vmc.Metropolis(wf)
+sampler = vmc.MetropolisHastings(wf)
+>>>>>>> 0114044e9020b2db0779e4aeea347c16a54020e6
 
-#print(wf.logprob(initial_positions, initial_alpha))
-#print(wf.drift_force(initial_positions, initial_alpha))
-#print(wf.local_energy(initial_positions, initial_alpha))
+# print(wf.logprob(initial_positions, initial_alpha))
+# print(wf.drift_force(initial_positions, initial_alpha))
+# print(wf.local_energy(initial_positions, initial_alpha))
 
 
 start = time.time()
 results = sampler.sample(nsamples,
                          initial_positions,
                          initial_alpha,
+<<<<<<< HEAD
                          scale=1.0,  # METROPOLIS
                          #dt=1e-10,     # METROPOLIS-HASTINGS
+=======
+                         # scale=1.0,  # METROPOLIS
+                         dt=1e-10,     # METROPOLIS-HASTINGS
+>>>>>>> 0114044e9020b2db0779e4aeea347c16a54020e6
                          nchains=4,
                          warm=True,
                          warmup_iter=1000,
