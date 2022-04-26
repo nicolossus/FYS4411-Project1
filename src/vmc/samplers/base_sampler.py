@@ -173,6 +173,7 @@ class BaseVMC:
 
         # Set some flags and counters
         retune = False
+        rewarm = True
         actual_warm_iter = 0
         actual_tune_iter = 0
         actual_optim_iter = 0
@@ -214,6 +215,12 @@ class BaseVMC:
             actual_tune_iter += state.delta - subtract_iter
             print("Retune done")
 
+        if rewarm:
+            state = self.warmup_chain(state, alpha, seed, **kwargs)
+            actual_warm_iter += state.delta
+            subtract_iter = actual_warm_iter
+            print("Warm after tune done")
+
         print("Sampling energy")
         # Sample energy
         # , distances
@@ -254,15 +261,12 @@ class BaseVMC:
         """
 
         N, d = state.positions.shape
-<<<<<<< HEAD
+
 
         #total_moves = nsamples * N * d
         total_moves = nsamples
         #total_moves = nsamples*N
 
-=======
-        total_moves = nsamples  # *N*d
->>>>>>> 0114044e9020b2db0779e4aeea347c16a54020e6
         acc_rate = state.n_accepted / total_moves
         energy = np.mean(energies)
         # blocking
@@ -357,14 +361,10 @@ class BaseVMC:
         # Reset n_accepted
         state = State(state.positions, state.logp, 0, state.delta)
         N, d = state.positions.shape
-<<<<<<< HEAD
         #total_moves = self._tune_interval * N * d
         total_moves = self._tune_interval
         #total_moves = self._tune_interval * N
-=======
-        total_moves = self._tune_interval  # *N*d
->>>>>>> 0114044e9020b2db0779e4aeea347c16a54020e6
-
+        count = 0
         for i in range(self._tune_iter):
             state = self.step(state, alpha, seed, scale=scale, **kwargs)
             steps_before_tune -= 1
@@ -373,15 +373,23 @@ class BaseVMC:
                 old_scale = scale
                 accept_rate = state.n_accepted / total_moves
                 scale = tune_scale_table(old_scale, accept_rate)
+                if scale == old_scale:
+                    count += 1
+                else:
+                    count = 0
                 #print(f"Acceptance rate {accept_rate} and scale {scale}")
                 # Reset
                 steps_before_tune = self._tune_interval
                 state = State(state.positions, state.logp, 0, state.delta)
 
                 # Early stopping?
+                if count>2:
+                    break
+                """
                 if self._early_stop:
                     if early_stopping(scale, old_scale, tolerance=self._tol_tune):
                         break
+                """
         #print(f"Final acceptance rate {accept_rate} and scale {scale}")
         return state, scale
 
@@ -394,11 +402,7 @@ class BaseVMC:
         N, d = state.positions.shape
         #total_moves = self._tune_interval * N * d
         total_moves = self._tune_interval
-<<<<<<< HEAD
         #print("Tuning..")
-=======
-        # print("Tuning..")
->>>>>>> 0114044e9020b2db0779e4aeea347c16a54020e6
         for i in range(self._tune_iter):
             state = self.step(state, alpha, seed, dt=dt, **kwargs)
             steps_before_tune -= 1
@@ -414,9 +418,11 @@ class BaseVMC:
                 state = State(state.positions, state.logp, 0, state.delta)
 
                 # Early stopping?
+
                 if self._early_stop:
                     if early_stopping(dt, old_dt, tolerance=self._tol_tune):
                         break
+
         #print(f"Final dt val: {dt}, with accept rate: {accept_rate}")
         return state, dt
 
