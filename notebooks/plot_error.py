@@ -66,8 +66,8 @@ axes[1, 0].fill_between(x,
                         facecolor='wheat')
 # Errorbar
 axes[1, 1].errorbar(x,
-                    mean,
-                    yerr=std,
+                    mean2,
+                    yerr=std2,
                     fmt=':o',
                     color='C1',
                     ecolor='k',
