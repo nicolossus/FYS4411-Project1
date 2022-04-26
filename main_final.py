@@ -64,20 +64,146 @@ dim = 3      # Dimensionality
 omega = 1.   # Oscillator frequency
 
 # Config
+<<<<<<< HEAD
 nsamples = 25000
 initial_alpha = 0.9
+=======
+nsamples = 20000
+initial_alpha = 0.4
+>>>>>>> 53e43e5c8f79c4b199f791278863a31ad6b2a8a4
 
 # NON-INTERACTING
 
-wf = vmc.ASHONIB(N, dim, omega)
-# wf = vmc.SHONIB(omega)
+#wf = vmc.ASHONIB(N, dim, omega)
+wf = vmc.SHONIB(omega)
 # wf = vmc.EHONIB()
-initial_positions = non_interact_initial_positions(wf, initial_alpha, N, dim)
+#initial_positions = non_interact_initial_positions(wf, initial_alpha, N, dim)
+
+# INTERACTING
+<<<<<<< HEAD
+wf = vmc.SHOIB(omega)
+
+wf = vmc.ASHOIB(N, dim, omega)
+#wf = vmc.EHOIB()
+
+
+
+
+#wf = vmc.EHOIB()
+
+=======
+# wf = vmc.SHOIB(omega)
+#wf = vmc.ASHOIB(N, dim, omega)
+# wf = vmc.EHOIB()
+>>>>>>> 53e43e5c8f79c4b199f791278863a31ad6b2a8a4
+initial_positions, scale = interact_initial_positions(wf,
+                                                      initial_alpha,
+                                                      N,
+                                                      dim)
+
+# Instantiate sampler
+sampler = vmc.Metropolis(wf)
+#sampler = vmc.MetropolisHastings(wf)
+<<<<<<< HEAD
+=======
+# sampler = vmc.Metropolis(wf)
+sampler = vmc.MetropolisHastings(wf)
+>>>>>>> 53e43e5c8f79c4b199f791278863a31ad6b2a8a4
+
+# print(wf.logprob(initial_positions, initial_alpha))
+# print(wf.drift_force(initial_positions, initial_alpha))
+# print(wf.local_energy(initial_positions, initial_alpha))
+
+
+start = time.time()
+results = sampler.sample(nsamples,
+                         initial_positions,
+                         initial_alpha,
+<<<<<<< HEAD
+=======
+                         scale=1.0,  # METROPOLIS
+                         # dt=1e-10,     # METROPOLIS-HASTINGS
+                         # scale=1.0,  # METROPOLIS
+                         # dt=1e-10,     # METROPOLIS-HASTINGS
+                         nchains=4,
+                         warm=True,
+                         warmup_iter=1000,
+                         tune=True,
+                         tune_iter=5000,
+                         tune_interval=250,
+                         tol_tune=1e-5,
+                         optimize=False,
+                         max_iter=70000,
+                         batch_size=500,
+                         gradient_method='adam',
+                         eta=0.01,
+                         tol_optim=1e-5,
+                         )
+
+end = time.time()
+print("Sampler elapsed time:", end - start)
+
+exact_E = exact_energy(N, dim, omega)
+print(f"Exact energy spherical HO NIB: {exact_E}")
+print(results)
+# print(sampler.results_all)
+
 
 # INTERACTING
 wf = vmc.SHOIB(omega)
 
-wf = vmc.ASHOIB(N, dim, omega)
+#wf = vmc.ASHOIB(N, dim, omega)
+#wf = vmc.EHOIB()
+
+
+#wf = vmc.EHOIB()
+
+initial_positions, scale = interact_initial_positions(wf,
+                                                      initial_alpha,
+                                                      N,
+                                                      dim)
+
+# Instantiate sampler
+sampler = vmc.Metropolis(wf)
+#sampler = vmc.MetropolisHastings(wf)
+
+#print(wf.logprob(initial_positions, initial_alpha))
+#print(wf.drift_force(initial_positions, initial_alpha))
+#print(wf.local_energy(initial_positions, initial_alpha))
+
+
+start = time.time()
+results = sampler.sample(nsamples,
+                         initial_positions,
+                         initial_alpha,
+                         scale=1.0,  # METROPOLIS
+                         # dt=1e-10,     # METROPOLIS-HASTINGS
+                         nchains=4,
+                         warm=True,
+                         warmup_iter=1000,
+                         tune=True,
+                         tune_iter=5000,
+                         tune_interval=250,
+                         tol_tune=1e-5,
+                         optimize=False,
+                         max_iter=70000,
+                         batch_size=500,
+                         gradient_method='adam',
+                         eta=0.01,
+                         tol_optim=1e-5,
+                         )
+
+end = time.time()
+print("Sampler elapsed time:", end - start)
+
+exact_E = exact_energy(N, dim, omega)
+print(f"Exact energy spherical HO NIB: {exact_E}")
+print(results)
+"""
+# INTERACTING
+#wf = vmc.SHOIB(omega)
+
+wf = vmc.ASHONIB(N, dim, omega)
 #wf = vmc.EHOIB()
 
 
@@ -94,15 +220,16 @@ initial_positions, scale = interact_initial_positions(wf,
 sampler = vmc.Metropolis(wf)
 #sampler = vmc.MetropolisHastings(wf)
 
-# print(wf.logprob(initial_positions, initial_alpha))
-# print(wf.drift_force(initial_positions, initial_alpha))
-# print(wf.local_energy(initial_positions, initial_alpha))
+#print(wf.logprob(initial_positions, initial_alpha))
+#print(wf.drift_force(initial_positions, initial_alpha))
+#print(wf.local_energy(initial_positions, initial_alpha))
 
 
 start = time.time()
 results = sampler.sample(nsamples,
                          initial_positions,
                          initial_alpha,
+>>>>>>> 53e43e5c8f79c4b199f791278863a31ad6b2a8a4
                          scale=1.0,  # METROPOLIS
                          #dt=1e-10,     # METROPOLIS-HASTINGS
                          nchains=4,
