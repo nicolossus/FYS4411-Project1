@@ -69,23 +69,23 @@ initial_alpha = 0.4
 
 # NON-INTERACTING
 
-wf = vmc.ASHONIB(N, dim, omega)
-# wf = vmc.SHONIB(omega)
+#wf = vmc.ASHONIB(N, dim, omega)
+wf = vmc.SHONIB(omega)
 # wf = vmc.EHONIB()
-initial_positions = non_interact_initial_positions(wf, initial_alpha, N, dim)
+#initial_positions = non_interact_initial_positions(wf, initial_alpha, N, dim)
 
 # INTERACTING
 # wf = vmc.SHOIB(omega)
-wf = vmc.ASHOIB(N, dim, omega)
+#wf = vmc.ASHOIB(N, dim, omega)
 # wf = vmc.EHOIB()
 initial_positions, scale = interact_initial_positions(wf,
                                                       initial_alpha,
                                                       N,
                                                       dim)
-'''
+
 # Instantiate sampler
-# sampler = vmc.Metropolis(wf)
-sampler = vmc.MetropolisHastings(wf)
+sampler = vmc.Metropolis(wf)
+#sampler = vmc.MetropolisHastings(wf)
 
 # print(wf.logprob(initial_positions, initial_alpha))
 # print(wf.drift_force(initial_positions, initial_alpha))
@@ -96,8 +96,8 @@ start = time.time()
 results = sampler.sample(nsamples,
                          initial_positions,
                          initial_alpha,
-                         # scale=1.0,  # METROPOLIS
-                         dt=1e-10,     # METROPOLIS-HASTINGS
+                         scale=1.0,  # METROPOLIS
+                         # dt=1e-10,     # METROPOLIS-HASTINGS
                          nchains=4,
                          warm=True,
                          warmup_iter=1000,
