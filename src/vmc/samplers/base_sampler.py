@@ -56,6 +56,7 @@ class BaseVMC:
         self._locE_fn = self._wf.local_energy
         self._driftF_fn = self._wf.drift_force
         self._grad_alpha_fn = self._wf.grad_alpha
+        self._pdf = self._wf.PDF_vectorized
 
     def _check_inference_scheme(self, inference_scheme):
         if inference_scheme is None:
@@ -126,13 +127,13 @@ class BaseVMC:
         seeds = generate_seed_sequence(seed, nchains)
 
         if nchains == 1:
-            self._final_state, results, self._energies = self._sample(nsamples,
-                                                                      initial_positions,
-                                                                      alpha,
-                                                                      eta,
-                                                                      seeds[0],
-                                                                      **kwargs
-                                                                      )
+            self._final_state, results, self._energies, self._distances, self._pdfs = self._sample(nsamples,
+                                                                                                   initial_positions,
+                                                                                                   alpha,
+                                                                                                   eta,
+                                                                                                   seeds[0],
+                                                                                                   **kwargs
+                                                                                                   )
 
             self._results_full = pd.DataFrame([results])
 
@@ -149,17 +150,18 @@ class BaseVMC:
 
             with ProcessPool(nchains) as pool:
                 # , self._distances
-                self._final_state, results, self._energies = zip(*pool.map(self._sample,
-                                                                           nsamples,
-                                                                           initial_positions,
-                                                                           alpha,
-                                                                           eta,
-                                                                           seeds,
-                                                                           kwargs,
-                                                                           ))
+                self._final_state, results, self._energies, self._distances, self._pdfs = zip(*pool.map(self._sample,
+                                                                                              nsamples,
+                                                                                              initial_positions,
+                                                                                              alpha,
+                                                                                              eta,
+                                                                                              seeds,
+                                                                                              kwargs,
+                                                                                              ))
 
                 self._results_full = pd.DataFrame(results)
 
+        #print("Shape of pdfs within sample: ", self._pdfs.shape)
         return self.results
 
     def _sample(self, *args, **kwargs):
@@ -208,7 +210,7 @@ class BaseVMC:
             ^ TURNED OFF FOR DEBUG
             """
 
-            print("Optimize done")
+            print(f"Optimize done, final alpha: {alpha}")
         # Retune for good measure
         if retune:
             state, kwargs = self.tune_selector(state, alpha, seed, **kwargs)
@@ -224,7 +226,7 @@ class BaseVMC:
         print("Sampling energy")
         # Sample energy
         # , distances
-        state, energies = self.sample_energy(nsamples,
+        state, energies, distances, pdfs = self.sample_energy(nsamples,
                                              state,
                                              alpha,
                                              seed,
@@ -233,6 +235,7 @@ class BaseVMC:
 
         results = self._accumulate_results(state,
                                            energies,
+                                           distances,
                                            nsamples,
                                            alpha,
                                            eta,
@@ -241,13 +244,14 @@ class BaseVMC:
                                            actual_optim_iter,
                                            **kwargs
                                            )
-        # , distances
-        return state, results, energies
+        #print("Shape pdfs within _sample: ", pdfs.shape)
+        return state, results, energies, distances, pdfs
 
     def _accumulate_results(
         self,
         state,
         energies,
+        distances,
         nsamples,
         alpha,
         eta,
@@ -269,6 +273,7 @@ class BaseVMC:
 
         acc_rate = state.n_accepted / total_moves
         energy = np.mean(energies)
+        mean_distance = np.mean(distances)
         # blocking
         error = block(energies)
         # effective samples?
@@ -285,6 +290,7 @@ class BaseVMC:
                    "eta": eta,
                    "alpha": alpha,
                    "energy": energy,
+                   "mean_distance": mean_distance,
                    "standard_error": error,
                    "accept_rate": acc_rate,
                    "nsamples": nsamples,
@@ -481,23 +487,26 @@ class BaseVMC:
                 if self._early_stop:
                     if early_stopping(alpha, old_alpha, tolerance=self._tol_optim):
                         break
-
         return state, alpha
 
     def sample_energy(self, nsamples, state, alpha, seed, **kwargs):
 
         # Reset n_accepted
         state = State(state.positions, state.logp, 0, state.delta)
-        # nparticles = state.positions.shape[0] # For one body density calculation
+        nparticles = state.positions.shape[0] # For one body density calculation
         #distances = np.zeros(nsamples, nparticles)
+        pdfs = np.zeros((nsamples, nparticles))
+        distances = np.zeros((nsamples, nparticles))
         energies = np.zeros(nsamples)
 
         for i in range(nsamples):
             state = self.step(state, alpha, seed, **kwargs)
             energies[i] = self._locE_fn(state.positions, alpha)
-            #distances[i, :] = np.linalg.norm(state.positions, axis=1)**2
-        # , distances
-        return state, energies
+            distances[i, :] = np.linalg.norm(state.positions, axis=1)
+            pdfs[i, :] = self._pdf(state.positions, alpha)
+
+        #print("Shape pdfs inside sample_energy: ", pdfs.shape)
+        return state, energies, distances, pdfs
     """
     def sample_distance(self, nsamples, state, alpha, seed, **kwargs):
 
@@ -521,7 +530,7 @@ class BaseVMC:
     @property
     def results(self):
         df = self.results_all[["nparticles", "dim", "alpha",
-                               "energy", "standard_error", "accept_rate"]]
+                               "energy",  "mean_distance","standard_error", "accept_rate"]]
         return df
 
     @property
@@ -536,6 +545,33 @@ class BaseVMC:
     def final_state(self):
         try:
             return self._final_state
+        except AttributeError:
+            msg = "Unavailable, a call to sample must be made first"
+            raise SamplingNotPerformed(msg)
+
+    @property
+    def distance_samples(self):
+        try:
+            return self._distances
+        except AttributeError:
+            msg = "Unavailable, a call to sample must be made first"
+            raise SamplingNotPerformed(msg)
+
+    @property
+    def pdf_samples(self):
+        try:
+            """
+            pdfs = self._pdfs
+            num_mc_cycles, N = pdfs.shape
+            pdf_data = {}
+            for i in range(num_mc_cycles):
+                pdf_data[f"Cycle_{i+1}"] = []
+            for i in range(num_mc_cycles):
+                for particle in range(N):
+                    pdf_data[f"Cycle_{i+1}"].append(pdfs[i, particle])
+            """
+            return self._pdfs#pd.DataFrame(pdf_data)
+
         except AttributeError:
             msg = "Unavailable, a call to sample must be made first"
             raise SamplingNotPerformed(msg)

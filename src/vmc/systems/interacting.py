@@ -226,7 +226,9 @@ class ASHOIB(WaveFunction):
         return 2 * self._gradient(r, alpha)
 
     def grad_alpha(self, r, alpha):
-        raise NotImplementedError
+        """Gradient of wave function w.r.t. variational parameter alpha"""
+
+        return -np.sum(r * r)
 
 
 if __name__ == "__main__":
