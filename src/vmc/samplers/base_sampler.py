@@ -202,7 +202,7 @@ class BaseVMC:
             state, alpha = self.optimizer(state, alpha, eta, seed, **kwargs)
             actual_optim_iter += state.delta - subtract_iter
             subtract_iter = actual_optim_iter + actual_tune_iter + actual_warm_iter
-            #retune = True
+            # retune = True
             """
             ^ TURNED OFF FOR DEBUG
             """
@@ -254,15 +254,11 @@ class BaseVMC:
         """
 
         N, d = state.positions.shape
-<<<<<<< HEAD
 
-        #total_moves = nsamples * N * d
-        total_moves = nsamples
-        #total_moves = nsamples*N
-
-=======
+        # total_moves = nsamples * N * d
+        #total_moves = nsamples
+        # total_moves = nsamples*N
         total_moves = nsamples  # *N*d
->>>>>>> 0114044e9020b2db0779e4aeea347c16a54020e6
         acc_rate = state.n_accepted / total_moves
         energy = np.mean(energies)
         # blocking
@@ -357,13 +353,6 @@ class BaseVMC:
         # Reset n_accepted
         state = State(state.positions, state.logp, 0, state.delta)
         N, d = state.positions.shape
-<<<<<<< HEAD
-        #total_moves = self._tune_interval * N * d
-        total_moves = self._tune_interval
-        #total_moves = self._tune_interval * N
-=======
-        total_moves = self._tune_interval  # *N*d
->>>>>>> 0114044e9020b2db0779e4aeea347c16a54020e6
 
         for i in range(self._tune_iter):
             state = self.step(state, alpha, seed, scale=scale, **kwargs)
@@ -373,7 +362,7 @@ class BaseVMC:
                 old_scale = scale
                 accept_rate = state.n_accepted / total_moves
                 scale = tune_scale_table(old_scale, accept_rate)
-                #print(f"Acceptance rate {accept_rate} and scale {scale}")
+                # print(f"Acceptance rate {accept_rate} and scale {scale}")
                 # Reset
                 steps_before_tune = self._tune_interval
                 state = State(state.positions, state.logp, 0, state.delta)
@@ -382,7 +371,7 @@ class BaseVMC:
                 if self._early_stop:
                     if early_stopping(scale, old_scale, tolerance=self._tol_tune):
                         break
-        #print(f"Final acceptance rate {accept_rate} and scale {scale}")
+        # print(f"Final acceptance rate {accept_rate} and scale {scale}")
         return state, scale
 
     def tune_dt(self, state, alpha, seed, dt, **kwargs):
@@ -392,13 +381,9 @@ class BaseVMC:
         # Reset n_accepted
         state = State(state.positions, state.logp, 0, state.delta)
         N, d = state.positions.shape
-        #total_moves = self._tune_interval * N * d
+        # total_moves = self._tune_interval * N * d
         total_moves = self._tune_interval
-<<<<<<< HEAD
-        #print("Tuning..")
-=======
-        # print("Tuning..")
->>>>>>> 0114044e9020b2db0779e4aeea347c16a54020e6
+
         for i in range(self._tune_iter):
             state = self.step(state, alpha, seed, dt=dt, **kwargs)
             steps_before_tune -= 1
@@ -407,7 +392,7 @@ class BaseVMC:
                 old_dt = dt
                 accept_rate = state.n_accepted / total_moves
                 dt = tune_dt_table(old_dt, accept_rate)
-                #print(f'Accept rate: {accept_rate}, dt: {dt}')
+                # print(f'Accept rate: {accept_rate}, dt: {dt}')
 
                 # Reset
                 steps_before_tune = self._tune_interval
@@ -417,7 +402,7 @@ class BaseVMC:
                 if self._early_stop:
                     if early_stopping(dt, old_dt, tolerance=self._tol_tune):
                         break
-        #print(f"Final dt val: {dt}, with accept rate: {accept_rate}")
+        # print(f"Final dt val: {dt}, with accept rate: {accept_rate}")
         return state, dt
 
     def optimizer(self, state, alpha, eta, seed, **kwargs):
@@ -483,13 +468,13 @@ class BaseVMC:
         # Reset n_accepted
         state = State(state.positions, state.logp, 0, state.delta)
         # nparticles = state.positions.shape[0] # For one body density calculation
-        #distances = np.zeros(nsamples, nparticles)
+        # distances = np.zeros(nsamples, nparticles)
         energies = np.zeros(nsamples)
 
         for i in range(nsamples):
             state = self.step(state, alpha, seed, **kwargs)
             energies[i] = self._locE_fn(state.positions, alpha)
-            #distances[i, :] = np.linalg.norm(state.positions, axis=1)**2
+            # distances[i, :] = np.linalg.norm(state.positions, axis=1)**2
         # , distances
         return state, energies
     """
