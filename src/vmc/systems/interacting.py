@@ -83,8 +83,17 @@ class ASHOIB(WaveFunction):
     def wf(self, r, alpha):
         return self._single(r, alpha) + self._correlation(r)
 
+    def wf_vectorized(self, r, alpha):
+        return self._single_vectorized(r, alpha) + self._correlation(r)
+
     def _single(self, r, alpha):
         return -alpha * np.sum(r * r)
+
+    def _single_vectorized(self, r, alpha):
+        return -alpha *np.sum(r*r, axis=1)
+
+    def PDF_vectorized(self, r, alpha):
+        return np.exp(2*self.wf_vectorized(r, alpha))
 
     def _correlation(self, r):
         i, j = np.triu_indices(r.shape[0], 1)
@@ -217,7 +226,9 @@ class ASHOIB(WaveFunction):
         return 2 * self._gradient(r, alpha)
 
     def grad_alpha(self, r, alpha):
-        raise NotImplementedError
+        """Gradient of wave function w.r.t. variational parameter alpha"""
+
+        return -np.sum(r * r)
 
 
 if __name__ == "__main__":

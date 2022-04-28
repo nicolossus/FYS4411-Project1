@@ -239,10 +239,16 @@ class AIB(WaveFunction):
         unit_matrix = np.zeros((N, N, d))
         for i, j in zip(*self._triu_indices):
             rij = np.linalg.norm(r[i] - r[j])
+            #print("Ri: ", r[i])
+            #print("Rj: ", r[j])
+            #print("rij: ", rij)
             upper_unit_vector = (r[i] - r[j]) / rij
             unit_matrix[i, j, :] = upper_unit_vector
             unit_matrix[j, i, :] = -upper_unit_vector
-
+            rij = np.linalg.norm(r[i] - r[j])
+            upper_unit_vector = (r[i] - r[j]) / rij
+            unit_matrix[i, j, :] = upper_unit_vector
+            unit_matrix[j, i, :] = -upper_unit_vector
         return unit_matrix
 
     def unit_matrix_faster(self, r):
@@ -250,6 +256,7 @@ class AIB(WaveFunction):
         N = self._N
         d = self._d
         unit_matrix = np.zeros((N, N, d))
+        axis = 1
         i, j = np.triu_indices(N, 1)
         M = len(i)
         distance_matrix = self.distance_matrix(r)

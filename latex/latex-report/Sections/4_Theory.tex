@@ -1,16 +1,66 @@
 %================================================================
-\section{Theory}\label{sec:Theory}
+\section{Theoretical Background}\label{sec:Theory}
 %================================================================
 
 %----------------------------------------------------------------
-\subsection{Draft}
+\subsection{Variational Monte Carlo}
+%----------------------------------------------------------------
+Variational Monte Carlo is a method applicable for finding an estimate to the ground state energy of a given quantum mechanical system. It proposes a trial wave function, $\ket{\Psi_T}$, and calculates the expected energy (or any other observable, given its operator) by making use of a Monte Carlo evaluation of the integral. The trial wave function is designed with care and hopefully resembles the true wave function in architecture. By adding variational parameters in the trial wave function we may make use of the variational principle (\autoref{sec:variational_principle}) such that the energy functional on the trial wave function becomes a convex functional. A convex functional has a single global minimum. Therefore, if our trial wave function architecture resembles the architecture of the ground state wave function, we may simply make a search in the variational parameter space for the minima, and find an upper bound approximation to the ground state energy, $E_0$.
 %---------------------------------------------------------------- 
+\subsubsection{Review of the Variational Principle}\label{sec:variational_principle}
+%----------------------------------------------------------------
+The variational principle states that, given a trial wave function $\ket{\Psi_T}$, the energy functional of the wave function has the ground state energy, $E_0$, as a lower bound. Any trial wave function can be expanded in terms of the orthonormal basis set of eigenfunctions of the Hamiltonian operator in Hilbert space, as they form a complete set. Denoting the eigenfunctions as $\ket{\Psi_k}$ and the Hamiltonian as $H$, such that $H\ket{\Psi_k}=E_k\ket{\Psi_k}$, we expand the trial wave function in this eigenspace
+\begin{equation*}
+    \ket{\Psi_T} = \sum_{k}c_k\ket{\Psi_k}.
+\end{equation*}
+Making use of the orthonormality of the basis set, the normalization of the trial wave function is 
+\begin{equation*}
+    \braket{\Psi_T} = \sum_k\sum_l c_kc_l\braket{\Psi_k}{\Psi_l} = \sum_k \abs{c_k}^2.
+\end{equation*}
+The expected value of the Hamiltonian then becomes
+\begin{equation}\label{eq:energy_functional_basis_set}
+    \bra{\Psi_T}H\ket{\Psi_T} = \sum_k\abs{c_k}^2E_k
+\end{equation}
+and the energy functional can be rewritten as 
+\begin{equation}
+    E[H] = \frac{\bra{\Psi_T}H\ket{\Psi_T}}{\braket{\Psi_T}} = \frac{\sum_k\abs{c_k}^2E_k}{\sum_k\abs{c_k}^2}, 
+\end{equation}
+which, since $E_k\geq E_0$ for all $k$, shows that the ground state energy is a lower bound of the energy functional.  
+
+%---------------------------------------------------------------- 
+\subsubsection{The Variational Monte Carlo algorithm}
+%---------------------------------------------------------------- 
+To summarize what the Variational Monte Carlo method is; first, we state a trial wave function, $\Psi_T(\vb{R}; \alpha)$. The next step is evaluate the expected value of the energy functional, which can be shown to be equal to evaluating the \textbf{local energy},
+\begin{equation}\label{eq:local_energy}
+    E_L = \frac{H\Psi_T(\vb{R};\alpha)}{\Psi_T(\vb{R};\alpha)}.
+\end{equation}
+The third step depends on the optimization method, but a gradient descent method is often used to find the direction in variational parameter space which lowers the local energy. We update the variational parameters $\alpha$ and start over until we have found some optimal $\alpha$ that passes some stopping criterion. 
+Another quantity, the \textbf{drift force}, 
+\begin{equation}\label{eq:drift_force}
+    \vb{F(\vb{R};\alpha)} = \frac{\nabla_{\vb{R}}\Psi_T(\vb{R};\alpha)}{\Psi_T(\vb{R};\alpha)},
+\end{equation}
+is useful if we use the Metropolis-Hastings sampling algorithm. 
+
+
+\begin{algorithm}
+\caption{Variational Monte Carlo}\label{algo:variational_monte_carlo}
+\begin{algorithmic}[1]
+\State $\Psi_T(\alpha)$\Comment{Stating a trial wave function.}
+\State $\mathbb{E}[E_L], \nabla_{\alpha}\mathbb{E}[E_L]\gets$ MCSampling($\Psi_T(\alpha)$)\Comment{Finding expected values of the energy and gradient w.r.t. variational parameters, $\alpha$.}
+\State Update $\alpha$. 
+
+\end{algorithmic}
+\end{algorithm}
 
 %----------------------------------------------------------------
-\subsubsection*{The System}
+\subsection{The System}
 %---------------------------------------------------------------- 
 
-The system under investigation is a trapped Bose gas of alkali atoms, specifically $^{87}$Rb. A key feature of alkali systems is that they are dilute, i.e., the volume per atom is much larger than the volume of the atom. The average distance between the atoms is thus much larger than the range of the inter-atomic interaction, and the physics is dominated by two-body collisions. 
+%---------------------------------------------------------------- 
+\subsubsection{Bosons in a Harmonic Trap}
+%---------------------------------------------------------------- 
+
+The system under investigation is a trapped Bose gas of alkali atoms, specifically $^{87}$Rb. A key feature of alkali systems is that they are dilute, i.e., the volume per atom is much larger than the volume of the atom. The average distance between the atoms is thus much larger than the range of the inter-atomic interaction and the physics is dominated by two-body collisions. 
 
 In order to model the Bose gas, we consider atoms trapped in either a spherical (S) or elliptical (E) harmonic oscillator trap: 
 
@@ -20,72 +70,97 @@ In order to model the Bose gas, we consider atoms trapped in either a spherical 
         \frac{1}{2} m \omega_\mathrm{ho}^2 r^2 \quad &\text{(S)}
         \\
         \frac{1}{2} m \qty[\omega_\mathrm{ho}^2 \qty(x^2 + y^2) + \omega_z^2 z^2] \quad &\text{(E)}
-    \end{cases}
+    \end{cases}.
 \end{equation}
 
-Here, $\omega_\mathrm{ho}^2$ defines the trap potential strength. In the case of an elliptical trap, $\omega_\mathrm{ho}=\omega_\perp$ is the trap frequency in the $xy$ plane and $\omega_z$ the frequency in the $z$ direction. 
-
-The atoms are modeled as hard spheres of diameter proportional to the scattering length $a$ that cannot overlap in space, mimicking the strong repulsion that atoms experience at close distances. The two-body interaction between atoms is thus described by the following pairwise, repulsive potential:
+Here, $\omega_\mathrm{ho}^2$ defines the trap potential strength. In the case of an elliptical trap, $\omega_\mathrm{ho}=\omega_\perp$ is the trap frequency in the $xy$ plane and $\omega_z$ the frequency in the $z$ direction. The atoms are modeled as hard spheres with a diameter proportional to the scattering length, $a$, that cannot overlap in space, mimicking the strong repulsion that atoms experience at close distances. The two-body interaction between atoms is thus described by the following pairwise, repulsive potential:
 
 \begin{equation}\label{eq:Vint}
-    V_\mathrm{int} \qty(\abs{\bm{r}_i - \bm{r}_j}) = 
+    V_\mathrm{int} \qty(\norm{\bm{r}_i - \bm{r}_j}) = 
     \begin{cases}
-        \infty \quad &\text{if } \abs{\bm{r}_i - \bm{r}_j} \leq a
+        \infty, \quad &\norm{\bm{r}_i - \bm{r}_j} \leq a
         \\
-        0 \quad &\text{if } \abs{\bm{r}_i - \bm{r}_j} > a
-    \end{cases}
+        0, \quad &\norm{\bm{r}_i - \bm{r}_j} > a
+    \end{cases},
 \end{equation}
 
-The Hamiltonian for a system of $N$ trapped atoms is then given by
+where $\norm{\cdot}$ denotes the Euclidean distance. The Hamiltonian for a system of $N$ trapped atoms is then given by
 
 \begin{equation}\label{eq:full_hamiltonian}
-    H = - \frac{\hbar}{2m} \sum_{i=1}^{N} \grad^2_i + \sum_{i=1}^{N} V_\mathrm{trap}\qty(\bm{r}_i) + \sum_{i < j}^{N} V_\mathrm{int} \qty(\abs{\bm{r}_i - \bm{r}_j}),
+    H = - \frac{\hbar}{2m} \sum_{i=1}^{N} \grad^2_i + \sum_{i=1}^{N} V_\mathrm{trap}\qty(\bm{r}_i) + \sum_{i < j}^{N} V_\mathrm{int} \qty(\norm{\bm{r}_i - \bm{r}_j}),
 \end{equation}
 
 where the notation $i<j$ under the last summation sign signifies a double sum running over all pairwise interactions once. 
 
+%---------------------------------------------------------------- 
+\subsubsection{Constructing the Trial Wave Function}
+%---------------------------------------------------------------- 
+
 The trial wave function is chosen to take the form of a Slater-Jastrow wave function: 
 
 \begin{equation}\label{eq:twf}
-    \Psi_T (\bm{r}) = \Phi \qty(\bm{r}) J \qty(\bm{r}), 
+    \Psi_T (\bm{r}) = \Phi \qty(\bm{r}) J \qty(\bm{r}).
 \end{equation}
 
 The Slater permanent, $\Phi \qty(\bm{r})$, is given by the first $N$ single-particle wave functions chosen to be proportional to the harmonic oscillator function for the ground state: 
 
 \begin{equation}\label{eq:slater}
-    \Phi \qty(\bm{r}) = \prod_i^N \phi \qty(\bm{r}_i) = \prod_i^N \mathrm{e}^{-\alpha \qty(x_i^2 + y_i^2 + \beta z_i^2)},
+    \Phi \qty(\bm{r}) = \prod_i^N \phi \qty(\bm{r}_i) = \prod_i^N \exp{-\alpha \qty(x_i^2 + y_i^2 + \beta z_i^2)},
 \end{equation}
 
 where $\alpha$ and $\beta$ are variational parameters. For spherical traps we have $\beta = 1$ such that
 
 \begin{equation}\label{eq:slater_spherical}
-    \Phi \qty(\bm{r}) =  \prod_i^N \mathrm{e}^{-\alpha \abs{\bm{r}_i}^2} \quad \text{(S)}
+    \Phi \qty(\bm{r}) =  \prod_i^N \exp{-\alpha \abs{\bm{r}_i}^2} \quad \text{(S)}.
 \end{equation} 
 
-The Jastrow correlation factor, $J(\bm{r})$, is chosen to be the exact solution of the Schrödinger equation for interacting pairs of hard spheres atoms
+The Jastrow correlation factor, $J(\bm{r})$, is chosen to be the exact solution of the Schrödinger equation for interacting pairs of hard spheres atoms:
 
 \begin{equation}
-    J \qty(\bm{r}) = \prod_{i<j}^N f \qty(a, \abs{\bm{r}_i - \bm{r}_j})
+    J \qty(\bm{r}) = \prod_{i<j}^N f \qty(a, \norm{\bm{r}_i - \bm{r}_j}),
 \end{equation}
 
 where the correlation wave functions are given by
 \begin{equation*}
-    f \qty(a, \abs{\bm{r}_i - \bm{r}_j}) = 
+    f \qty(a, \norm{\bm{r}_i - \bm{r}_j}) = 
     \begin{cases}
-        0 \quad &\text{if } \abs{\bm{r}_i - \bm{r}_j} \leq a
+        0 \quad &\norm{\bm{r}_i - \bm{r}_j} \leq a
         \\
-        1 - \frac{a}{\abs{\bm{r}_i - \bm{r}_j}} \quad &\text{if } \abs{\bm{r}_i - \bm{r}_j} > a
-    \end{cases}
+        1 - \frac{a}{\norm{\bm{r}_i - \bm{r}_j}} \quad &\norm{\bm{r}_i - \bm{r}_j} > a
+    \end{cases}.
 \end{equation*}
 
-For non-interacting bosons we have $a = 0$.
+For non-interacting bosons, $a=0$. 
 
-Useful relation: 
+%---------------------------------------------------------------- 
+\subsubsection{Scaling and Optimization}
+%---------------------------------------------------------------- 
 
-\begin{equation}\label{eq:slater_spherical}
-    \prod_i^N \mathrm{e}^{-\alpha \abs{\bm{r}_i}^2} = \mathrm{e}^{-\alpha \sum_{i=1}^N \abs{\bm{r}_i}^2}
-\end{equation} 
+natural units 
 
+scaling of Hamiltonian
+
+will be computed in the log domain
+
+%----------------------------------------------------------------
+\subsubsection{Closed-Form Expressions}
+%---------------------------------------------------------------- 
+
+%----------------------------------------------------------------
+\subsubsection*{Non-Interacting System}
+%---------------------------------------------------------------- 
+
+Nicolai har utledninger i log space
+
+%----------------------------------------------------------------
+\subsubsection*{Interacting System}
+%---------------------------------------------------------------- 
+
+Jørn har utledninger i log space
+
+%----------------------------------------------------------------
+\subsection{Draft}
+%---------------------------------------------------------------- 
 
 %----------------------------------------------------------------
 \subsubsection*{Derivations}
