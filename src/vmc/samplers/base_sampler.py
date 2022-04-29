@@ -56,7 +56,7 @@ class BaseVMC:
         self._locE_fn = self._wf.local_energy
         self._driftF_fn = self._wf.drift_force
         self._grad_alpha_fn = self._wf.grad_alpha
-        self._pdf = self._wf.PDF_vectorized
+        #self._pdf = self._wf.PDF_vectorized
 
     def _check_inference_scheme(self, inference_scheme):
         if inference_scheme is None:
@@ -226,7 +226,7 @@ class BaseVMC:
         print("Sampling energy")
         # Sample energy
         # , distances
-        state, energies, distances, pdfs = self.sample_energy(nsamples,
+        state, energies = self.sample_energy(nsamples,
                                              state,
                                              alpha,
                                              seed,
@@ -245,7 +245,7 @@ class BaseVMC:
                                            **kwargs
                                            )
         #print("Shape pdfs within _sample: ", pdfs.shape)
-        return state, results, energies, distances, pdfs
+        return state, results, energies#, distances, pdfs
 
     def _accumulate_results(
         self,
@@ -290,7 +290,6 @@ class BaseVMC:
                    "eta": eta,
                    "alpha": alpha,
                    "energy": energy,
-                   "mean_distance": mean_distance,
                    "standard_error": error,
                    "accept_rate": acc_rate,
                    "nsamples": nsamples,
@@ -495,18 +494,18 @@ class BaseVMC:
         state = State(state.positions, state.logp, 0, state.delta)
         nparticles = state.positions.shape[0] # For one body density calculation
         #distances = np.zeros(nsamples, nparticles)
-        pdfs = np.zeros((nsamples, nparticles))
-        distances = np.zeros((nsamples, nparticles))
+        #pdfs = np.zeros((nsamples, nparticles))
+        #distances = np.zeros((nsamples, nparticles))
         energies = np.zeros(nsamples)
 
         for i in range(nsamples):
             state = self.step(state, alpha, seed, **kwargs)
             energies[i] = self._locE_fn(state.positions, alpha)
-            distances[i, :] = np.linalg.norm(state.positions, axis=1)
-            pdfs[i, :] = self._pdf(state.positions, alpha)
+            #distances[i, :] = np.linalg.norm(state.positions, axis=1)
+            #pdfs[i, :] = self._pdf(state.positions, alpha)
 
         #print("Shape pdfs inside sample_energy: ", pdfs.shape)
-        return state, energies, distances, pdfs
+        return state, energies #, distances, pdfs
     """
     def sample_distance(self, nsamples, state, alpha, seed, **kwargs):
 
@@ -519,6 +518,8 @@ class BaseVMC:
         for i in range(nsamples):
             state = self.step(state, alpha, seed, **kwargs)
     """
+    #def one_body_density(self, position_particle_1, nsamples, state, alpha, seed, **kwargs):
+
     @property
     def results_all(self):
         try:
