@@ -157,7 +157,7 @@ class BaseVMC:
                                                                                               eta,
                                                                                               seeds,
                                                                                               kwargs,
-                                                                                              ))
+                                                                                                        ))
 
                 self._results_full = pd.DataFrame(results)
 
@@ -205,7 +205,7 @@ class BaseVMC:
             state, alpha = self.optimizer(state, alpha, eta, seed, **kwargs)
             actual_optim_iter += state.delta - subtract_iter
             subtract_iter = actual_optim_iter + actual_tune_iter + actual_warm_iter
-            #retune = True
+            # retune = True
             """
             ^ TURNED OFF FOR DEBUG
             """
@@ -226,12 +226,21 @@ class BaseVMC:
         print("Sampling energy")
         # Sample energy
         # , distances
+<<<<<<< HEAD
         state, energies = self.sample_energy(nsamples,
                                              state,
                                              alpha,
                                              seed,
                                              **kwargs
                                              )
+=======
+        state, energies, distances, pdfs = self.sample_energy(nsamples,
+                                                              state,
+                                                              alpha,
+                                                              seed,
+                                                              **kwargs
+                                                              )
+>>>>>>> 333a90608262ebb1b9a4d1f0ca0a2c081f4b49d9
 
         results = self._accumulate_results(state,
                                            energies,
@@ -266,11 +275,10 @@ class BaseVMC:
 
         N, d = state.positions.shape
 
-
-        #total_moves = nsamples * N * d
-        total_moves = nsamples
-        #total_moves = nsamples*N
-
+        # total_moves = nsamples * N * d
+        #total_moves = nsamples
+        # total_moves = nsamples*N
+        total_moves = nsamples  # *N*d
         acc_rate = state.n_accepted / total_moves
         energy = np.mean(energies)
         mean_distance = np.mean(distances)
@@ -388,7 +396,7 @@ class BaseVMC:
                 state = State(state.positions, state.logp, 0, state.delta)
 
                 # Early stopping?
-                if count>2:
+                if count > 2:
                     break
                 """
                 if self._early_stop:
@@ -405,9 +413,9 @@ class BaseVMC:
         # Reset n_accepted
         state = State(state.positions, state.logp, 0, state.delta)
         N, d = state.positions.shape
-        #total_moves = self._tune_interval * N * d
+        # total_moves = self._tune_interval * N * d
         total_moves = self._tune_interval
-        #print("Tuning..")
+        # print("Tuning..")
         for i in range(self._tune_iter):
             state = self.step(state, alpha, seed, dt=dt, **kwargs)
             steps_before_tune -= 1
@@ -416,7 +424,7 @@ class BaseVMC:
                 old_dt = dt
                 accept_rate = state.n_accepted / total_moves
                 dt = tune_dt_table(old_dt, accept_rate)
-                #print(f'Accept rate: {accept_rate}, dt: {dt}')
+                # print(f'Accept rate: {accept_rate}, dt: {dt}')
 
                 # Reset
                 steps_before_tune = self._tune_interval
@@ -492,7 +500,8 @@ class BaseVMC:
 
         # Reset n_accepted
         state = State(state.positions, state.logp, 0, state.delta)
-        nparticles = state.positions.shape[0] # For one body density calculation
+        # For one body density calculation
+        nparticles = state.positions.shape[0]
         #distances = np.zeros(nsamples, nparticles)
         #pdfs = np.zeros((nsamples, nparticles))
         #distances = np.zeros((nsamples, nparticles))
@@ -505,7 +514,11 @@ class BaseVMC:
             #pdfs[i, :] = self._pdf(state.positions, alpha)
 
         #print("Shape pdfs inside sample_energy: ", pdfs.shape)
+<<<<<<< HEAD
         return state, energies #, distances, pdfs
+=======
+        return state, energies  # , distances, pdfs
+>>>>>>> 333a90608262ebb1b9a4d1f0ca0a2c081f4b49d9
     """
     def sample_distance(self, nsamples, state, alpha, seed, **kwargs):
 
@@ -531,7 +544,7 @@ class BaseVMC:
     @property
     def results(self):
         df = self.results_all[["nparticles", "dim", "alpha",
-                               "energy",  "mean_distance","standard_error", "accept_rate"]]
+                               "energy",  "mean_distance", "standard_error", "accept_rate"]]
         return df
 
     @property
@@ -571,7 +584,7 @@ class BaseVMC:
                 for particle in range(N):
                     pdf_data[f"Cycle_{i+1}"].append(pdfs[i, particle])
             """
-            return self._pdfs#pd.DataFrame(pdf_data)
+            return self._pdfs  # pd.DataFrame(pdf_data)
 
         except AttributeError:
             msg = "Unavailable, a call to sample must be made first"

@@ -33,12 +33,12 @@ class Metropolis(BaseVMC):
         N, dim = state.positions.shape
         # Sample proposal positions, i.e., move walkers
         proposals = rng.normal(loc=state.positions, scale=scale)
-        new_positions = state.positions
+        #new_positions = state.positions
         # Sample log uniform rvs
 
         log_unif = np.log(rng.random())
         #log_unif = np.log(rng.random(size=state.positions.shape))
-        
+
         # Compute proposal log density
         logp_proposal = self._logp_fn(proposals, alpha)
 

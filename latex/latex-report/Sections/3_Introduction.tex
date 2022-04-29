@@ -2,29 +2,75 @@
 \section{Introduction}\label{sec:Introduction}
 %================================================================
 
-Bose-Einstein condensation (BEC), predicted in 1924 by Einstein [cite] on the basis of the quantum formulations of Bose [cite], is a state of matter in which a large fraction of an ultracold, low density gas of particles with integer spin, i.e., bosons, simultaneously occupy the lowest quantum state. 
+Bose-Einstein condensation (BEC), predicted by Einstein \citeyearpar{BEC1924, BEC1925} on the basis of the quantum formulations of Bose \citeyearpar{Bose1924}, is a state of matter in which a large fraction of an ultracold, low density gas of bosons simultaneously occupy the lowest quantum state. Almost three quarters of a century after its prediction, BEC was observed in experiments with ultracold, dilute alkali gases confined in magnetic or optical traps, notably vapors of \rb \, \citep{BEC1995}. A Bose gas used to obtain the BEC is a finite-sized and inhomogeneous system, which makes predicting the properties of the system a many-body problem with a nontrivial solution. Fortunately, \citet{Dalfovo1999} states that in practice the dilute nature of the gas allows us to describe the effects of the interaction accurately with just a single physical parameter; the s-wave scattering length, $a$. In most cases, the confining traps are well approximated by harmonic potentials, and the trap frequency, $\omega_\mathrm{ho}$, provides a characteristic length of the system $a_\mathrm{ho} = \qty[\hbar / \qty(m \omega_\mathrm{ho})]^{1/2}$. For \rb... (see DuBois)
 
-Observed in experiments with ultracold, dilute alkali gases in 1995, notably Rubidium-87
+For most problems, the exact wave function is unknown and the crux of a problem resides in the need to define an approximation to the wave function. One approach to this problem is to construct a trial wave function which depends on selected variational parameters and captures as much of the physical features of the system as possible. As finding expectation values of quantum mechanical operators involve integrating out $3N$ degrees of freedom, Monte Carlo methods, known for being a particularly attractive choice for multidimensional integrals, become indispensable tools. In particular, the variational Monte Carlo (VMC) method, which is based on the variational principle, consists of finding the values of variational parameters for which the expectation value of the energy is the lowest possible. With these optimal variational parameters, the trial wave function is then an approximation to the ground-state wave function and provides an upper bound of the exact ground-state energy. 
 
+In this project, we build a VMC framework with the aim to find an upper bound of the ground state energy of a system of diluted \rb. 
+
+Outline content ...
+\\\\\\
+\textcolor{red}{Updated:}\\
+Bose-Einstein condensation (BEC), predicted by Einstein \citeyearpar{BEC1924, BEC1925} on the basis of the quantum formulations of Bose \citeyearpar{Bose1924}, is a state of matter in which a large fraction of an ultracold (Critical temperature $T_c$ nearing absolute zero at which the gas goes through a phase transition. In this phase every particle falls into the lowest quantum state usually referred to as the ground state.),  low density gas of bosons, that is, particles of integer spin that obey Bose-Einstein statistics, simultaneously occupy the ground state. 
+Thus, the particles can all be described by the same wave function. We can then write the expected value of the energy as
+\begin{align}
+    \left\langle E \right\rangle = \frac{\int d\mathbf{R} \mathbf{\Psi}_T^*(\mathbf{R},\alpha) H(\mathbf{R}) \mathbf{\Psi}_T(\mathbf{R},\alpha)}{\int d\mathbf{R} \mathbf{\Psi}_T^*(\mathbf{R},\alpha)\mathbf{\Psi}_T(\mathbf{R},\alpha)}
+    \label{eq:eev}
+\end{align}
+Here, the vector $\mathbf{R}$ contains the position of all particles and $\alpha$ is the variational parameter. 
+We know that the variational principle states that the expectation value $\left\langle E \right\rangle$⟩ is an upper bound for the ground state energy $E_0$.
+\begin{equation}
+E_0 \leq \left\langle E \right\rangle
+\label{vp}
+\end{equation}
+
+An example of such a system, which was observed almost three quarters of a century after its prediction, is the BEC system in gases of ultracold, dilute alkali atoms such as \ce{^{7}Li}, \ce{^{23}Na} and \ce{^{87}Rb} confined in magnetic or optical traps, notably vapors of \citeyearpar{BEC1995}. A Bose gas used to obtain the BEC is a finite-sized and inhomogeneous system, which makes predicting the properties of the system a many-body problem with a nontrivial solution. 
+
+Fortunately, \citeyearpar{Dalfovo1999} states that in practice the dilute nature of the gas allows us to describe the effects of the interaction accurately with just a single physical parameter; the s-wave scattering length, $a$. In most cases, the confining traps are well approximated by harmonic potentials, and the trap frequency, $\omega_{ho}$, provides a characteristic length of the system  $a_\mathrm{ho} = \qty[\hbar / \qty(m \omega_\mathrm{ho})]^{1/2}$. [According to [1], they calculated the characteristic length of a trap for the \ce{^{87}Rb} gas $a_{ho}$. The s-wave scattering length $a_{Rb}$ set to $100$ $a_0$ with $a_0 = 0.5292 \text{ \AA}$ being the Bohr radius. The inner-atomic spacing is $l \simeq 10^4 \text{ \AA}$ and given that the effective size of the atom is small when compared to both the trap size and the inner-atomic spacing, the given system is dilute. This alone tells us that the system is dominated by the two-body collisions between the particles, which is again, represented by the s-wave scattering of length a]
+
+For most problems, the exact wave function is unknown and the crux of a problem resides in the need to define an approximation to the wave function. One approach to this problem is to construct a trial wave function which depends on selected variational parameters and captures as much of the physical features of the system as possible. We will consider a system of $N$ bosons with mass $m$ which are trapped in a harmonic oscillator potential. Many theoretical studies of BEC in gases of alkali atoms confined in magnetic or optical traps have been conducted in the frame work of the Gross-Pitaevskii (GP) equation [2]. As finding expectation values of quantum mechanical operators involve integrating out $3N$ degrees of freedom, Monte Carlo methods, known for being a particularly attractive choice for multidimensional integrals, become indispensable tools.
+
+Typically, such large multi-dimensional systems like these ones are very complex and cannot be solved analytically, therefore we will need to turn to numerical approaches in order to make a valueable simulation of the system. To begin with, we will study the non-interacting case where analytical solutions are presented, but fade away when moving to the correlated case which is very convoluted and can only be solved numerically. For our task, we will be using Variational Monte Carlo (VMC) in order to arrive to a good estimate for the expectation of the ground state energy given by equation \ref{eq:eev}. The VMC method is based on the variational principle, shown in equation \ref{vp} which consists of finding the values of variational parameters for which the expectation value of the energy is the lowest possible. With these optimal variational parameters, the trial wave function is then an approximation to the ground-state wave function and provides an upper bound of the exact ground-state energy. For the VMC method, we will compare brute-force and importance sampling which uses the Fokker-Planck equation to take educated guesses as to where the ground state is located, contrary to brute-force VMC. 
+
+% [1]
+% \bibitem{DuBois-Glyde01} 
+% J.L. Dubois and H. R. Glyde.
+% Bose-Einstein condesation in trapped bosons: A variational Monte Carlo analysis.
+% \textit{Physical Review A} \textbf{63}, 023602 (Jan 2001)
+
+% [2]
+% \bibitem{Fab-Polls99}
+%  A. Fabrocini and A. Polls. 
+%  Beyond Gross-Pitaevskii:local density vs. correlated basis approach for trapped bosons 
+%  \textit{Physical Review A} \textbf{60}, 2319 (Jan 1999) 
+
+
+\subsection{Outline}
 
 
 Theory section 
 
-- Varitional Monte Carlo 
-    - Variational principle 
-    - Local energy 
-    - Drift force 
+\begin{itemize}
+    \item Theory section
+    \begin{itemize}
+        \item Variational Monte Carlo
+        \item Variational principle
+        \item Local energy
+        \item Drift force
+    \end{itemize}
+    \item System
+    \begin{itemize}
+        \item Non-interacting
+        \item Interacting
+    \end{itemize}
+    \item Methods
+    \begin{itemize}
+        \item Metropolis / Metropolis-Hastings
+        \item Tuning, Metropolis 20-50\%, Metropolis-Hastings 40-80\% 
+        \item Gradient descent, standard and adam 
+        \item Logspace
+        \item Blocking
+        \item Parallelization (embarrassingly parallel) 
+    \end{itemize}
+\end{itemize}
 
-- System 
-    - Non-interacting 
-    - Interacting 
-    
-- Methods
-    - Metropolis / Metropolis-Hastings 
-    - Tuning, Metropolis 20-50\%, Metropolis-Hastings 40-80\% 
-    - Gradient descent, standard and adam 
-    - Logspace
-    - Blocking
-    - Parallelization (embarrassingly parallel) 
-    
-- Results and discussion 
