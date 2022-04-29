@@ -24,3 +24,14 @@ where $\hat{Q}$ is an operator that acts on the $n\times d$-dimensional probabil
 \subsection*{Variational Monte Carlo}
 %----------------------------------------------------------------
 Given a Hamiltonian $\hat{H}$ and a trial wave function $\Psi_T$, the variational principle states that the expectation value of $\langle \hat{H} \rangle$, defined through
+
+%----------------------------------------------------------------
+\subsection*{Blocking}
+%----------------------------------------------------------------
+
+The blocking method was first popularized by H. Flyvbjerg and H. G. Petersen [a]. The idea behind blocking is to provide an alternative method for estimating the variance $\text{Var}(\hat{\theta})$ for the estimator $\hat{\theta} = \overline{X}$. It can be compared to dependent bootstrapping but with a much lower computational complexity of $\mathcal{O}(n)$. This allows for speedups compared to other methods with a big-O of $\mathcal{O}(n^2)$ or $\mathcal{O}(n \log n)$ [b]. \\\\
+Let's assume that we have a sample size of $n = 2^d$ for any $d \in \mathbb{N}$ and an n-tuple $\hat{X} = (X_1, X_2, \cdots, X_n)$ of stationary time series which we assume are asymptotically uncorrelated. 
+
+
+%https://aip.scitation.org/doi/pdf/10.1063/1.457480
+%https://www.duo.uio.no/bitstream/handle/10852/68360/PhysRevE.98.043304.pdf?sequence=2&isAllowed=y

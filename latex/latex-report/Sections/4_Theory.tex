@@ -25,7 +25,11 @@ and the energy functional can be rewritten as
 \begin{equation}
     E[H] = \frac{\bra{\Psi_T}H\ket{\Psi_T}}{\braket{\Psi_T}} = \frac{\sum_k\abs{c_k}^2E_k}{\sum_k\abs{c_k}^2}, 
 \end{equation}
-which, since $E_k\geq E_0$ for all $k$, shows that the ground state energy is a lower bound of the energy functional.  
+which, since $E_k\geq E_0$ for all $k$, shows that the ground state energy is a lower bound of the energy functional. Note also that the moments of the Hamilatonian becomes 
+\begin{equation}
+    \bra{\Psi_T}H\ket{\Psi_T} = \frac{\bra{\Psi_T}H^N\ket{\Psi_T}}{\braket{\Psi_T}} = E_0^N
+\end{equation}
+if $\ket{\Psi_T}=\ket{\Psi_0}$, when $\ket{\Psi_0}$ is denoted as the ground state. 
 
 %---------------------------------------------------------------- 
 \subsubsection{The Variational Monte Carlo algorithm}
@@ -137,6 +141,8 @@ For non-interacting bosons, $a=0$.
 %---------------------------------------------------------------- 
 
 natural units 
+
+The spherical harmonic oscillator potential has the characteristic dimension of $a_{ho}=\sqrt{\frac{\hbar}{m\omega}}$, where $\omega$ is the angular frequency of the oscillator potential (see e.g. \cite{Dalfovo1999}). This is a natural length unit for this system. This is shown in \autoref{app:derivation_of_characteristic_length}
 
 scaling of Hamiltonian
 
