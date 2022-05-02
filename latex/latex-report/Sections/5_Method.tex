@@ -3,6 +3,18 @@
 %================================================================
 
 %----------------------------------------------------------------
+\subsection{Sampling Algorithms}
+%----------------------------------------------------------------
+
+%----------------------------------------------------------------
+\subsubsection{Random Walk Metropolis}
+%----------------------------------------------------------------
+
+%----------------------------------------------------------------
+\subsubsection{Langevin Metropolis-Hastings}
+%----------------------------------------------------------------
+
+%----------------------------------------------------------------
 \subsection{Project Method 1}\label{sec:project method}
 %----------------------------------------------------------------
 
@@ -35,3 +47,21 @@ Let's assume that we have a sample size of $n = 2^d$ for any $d \in \mathbb{N}$ 
 
 %https://aip.scitation.org/doi/pdf/10.1063/1.457480
 %https://www.duo.uio.no/bitstream/handle/10852/68360/PhysRevE.98.043304.pdf?sequence=2&isAllowed=y
+
+%----------------------------------------------------------------
+\subsection{Computational Strategies}
+%----------------------------------------------------------------
+
+In this section, we present an assortment of computational strategies we will use.
+
+%----------------------------------------------------------------
+\subsubsection{Log Densities}
+%---------------------------------------------------------------- 
+
+As mentioned in \autoref{sec:Theory_scaling_and_opt}, we perform computations with the trial wave function in the log domain. The reason for this is two-fold. Firstly, the form of expressions that need to be evaluated becomes easier. Secondly, the use of logarithmic densities in the MCMC algorithms avoid computational over- and underflows as the evaluation of the ratio between the densities in the common formulation of the algorithms is then computed as the difference of the log densities. % Might need a rewrite...
+Exponentiation is performed only when necessary. 
+
+%----------------------------------------------------------------
+\subsubsection{Parallelization}
+%---------------------------------------------------------------- 
+Parallelizing a single Markov chain is not a straightforward task. However, MCMC sampling with multiple chains is so-called \textit{embarrassingly parallelizable}, which means there is little to no effort to divide the workload as the computations are independent. We will therefore implement procedures where we let multiple chains sample independently in parallel. Note that each chain still needs sufficient time to converge towards the stationary distribution, i.e., each will still need a sufficient number of Monte Carlo cycles to propagate in its workload. 
