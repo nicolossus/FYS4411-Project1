@@ -1,36 +1,49 @@
 
 
+%----------------------------------------------------------------
+\subsection*{Variational Monte Carlo}
+%---------------------------------------------------------------- 
 
+\textbf{Mathemical foundation of the Monte Carlo methods.}
 
+The standard Monte Carlo approximation of $\mathbb{E}[f(X)]$, for some random variable $X:\Omega\to\R$, and a continous function $f:\R\to\R$ is
+\begin{equation}
+    E_M[f](\omega)= \frac{1}{M}\sum_{m=1}^Mf(X_m(\omega)), \quad \omega\in\Omega
+\end{equation}
+where $M\in\mathbb{N}$, $X_1, \dots, X_m$ are independent and identically distributed random varibles distributed with $X$. For definitions of indepent and identically distributed random variables, see appendix \ref{app:stochastic_maths}. We denote the standard deviation of the stochastic variable $f(X)$ as $\sigma_f$. The mean square error of the Monte Carlo approximation can be shown (shown in \ref{app:MC_error}) to be 
+\begin{equation}
+    \mathcal{E}_M(f) = \frac{\sigma_f}{\sqrt{M}}. 
+\end{equation}
+As $M\to\infty$, the error $\epsilon_M$ will therefore approach zero.
 
-ultracold - maintained at near absolute zero temperatures
-bosons - integer spin particles
+\textbf{The Variational Principle.}
 
-
----
-Dalfovo review, 1999:
-
-Efforts to Bose condense atomic gases began with hydrogen more than 15 years ago. In a series of experiments hydrogen atoms were first cooled in a dilution refrigerator, then trapped by a magnetic field and further cooled by evaporation. This approach has come very close to observing BEC, but is still limited by recombination of individual atoms to form molecules (Silvera and Walraven, 1980 and 1986; Greytak and Kleppner, 1984; Greytak, 1995; Silvera, 1995). At the time of this review, first observations of BEC in spin polarized hydrogen have been reported (Fried et al., 1998). In the ’80s laser-based techniques, such as laser cooling and magneto-optical trapping, were developed to cool and trap neutral atoms [for recent reviews, see Chu (1998), Cohen-Tannoudji (1998) and Phillips (1998)]. Alkali atoms are well suited to laser-based methods because their optical transitions can be excited by available lasers and because they have a favourable internal energy-level structure for cooling to very low temperatures. Once they are trapped, their temperature can be lowered further by evaporative cooling [this technique has been recently reviewed by Ketterle and van Druten (1996a) and by Walraven (1996)]. By combining laser and evaporative cooling for alkali atoms, experimentalists eventually succeeded in reaching the temperatures and densities required to observe BEC. It is worth noticing that, in these conditions, the equilibrium configuration of the system would be the solid phase. Thus, in order to observe BEC, one has to preserve the system in a metastable gas phase for a sufficiently long time. This is possible because three-body collisions are rare events in dilute and cold gases, whose lifetime is hence long enough to carry out experiments. So far BEC has been realized in 87Rb (Anderson et al., 1995; ...
-
-
-
-The Gross–Pitaevskii model of BEC is a physical approximation valid for certain classes of BECs. By construction, the GPE uses the following simplifications: it assumes that interactions between condensate particles are of the contact two-body type and also neglects anomalous contributions to self-energy.[21] These assumptions are suitable mostly for the dilute three-dimensional condensates. 
-
-The Gross-Pitaevskii equation (GPE) provides a relatively good description of the behavior of atomic BEC's. However, GPE does not take into account the temperature dependence of dynamical variables, and is therefore valid only for {\displaystyle \ T=0}\ T= 0. It is not applicable, for example, for the condensates of excitons, 
-
-
-system of the hard-sphere Bose gas.
-
-The Hamiltonian for $N$ trapped 
-
-
-
-
-In shortly, hard spheres are thought to be model particles in the statistical mechanical theory of fluids and solids which are studied by analytically with simulations. They cannot overlap in space and mimic the strong repulsion that atoms and spherical molecules experience at very close distances. 
-
-Hard spheres are widely used as model particles in the statistical mechanical theory of fluids and solids. They are defined simply as impenetrable spheres that cannot overlap in space. They mimic the extremely strong ("infinitely elastic bouncing") repulsion that atoms and spherical molecules experience at very close distances.
-
-
- The RWM algorithm is also a special case with
-D ≡ 0. MH algorithms with drift like (2.1) mix faster than plain RWM algorithm (D ≡ 0) because
-typically, the drift moves the algorithm faster towards the center of the target distribution
+Given a Hamiltonian $H$ and a trial wave function $\Psi_T$, the variational principle states that the expectation value $\expval{H}$, defined through
+\begin{equation}
+    \mathbb{E}[H]=\expval{H}= \frac{\int d\mathbf{R}\Psi_T^*(\mathbf{R})H(\mathbf{R})\Psi_T(\mathbf{R})}{\int d\mathbf{R}\Psi_T^*(\mathbf{R})\Psi_T(\mathbf{R})}, 
+\end{equation}
+is an upper bound tho the ground state energy $E_0$ of the Hamiltonian $\hat{H}$, that is 
+\begin{equation}
+    E_0 \leq \expval{H}.
+\end{equation}
+The eigenstates, $\psi_i$, of the Hamiltonian,
+\begin{equation}
+    H\psi_i(\mathbf{R}) = E_i\psi_i(\mathbf{R}), 
+\end{equation}
+form a complete set. The trial wave function can therefore be expanded in terms of them,
+\begin{equation}
+    \Psi_T(\mathbf{R}) = \sum_i a_i\Psi_i(\mathbf{R}), 
+\end{equation}
+and assuming the set of eigenfunctions to be normalized we obtain
+\begin{equation}
+    \frac{\sum_{nm}a_m^*a_n\int d\mathbf{R}\Psi_m^*(\mathbf{R})H(\mathbf{R})\Psi_n(\mathbf{R})}{\sum_{nm}a_m^*a_n\int d\mathbf{R}\Psi_m^*(\mathbf{R})\Psi_n(\mathbf{R})} = \frac{\sum_n a_n^2E_n}{\sum_n a_n^2} \geq E_0, 
+\end{equation}
+and the equality holds only if $\Psi_T = \psi_0$. Thus, the variational principle states that the lowest expectation value is our best approximation to the ground state. We utilise this by making a wave function that has a number of variational parameters, and search for a minimum in the space of the variational parameters. Note also that the moments of the Hamiltonian becomes
+\begin{equation}
+    \expval{H^N} = \frac{\int d\mathbf{R}\Psi_T^*(\mathbf{R}, \mathbf{\alpha})H^N\Psi_T(\mathbf{R},\mathbf{\alpha})}{\int d\mathbf{R}\Psi_T^*(\mathbf{R}, \mathbf{\alpha})\Psi_T(\mathbf{R}, \mathbf{\alpha})} = E_0^N
+\end{equation}
+when $\Psi_T=\psi_0$. The variance, 
+\begin{equation}
+    \text{Var}[E] = \expval{H^2}-\expval{H}^2, 
+\end{equation}
+is therefore zero when the ground state is found. Variation is then performed by minimizing both energy and variance. 
