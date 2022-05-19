@@ -243,7 +243,7 @@ where $\eta$ is a random variable. The solution we use is found using Euler's me
     \bm{r'} = \bm{r} + \mathrm{D}\bm{F}\qty(\bm{r})\Delta t + \bm{\xi}\sqrt{\Delta t},
 \end{equation}
 
-where $\bm{\xi}$ is a multidimensional Gaussian random variable, yields the proposed state $\bm{r'}$. Notice that the time-step $\Delta t$ becomes a scale parameter that we need to tune to fit our desired acceptance ratio (see \autoref{sec:tuning}). The solution to the Fokker-Planck equation yields a transition probability ($T_{\bm{r}\to\bm{r'}}$) given by the Green's function,  
+where $\bm{\xi}$ is a multidimensional Gaussian random variable, yields the proposed state $\bm{r'}$. Notice that the time-step $\Delta t$ becomes a scale parameter that we need to tune to fit our desired acceptance ratio (see \autoref{sec:tuning}). The solution to the Fokker-Planck equation yields a proposal distribution ($q\qty(\bm{r}\mid\bm{r'})$) given by the Green's function,  
 
 \begin{equation}
     G\qty(\bm{r'}, \bm{r}, \Delta t) = \frac{1}{\qty(4\pi\mathrm{D}\Delta t)^{\frac{3N}{2}}}\exp[-\frac{\qty(\bm{r'}-\bm{r}-\mathrm{D}\Delta t\bm{F}\qty(\bm{r}))^2}{4\mathrm{D}\Delta t}].
@@ -253,24 +253,24 @@ where $\bm{\xi}$ is a multidimensional Gaussian random variable, yields the prop
 We insert the transition probability into the detailed balance equation and get 
 
 \begin{align*}
-    \frac{A_{\bm{r}\to\bm{r'}}}{A_{\bm{r'}\to\bm{r'}}} &= \frac{p_{\bm{r'}}T_{\bm{r'}\to\bm{r}}}{p_{\bm{r}}T_{\bm{r}\to\bm{r'}}} 
+    a\qty(\bm{r'}\mid\bm{r})&= \frac{p\qty({\bm{r'}})q\qty(\bm{r'}\mid\bm{r})}{p\qty({\bm{r}})q\qty(\bm{r}\mid\bm{r'})}
     \\
-    &= \frac{p_{\bm{r'}}G\qty(\bm{r}, \bm{r'}, \Delta t)}{p_{\bm{r'}}G\qty(\bm{r'}, \bm{r}, \Delta t)}.
+    &= \frac{p\qty({\bm{r'}})G\qty(\bm{r}, \bm{r'}, \Delta t)}{p\qty({\bm{r'}})G\qty(\bm{r'}, \bm{r}, \Delta t)}.
 \end{align*}
 
-Now we do the same trick, set either $A_{\bm{r}\to\bm{r'}}$ or $A_{\bm{r'}\to\bm{r}}$ equal to $1$ and defines the acceptance probability as 
+Now we do the same trick, set either $a\qty(\bm{r}\mid\bm{r'})$ or $A_{\bm{r'}\to\bm{r}}$ equal to $1$ and define the acceptance probability as 
 
 \begin{equation}
-    A_{\bm{r}\to\bm{r'}} = \mathrm{min}\qty(1, \frac{p_{\bm{r'}}G\qty(\bm{r}, \bm{r'}, \Delta t)}{p_{\bm{r'}}G\qty(\bm{r'}, \bm{r}, \Delta t)}).
+    a\qty(\bm{r'}\mid\bm{r}) = \mathrm{min}\qty(1, \frac{p\qty({\bm{r'}})G\qty(\bm{r}, \bm{r'}, \Delta t)}{p\qty({\bm{r}})G\qty(\bm{r'}, \bm{r}, \Delta t)}).
 \end{equation}
 
 Our implementation of the Langevin Metropolis-Hastings is performed in logarithmic domain,  
 
 \begin{equation}
-    \log{\qty(A_{\bm{r}\to\bm{r'}})} = \mathrm{min}\qty(0, \log{\qty(p_{\bm{r'}})} + \log{\qty(G'\qty(\bm{r}, \bm{r'}, \Delta t))} - \log{\qty(p_{\bm{r'}})}-\log{\qty(G'\qty(\bm{r'}, \bm{r}, \Delta t))})
+    \ln{\qty(a\qty(\bm{r}\mid\bm{r'}))} = \mathrm{min}\qty(0, \ln{\qty(p\qty(\bm{r'}))} + \ln{\qty(G'\qty(\bm{r}, \bm{r'}, \Delta t))} - \ln{\qty(p\qty(\bm{r}))}-\ln{\qty(G'\qty(\bm{r'}, \bm{r}, \Delta t))})
 \end{equation}
 
-where $G'$ denotes Green's function without the normalization parameter, will reflect what is compared to the logarithm of a randomly sampled number from the uniform distribution $\textit{U}\qty(0, 1)$. 
+where $G'$ denotes Green's function without the normalization constant, will reflect what is compared to the logarithm of a randomly sampled number from the uniform distribution $\textit{U}\qty(0, 1)$. 
 
 A simple overview of the Langevin Metropolis-Hastings sampling algorithm is listed in \autoref{algo:lmh}, where, for simplicity and generality, also here only the general idea is encapsulated by the algorithm. 
 
@@ -279,14 +279,14 @@ A simple overview of the Langevin Metropolis-Hastings sampling algorithm is list
 \hspace*{\algorithmicindent} \textbf{Inputs: }\text{Initial positions, $\bm{r}$, and number of cycles, $\mathrm{N}$}
 \begin{algorithmic}[1]
 \State $\mathrm{t}=1$
-\State $\log{\qty(P)}\gets 2\log{\qty(\abs{\Psi_{\mathrm{T}}(\bm{r};\bm{\alpha})})}$ \Comment{Calculate the log density of initial state.}
+\State $\ln{\qty(P)}\gets 2\log{\qty(\abs{\Psi_{\mathrm{T}}(\bm{r};\bm{\alpha})})}$ \Comment{Calculate the log density of initial state.}
 \Repeat 
     \State Calculate drift force from current state $\bm{F}(\bm{r})$ given by \autoref{eq:drift_force}
     \State Generate proposals $\bm{r'}\sim\bm{r}+\mathrm{D}\bm{F}(\bm{r})\Delta t + \mathcal{N}\qty(\bm{r},\Delta t)$
-    \State Generate random number $\mathrm{u}\sim\log{\qty(\textit{U}(0, 1))}$
+    \State Generate random number $\mathrm{u}\sim\ln{\qty(\textit{U}(0, 1))}$
     \State Calculate drift force from proposed state $\bm{F}(\bm{r'})$ also by \autoref{eq:drift_force}
     \State Calculate acceptance criterion
-    \State $\mathrm{A}\gets\mathrm{min}\qty(0, \log{\qty(p_{\bm{r'}})} + \log{\qty(G'\qty(\bm{r}, \bm{r'}, \Delta t))} - \log{\qty(p_{\bm{r'}})}-\log{\qty(G'\qty(\bm{r'}, \bm{r}, \Delta t))})$
+    \State $\mathrm{A}\gets\mathrm{min}\qty(0, \ln{\qty(p_{\bm{r'}})} + \ln{\qty(G'\qty(\bm{r}, \bm{r'}, \Delta t))} - \ln{\qty(p_{\bm{r'}})}-\ln{\qty(G'\qty(\bm{r'}, \bm{r}, \Delta t))})$
     \If{\mathrm{u}<\mathrm{A}}
         \State Accept proposal $\bm{r}\gets\bm{r'}$
     \Else
@@ -501,7 +501,7 @@ Parallelizing a single Markov chain is not a straightforward task. However, MCMC
 \subsection{Automatic Differentiation}
 %---------------------------------------------------------------- 
 
-Automatic differentiation is a tool which uses numerical methods to accurately calculate the derivatives of functions, with many applications, most notably maybe in the backpropagation algorithm in machine learning. A derivative of a function can be determined by finding the derivative of every operation in the function and we can use the chain rule to calculate the derivative. In backpropagation the derivative is calculated by reversing all the operations, but it can just as easily be calculated from input to output.
+Automatic differentiation is a tool which uses numerical methods to accurately calculate the derivatives of functions, with many applications, maybe most notably in the backpropagation algorithm in machine learning. A derivative of a function can be determined by finding the derivative of every operation in the function and we can use the chain rule to calculate the derivative. In backpropagation the derivative is calculated by reversing all the operations, but it can just as easily be calculated from input to output.
 We decided to use JAX \citep{jax2018github}, a machine learning framework developed by Google Research teams, for automatically calculating the needed gradients. Our ambition is to make a Variational Monte Carlo method which can take an arbitrary trial wave function, and automatically carry out the computations needed to find a good approximation to its ground state energy. Due to the inner workings of JAX, our formulation of the trial wave function in the interacting case is not straightforward to automatically differentiate. 
 In this project we limit ourselves to implement automatic differentiation for the non-interacting case to investigate its viability. 
 
