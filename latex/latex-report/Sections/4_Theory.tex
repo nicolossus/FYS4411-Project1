@@ -9,7 +9,7 @@
 Variational Monte Carlo (VMC) is a method applicable for finding an estimate to the ground state energy of a given quantum mechanical system. It proposes a trial wave function, $\ket{\Psi_T}$, and calculates the expected energy, or any other observable given its operator, by making use of a Monte Carlo evaluation of the integral. The trial wave function is designed with care and hopefully resembles the true wave function in architecture. By adding variational parameters in the trial wave function we may make use of the variational principle such that the energy functional on the trial wave function becomes a convex functional. A convex functional has a single global minimum. Therefore, if our trial wave function architecture resembles the architecture of the ground state wave function, we may simply make a search in the variational parameter space for the minima, and find an upper bound estimate of the exact ground state energy, $E_0$. In the following, we provide the details of the VMC method. 
 
 %---------------------------------------------------------------- 
-\subsubsection{Monte Carlo Integration and Expectation Values}
+\subsubsection{Monte Carlo Integration and Expectation Values}\label{sec:mc_integration}
 %----------------------------------------------------------------
 
 The general motivation to use Monte Carlo integration in quantum physics is its capability to compute multidimensional definite integrals, that is, integrals on the form 
@@ -27,16 +27,16 @@ where $f \qty(x_1, x_2, ..., x_n)$ is a function in $n$ variables. Fundamental t
 which for quantum systems typically will be a multidimensional integral. The Monte Carlo integration approach to compute the above integral is to sample $M$ possible states $x$ from $p(x)$. The law of large numbers then gives that 
 
 \begin{equation*}
-    \expval{X} = \lim_{M \to \infty} \frac{1}{M} \sum_{i=1}^M p \qty(x_i),
+    \expval{X} = \lim_{M \to \infty} \frac{1}{M} \sum_{i=1}^M x_i p \qty(x_i),
 \end{equation*}
 
 such that the expectation value can be approximated by
 
 \begin{equation}\label{eq:mc_integration}
-    \expval{X} \approx \frac{1}{M} \sum_{i=1}^M p \qty(x_i).
+    \expval{X} \approx \frac{1}{M} \sum_{i=1}^M x_i p \qty(x_i).
 \end{equation}
 
-The number $M$ is usually referred to as the number of Monte Carlo samples or cycles. The estimation error of Monte Carlo integration is independent of the dimensionality of the integral and decreases as $1 / \sqrt{N}$. Monte Carlo integration is therefore more efficient for multidimensional integrals than traditional methods, such as the trapezoidal rule, which typically suffer from the curse of dimensionality. 
+The number $M$ is usually referred to as the number of Monte Carlo samples or cycles. The estimation error of Monte Carlo integration is independent of the dimensionality of the integral and decreases as $1 / \sqrt{M}$. Monte Carlo integration is therefore more efficient for multidimensional integrals than traditional methods, such as the trapezoidal rule, which typically suffer from the curse of dimensionality. 
 
 When applying Monte Carlo integration, the naive Monte Carlo approach is to sample points uniformly on the phase space and evaluate the pdf at those points. Generally, systems only span a tiny portion of their phase space such that $p(x) \simeq 0$ for most states $x$. The contribution to the expectation value will therefore be negligible for a large portion of the samples, rendering the naive Monte Carlo approach inefficient. There is thus a need for procedures prioritizing sampling toward the values of $x$ that significantly contribute to the expectation value. The family of Markov chain Monte Carlo (MCMC) sampling algorithms have this convergence property and are the predominant choice. The MCMC sampling algorithms used in this project will be discussed in \autoref{sec:sampling_algos}.
 
@@ -64,7 +64,7 @@ The second central moment, known as the variance, is of particular interest. For
 \subsubsection{Review of the Variational Principle}\label{sec:variational_principle}
 %----------------------------------------------------------------
 
-The variational principle states that, given a trial wave function $\ket{\Psi_T}$, the energy functional of the wave function has the ground state energy, $E_0$, as a lower bound. Any trial wave function can be expanded in terms of the orthonormal basis set of eigenfunctions of the Hamiltonian operator in Hilbert space, as they form a complete set. Denoting the eigenfunctions as $\ket{\Psi_k}$ and the Hamiltonian as $H$, such that $H\ket{\Psi_k}=E_k\ket{\Psi_k}$, we may expand the trial wave function in this eigenspace
+The variational principle (for reference literature see e.g. \cite{VMC}) states that, given a trial wave function $\ket{\Psi_T}$, the energy functional of the wave function has the ground state energy, $E_0$, as a lower bound. Any trial wave function can be expanded in terms of the orthonormal basis set of eigenfunctions of the Hamiltonian operator in Hilbert space, as they form a complete set. Denoting the eigenfunctions as $\ket{\Psi_k}$ and the Hamiltonian as $H$, such that $H\ket{\Psi_k}=E_k\ket{\Psi_k}$, we may expand the trial wave function in this eigenspace
 
 \begin{equation*}
     \ket{\Psi_T} = \sum_{k}c_k\ket{\Psi_k}.
@@ -169,11 +169,11 @@ The final step of the VMC method is to vary $\bm{\alpha}$ while re-evaluating th
 \subsection{The System}
 %---------------------------------------------------------------- 
 
+The system under investigation is a trapped Bose gas of alkali atoms, specifically $^{87}$Rb. A key feature of alkali systems is that they are dilute, i.e., the volume per atom is much larger than the volume of the atom. The average distance between the atoms is thus much larger than the range of the inter-atomic interaction and the physics is dominated by two-body collisions. 
+
 %---------------------------------------------------------------- 
 \subsubsection{Bosons in a Harmonic Trap}
 %---------------------------------------------------------------- 
-
-The system under investigation is a trapped Bose gas of alkali atoms, specifically $^{87}$Rb. A key feature of alkali systems is that they are dilute, i.e., the volume per atom is much larger than the volume of the atom. The average distance between the atoms is thus much larger than the range of the inter-atomic interaction and the physics is dominated by two-body collisions. 
 
 In order to model the Bose gas, we consider atoms trapped in either a spherical (S) or elliptical (E) harmonic oscillator trap: 
 
@@ -257,10 +257,17 @@ Here, we introduce quantities that will be important moving forward. First is th
     \bm{F} \qty(\bm{r}; \alpha) = \frac{2 \grad \Psi_T \qty(\bm{r}; \alpha)}{\Psi_T \qty(\bm{r}; \alpha)}.
 \end{equation}
 
-The drift force comes into play in the Langevin Metropolis-Hastings sampling algorithm (\autoref{sec:lmh}) as a part that allows the algorithm to traverse the phase space efficiently by moving towards regions of high probability density.
+The drift force comes into play in the Langevin Metropolis-Hastings sampling algorithm (\autoref{sec:lmh}) as a part that allows the algorithm to traverse the configuration space efficiently by moving towards regions of high probability density.
 
 
-One-body density - Tar du denne Jørn?
+%One-body density - Tar du denne Jørn?
+The \textit{one-body density}, $\rho(\bm{r})$, displays the density of particles in configuration space. Its true form is given by the true ground state wave function $\Psi_0$, where we integrate out all the other particles in the following way
+
+\begin{equation}\label{eq:one_body_density}
+    \rho(\bm{r}) =\int_{\bm{r}_2}\int_{\bm{r}_3}\dots\int_{\bm{r}_{N}}\abs{\Psi_0}^2\mathrm{d}\bm{r}_2\mathrm{d}\bm{r}_3 \dots \mathrm{d}\bm{r}_N. 
+\end{equation}
+
+This is a simplification which we have done because the system of Bose gas contains identical particles. We recognize the spherical symmetry of our system and instead calculate the \textit{radial one-body density}, $\rho(r)$, where $r=\norm{r}$. This multidimensional integral is evaluated using Monte Carlo integration (see \autoref{sec:mc_integration}), and the radial one-body density is in practice calculated by making a grid of position values and bins of radial distances. We then count the number of samples from the Monte Carlo simulation that matches each bin, and we obtain the approximated one-body density. 
 
 
 %---------------------------------------------------------------- 
@@ -290,181 +297,350 @@ By using the relation $\Psi_T^{-1} \grad \Psi_T = \grad \ln \Psi_T$, the drift f
 
 With natural units and in the log domain, the local energy defined by \autoref{eq:variational_local_energy} is given by
 
-\begin{equation}
+\begin{equation}\label{eq:local_energy}
 \begin{aligned}
-    E_L &= \Psi_T \qty(\bm{r}; \alpha)^{-1} H \Psi_T \qty(\bm{r}; \alpha) \\
-    &= - \frac{1}{2} \sum_{i=1}^N \qty[\grad_i^2 \ln \Psi_T \qty(\bm{r}; \alpha) + \qty(\grad_i \ln \Psi_T \qty(\bm{r}; \alpha))^2] + \sum_{i=1}^{N} V_\mathrm{trap}\qty(\bm{r}_i).
+    E_L \qty(\bm{r}; \alpha) &= \Psi_T \qty(\bm{r}; \alpha)^{-1} H \Psi_T \qty(\bm{r}; \alpha) \\
+    &= - \frac{1}{2} \sum_{i=1}^N \qty[\grad_i^2 \ln \Psi_T \qty(\bm{r}; \alpha) + \qty(\grad_i \ln \Psi_T \qty(\bm{r}; \alpha))^2] + \sum_{i=1}^{N} V_\mathrm{trap}\qty(\bm{r}_i), 
 \end{aligned}
 \end{equation}
 
+where we have used that $\Psi_T^{-1} \grad^2 \Psi_T = \grad^2 \ln \Psi_T + \qty(\grad \ln \Psi_T)^2$. The easiest approach to show that the latter relation holds is with the right-hand side as the point of departure;
 
----
+\begin{align*}
+    \grad^2 \ln{\Psi_T} + \qty(\grad\ln{\Psi_T})^2 &= \grad\cdot\grad\ln{\Psi_T} + \grad\ln{\Psi_T}\cdot\grad\ln{\Psi_T}
+    \\
+    &= \grad\cdot\qty(\frac{1}{\Psi_T}\grad\Psi_T) + \qty(\frac{1}{\Psi_T}\grad\Psi_T)\cdot\qty(\frac{1}{\Psi_T}\grad\Psi_T)
+    \\
+    &= -\qty(\frac{1}{\Psi_T^2}\grad\Psi_T\cdot\grad\Psi_T) + \qty(\frac{1}{\Psi_T}\grad^2\Psi_T) + \qty(\frac{1}{\Psi_T^2}\grad\Psi_T\cdot\grad\Psi_T)
+    \\
+    &= \frac{1}{\Psi_T}\grad^2\Psi_T,
+\end{align*}
 
-Scaling
+where we again have used the relation $\Psi_T^{-1} \grad \Psi_T = \grad \ln \Psi_T$ and the product rule. 
 
-We scale by aho. However, for brevity, we will denote xstar as x, i.e., $r \to r / a_\mathrm{ho}$.
-
-Then we only need to state the Hamiltonian in exercise g), which only applies to elliptical HO, and (a =) arb/aho = 4.33e-3
-
----
-
-In our code implementation we use the natural units $\hbar = c =  m = 1$. This is done to avoid working with very small numbers, which could lead to large numerical errors. 
-The spherical harmonic oscillator potential has the characteristic length of $a_{\mathrm{ho}}=\sqrt{\frac{\hbar}{m\omega}}$, where $\omega$ is the angular frequency of the oscillator potential (see e.g. \cite{Dalfovo1999}). This is a characteristic length unit for this system. We scale the positions in all arrays to be in units of $a_{\mathrm{ho}}$. That is, 
+As mentioned in the introduction, the harmonic oscillator length $a_\mathrm{ho} \equiv \qty[\hbar / \qty(m \omega_\mathrm{ho})]^{1/2}$ provides a characteristic length of the system. Without applying natural units, we introduce the scaling $\bm{r}^* = \bm{r}/a_\mathrm{ho} \Rightarrow \bm{r} = \bm{r}^* a_\mathrm{ho}$. For brevity, we let $\bm{r}^* \to \bm{r}$ so that the preceding notation remains the same. With this scaling, the harmonic oscillator potentials (\autoref{eq:Vtrap}) become 
 
 \begin{equation*}
-    x^* = \frac{x}{a_{\mathrm{ho}}}, 
+    V_\mathrm{trap} \qty(\bm{r}) = 
+    \begin{cases}
+        \frac{1}{2} \hbar \omega_\mathrm{ho} r^2 \quad &\text{(S)}
+        \\
+        \frac{1}{2} \qty[\hbar \omega_\mathrm{ho} \qty(x^2 + y^2) + \hbar \omega_\mathrm{ho} \frac{\omega_z^2}{\omega_\mathrm{ho}^2} z^2] \quad &\text{(E)}
+    \end{cases}.
 \end{equation*}
 
-where $x$ is one dimension, and $\hat{x}$ is our scaled dimension length. The single particle part of the Hamiltonian in one dimension then becomes
+With the energy measured in units $\hbar \omega_\mathrm{ho}$, the harmonic oscillator potentials further simplify to 
+
+\begin{equation}
+    V_\mathrm{trap} \qty(\bm{r}) = 
+    \begin{cases}
+        \frac{1}{2} r^2 \quad &\text{(S)}
+        \\
+        \frac{1}{2} \qty[x^2 + y^2 + \gamma^2 z^2] \quad &\text{(E)}
+    \end{cases},
+\end{equation}
+
+where $\gamma = \omega_z / \omega_\mathrm{ho}$. As in \cite{DuBois2001} and \cite{Nilsen2005}, we will use $\gamma = \beta=2.82843$ and $a = a_\mathrm{Rb} / a_\mathrm{ho} = 4.33 \cdot 10^{-3}$.  
+
+
+%Scaling
+
+%We scale by aho. However, for brevity, we will denote xstar as x, i.e., $r \to r / a_\mathrm{ho}$.
+
+%Then we only need to state the Hamiltonian in exercise g), which only applies to elliptical HO, and (a =) arb/aho = 4.33e-3
+
+
+%In our code implementation we use the natural units $\hbar = c =  m = 1$. This is done to avoid working with very small numbers, which could lead to large numerical errors. The spherical harmonic oscillator potential has the characteristic length of $a_{\mathrm{ho}}=\sqrt{\frac{\hbar}{m\omega}}$, where $\omega$ is the angular frequency of the oscillator potential (see e.g. \cite{Dalfovo1999}). This is a characteristic length unit for this system. We scale the positions in all arrays to be in units of $a_{\mathrm{ho}}$. That is, 
+
+%\begin{equation*}
+%    x_* = \frac{x}{a_{\mathrm{ho}}}, 
+%\end{equation*}
+
+%where $x$ is one dimension, and $\hat{x}$ is our scaled dimension length. The single particle part of the Hamiltonian in one dimension then becomes
 
 % Gir feilmelding
 %\begin{equation}
-%    H = -\frac{\hbar^2}{2ma^2_{\mathrm{ho}}}\dv[2]{x^*} + \frac{m\omega a^2_{\mathrm{ho}}}{2}x^{*2}.
+%    H = -\frac{\hbar^2}{2ma^2_{\mathrm{ho}}}\dv[2]{x_*} + \frac{m\omega a^2_{\mathrm{ho}}}{2}x_*^{2}.
 %\end{equation}
 
-When natural units are applied, the characteristic length is simplified to $a_{\mathrm{ho}}=\omega^{-\frac{1}{2}}$, and we set the angular frequency of the system to $\omega=1$. The Hamiltonian for a single particle in one-dimensional space is then significantly simplified to 
+%When natural units are applied, the characteristic length is simplified to $a_{\mathrm{ho}}=\omega^{-\frac{1}{2}}$, and we set the angular frequency of the system to $\omega=1$. The Hamiltonian for a single particle in one-dimensional space is then significantly simplified to 
 
 % Gir feilmelding
 %\begin{equation}
-%    H = -\frac{1}{2}\dv[2]{x^*} + \frac{1}{2}x^{*2}, 
+%    H = -\frac{1}{2}\dv[2]{x_*} + \frac{1}{2}x_*^{2}, 
 %\end{equation}
 
-which generalizes to $N$ particles in $D$-dimensional space as 
+%which generalizes to $N$ particles in $D$-dimensional space as 
 
 % Gir feilmelding
 %\begin{equation}
-%    H = -\frac{D}{2}\sum_{i=1}^{N}\qty(\laplacian_i^*-\bm{r_i^{*}}\vdot\bm{r_n^*}) + \sum_{i<j}^{N}V_{\mathrm{int}}\qty(\norm{\bm{r_i}-\bm{r_j}}).
+%    H = -\frac{D}{2}\sum_{i=1}^{N}\qty(\laplacian_{*,i}-\bm{r_{*,j}}\vdot\bm{r_{*,n}}) + \sum_{i<j}^{N}V_{\mathrm{int}}\qty(\norm{\bm{r_{*,i}}-\bm{r_{*,j}}}).
 %\end{equation}
 
-The two-body potential $V_{\mathrm{int}}$ remains the same when the hard sphere diameter $a$ is expressed in terms of $a_{\mathrm{ho}}$ aswell. 
+%The two-body potential $V_{\mathrm{int}}$ remains the same when the hard sphere diameter $a$ is expressed in terms of $a_{\mathrm{ho}}$ aswell. 
 
 
 
 %----------------------------------------------------------------
-\subsubsection{Closed-Form Expressions}
+\subsubsection{Closed-Form Expressions for Non-Interacting Bosons}
 %---------------------------------------------------------------- 
 
-In the following, we derive closed-form expressions for both a non-interacting and interacting system of $N$ atoms trapped in a $d$ dimensional spherical harmonic oscillator. 
-
-%----------------------------------------------------------------
-\subsubsection*{Non-Interacting System}
-%---------------------------------------------------------------- 
-
-In a non-interacting system, the trial wave function is given by 
+In the following, we derive closed-form expressions for a non-interacting system of $N$ bosons trapped in a $d$ dimensional spherical harmonic oscillator. In this case, the trial wave function is given by 
 
 \begin{equation*}
-    \ln \Psi_T \qty(\bm{r}; \alpha) = \sum_{i=1} -\alpha \abs{r_i}^2
+    \ln \Psi_T \qty(\bm{r}; \alpha) =  -\alpha \sum_{i=1}^N \abs{\bm{r}_i}^2, 
 \end{equation*}
 
----
+where $\bm{r} \in \R^{N\times d}$. In spherical coordinates, the gradient of particle $i$ is given by 
 
-Nicolai har utledninger i log space - må fikse litt på disse
+
+% Vet ikke helt om dette stemmer. Mangler vi ikke to dimensjoner, eller må spesifisere symmetri? 
+
+
+\begin{equation*}
+    \grad_i = \pdv{\bm{r}_i}
+\end{equation*}
+
+and the Laplacian by its two radial derivative terms in $d$ dimensions; 
+
+\begin{equation*}
+    \grad_i^2 = \frac{1}{\bm{r}_i^{d-1}} \pdv{\bm{r}_i} \qty(\bm{r}_i^{d-1} \pdv{\bm{r}_i}). 
+\end{equation*} 
+
+Thus, we have that 
+
+\begin{equation*}
+    \grad_i \ln \Psi_T \qty(\bm{r}_i; \alpha) = -2 \alpha \bm{r}_i 
+\end{equation*} 
+
+and 
+
+\begin{equation*}
+    \grad_i^2 \ln \Psi_T \qty(\bm{r}_i; \alpha) = \frac{1}{\bm{r}_i^{d-1}} \pdv{\bm{r}_i} \qty(-2 \alpha \bm{r}_i^d) = \frac{1}{\bm{r}_i^{d-1}}  \qty(-2 d \alpha \bm{r}_i^{d-1}) = -2 d \alpha .
+\end{equation*}
+
+The local energy (\autoref{eq:local_energy}) is then given by 
+
+\begin{equation}
+    E_L  \qty(\bm{r}; \alpha) = -\frac{1}{2} \sum_{i=1}^N \qty[- 2d \alpha + \qty(-2\alpha \bm{r}_i)^2] + \sum_{i=1}^N \frac{1}{2} \bm{r}_i^2 = Nd \alpha + \sum_{i=1}^N \bm{r}_i^2 \qty(\frac{1}{2} - 2 \alpha^2).
+\end{equation}
+
+As $\sum_i \bm{r}_i^2$ is always positive, setting $\alpha = 1 /2$ gives the minimal local energy;
+
+\begin{equation}
+    E_L^\mathrm{min} = \frac{d N}{2}.
+\end{equation}
+
+The the drift force vector (\autoref{eq:drift_force}) is given by 
+
+\begin{equation}
+    \bm{F}\qty(\bm{r}; \alpha) = - 4 \alpha \bm{r}.
+\end{equation}
+
+
+
+%----------------------------------------------------------------
+\subsubsection{Closed-Form Expressions for Interacting Bosons}
+%---------------------------------------------------------------- 
+
+In the case of interacting bosons, we use the following formulation of the trial wave function;
+
+\begin{equation*}
+    \ln \Psi_T \qty(\bm{r}; \alpha) = \sum_{i=1}^N \ln \phi \qty(\bm{r}_i ; \alpha) + \sum_{i<j}^N u \qty(r_{ij}),
+\end{equation*}
+
+where $u \qty(r_{ij}) \equiv \ln f \qty(a, r_{ij})$ and $r_{ij} \equiv \norm{\bm{r}_i - \bm{r}_j}$. In the ensuing derivations, the aim is to find analytical expressions for the gradient and Laplacian of the trial wave function for a particle $k$. In order to compute $\grad_k u \qty(r_{kj})$, we can rewrite the gradient operator as 
+
+\begin{equation*}
+    \grad_k = \grad_k \pdv{r_{kj}}{r_{kj}} = \grad_k r_{kj} \pdv{r_{kj}} = \frac{\bm{r}_k - \bm{r}_j}{r_{kj}} \pdv{r_{kj}} .
+\end{equation*}
+
+The gradient of the Slater permanent for particle $k$ is simply the gradient of the single-particle element in question. As the gradient of the pairwise correlations only acts on particle $k$, the only non-zero interactions will involve particle $k$. Thus, the gradient of the trial wave function for particle $k$ is 
+
+\begin{equation}
+\begin{aligned}
+    \grad_k \ln \Psi_T \qty(\bm{r}; \alpha) &= \grad_k \ln \phi \qty(\bm{r}_k; \alpha) + \sum_{j \neq k}^N \grad_k u \qty(r_{kj}) 
+    \\
+    &= \grad_k \ln \phi \qty(\bm{r}_k; \alpha) + \sum_{j \neq k}^N \frac{\bm{r}_k - \bm{r}_j}{r_{kj}} u' \qty(r_{kj}),
+\end{aligned}
+\end{equation} 
+
+where $u' \qty(r_{kj}) \equiv \pdv{r_{kj}} u \qty(r_{kj})$ and the summation $\sum_{j\neq k}$ signifies that each interaction with particle $k$ is enumerated only once, and self-interaction is excluded from the summation. 
+
+As with the gradient, the Laplacian of the Slater permanent is simply $\grad_k^2 \ln \phi \qty(\bm{r}_k; \alpha)$. The Laplacian of the pairwise correlations, on the other hand, is more involved to derive. Our point of departure is 
+
+\begin{equation}\label{eq:int_lap_wip}
+\begin{aligned}
+    \grad_k \sum_{j\neq k}^N \grad_k u \qty(r_{kj}) &= \sum_{j \neq k}^N \grad_k  \qty( \frac{\bm{r}_k - \bm{r}_j }{r_{kj}} u' \qty(r_{kj}))
+    \\
+    &= \sum_{j \neq k} \qty(u' \qty(r_{kj})\grad_k  \qty( \frac{\bm{r}_k - \bm{r}_j }{r_{kj}}) + \frac{\bm{r}_k - \bm{r}_j }{r_{kj}} \grad_k u' \qty(r_{kj}))
+\end{aligned}
+\end{equation}
+
+where we have used the product rule. The gradient in the first summation term on the right-hand side of \autoref{eq:int_lap_wip} can be computed using the quotient rule: 
+
+\begin{equation*}
+    \grad_k \frac{\bm{r}_k - \bm{r}_j }{r_{kj}} = \frac{\grad_k \qty(\bm{r}_k - \bm{r}_j) r_{kj} - \qty(\bm{r}_k - \bm{r}_j) \cdot \grad_k r_{kj} }{ r_{kj}^2 }, 
+\end{equation*}
+
+where $\grad_k \qty(\bm{r}_k - \bm{r}_j) = d$, with $d$ denoting the dimensionality, and $\grad r_{kj} = \qty(\bm{r}_k - \bm{r}_j) / r_{kj}$. Thus, we have that 
+
+\begin{equation*}
+    \grad_k \qty(\frac{\bm{r}_k - \bm{r}_j }{r_{kj}}) u' \qty(r_{kj}) = \qty(\frac{d r_{kj}}{r_{kj}^2} - \frac{\qty(\bm{r}_k - \bm{r}_j)\qty(\bm{r}_k - \bm{r}_j)}{r_{kj}^3}) u' \qty(r_{kj}) = \frac{d - 1}{r_{kj}} u' \qty(r_{kj}).
+\end{equation*}
+
+The second summation term on the right-hand side of \autoref{eq:int_lap_wip} can be computed as follows: 
+
+\begin{equation*}
+    \frac{\bm{r}_k - \bm{r}_j }{r_{kj}} \grad_k u' \qty(r_{kj}) = \frac{\qty(\bm{r}_k - \bm{r}_j)^2}{r_{kj}^2} \pdv{r_{kj}}  u' \qty(r_{kj}) =  u'' \qty(r_{kj}), 
+\end{equation*}
+
+where $ u'' \qty(r_{kj}) \equiv \pdv[2]{r_{kj}}  u \qty(r_{kj})$. The completed version of \autoref{eq:int_lap_wip} then reads
+
+\begin{equation*}
+    \grad_k \sum_{j\neq k}^N \grad_k u \qty(r_{kj}) = \sum_{j\neq k}^N \qty(u'' \qty(r_{kj}) + \frac{d-1}{r_{kj}} u' \qty(r_{kj})),
+\end{equation*}
+
+and the Laplacian of the trial wave function for particle $k$ thus becomes 
+
+\begin{equation}
+    \grad_k^2 \ln \Psi_T \qty(\bm{r}; \alpha) = \grad_k^2 \ln \phi \qty(\bm{r}_k; \alpha) + \sum_{j\neq k}^N \qty(u'' \qty(r_{kj}) + \frac{d-1}{r_{kj}} u' \qty(r_{kj})).
+\end{equation}
+
+Recall that
+
+\begin{equation*}
+    f \qty(a, r_{kj}) = \begin{cases}
+    0, \quad &r_{kj} \leq a 
+    \\
+    1 - a / r_{kj}, \quad &r_{kj} > a
+    \end{cases}.
+\end{equation*} 
+
+For $r_{kj} \leq a $, we then have 
+
+\begin{align}
+    u' \qty(r_{kj}) &= \pdv{r_{kj}} \ln 0 = \pdv{r_{kj}} (-\infty) = 0, 
+    \\
+    u'' \qty(r_{kj}) &= 0, 
+\end{align}
+
+and for $r_{kj} > a$ we have 
+
+\begin{align}
+    u' \qty(r_{kj}) &= \pdv{r_{kj}} \ln \qty(1 - \frac{a}{r_{kj}}) = \frac{a}{r_{kj} \qty(r_{kj} - a)}, 
+    \\
+    u'' \qty(r_{kj}) &= \frac{a \qty(a - 2 r_{kj})}{r_{kj}^2 \qty(r_{kj}-a)^2}.
+\end{align}
+
+The local energy and drift force can then be computed by inserting the above results into \autoref{eq:local_energy} and \autoref{eq:drift_force}, respectively. As the above expressions are the ones we will implement in our VMC framework, we leave further computations as an exercise for the interested reader. 
+
 
 %----------------------------------------------------------------
 %\subsubsection*{Non-interacting, 1 particle}
 %---------------------------------------------------------------- 
 
-\textbf{Local Energy}
+%\textbf{Local Energy}
 
-In the case of one particle trapped in a $d$ dimensional spherical harmonic oscillator potential ($\beta = 1$), the trial wave function is given by 
+%In the case of one particle trapped in a $d$ dimensional spherical harmonic oscillator potential ($\beta = 1$), the trial wave function is given by 
 
-\begin{equation*}
-    \Psi_T = \e^{-\alpha \abs{r}^2}
-\end{equation*}
+%\begin{equation*}
+%    \Psi_T = \e^{-\alpha \abs{r}^2}
+%\end{equation*}
 
-and the Hamiltonian by
+%and the Hamiltonian by
 
-\begin{equation*}
-    H = - \frac{1}{2} \grad^2 + \frac{1}{2} \omega^2 r^2
-\end{equation*}
+%\begin{equation*}
+%    H = - \frac{1}{2} \grad^2 + \frac{1}{2} \omega^2 r^2
+%\end{equation*}
 
-Here, $r \in \R^d$ and $\grad^2$ is taken as the spherical Laplacian where the two radial derivative terms in $d$ dimensions are given by
+%Here, $r \in \R^d$ and $\grad^2$ is taken as the spherical Laplacian where the two radial derivative terms in $d$ dimensions are given by
 
-\begin{equation*}
-    \grad^2 = \frac{1}{r^{d-1}} \pdv{r} \qty(r^{d-1} \pdv{r})
-\end{equation*}
+%\begin{equation*}
+%    \grad^2 = \frac{1}{r^{d-1}} \pdv{r} \qty(r^{d-1} \pdv{r})
+%\end{equation*}
 
-Laplacian: 
+%Laplacian: 
 
-\begin{align*}
-    \grad^2 \Psi_T &= \frac{1}{r^{d-1}} \pdv{r} \qty(r^{d-1} \pdv{r} \e^{-\alpha \abs{r}^2})
-    \\
-    &= \frac{1}{r^{d-1}} \pdv{r} \qty(r^{d-1} \qty(- 2 \alpha r) \Psi_T)
-    \\
-    &= \frac{1}{r^{d-1}} \pdv{r} \qty(- 2 \alpha r^d \Psi_T)
-    \\
-    &= \frac{1}{r^{d-1}} \qty(-2d\alpha r^{d-1} \Psi_T + \qty(- 2 \alpha r^d)\qty(- 2 \alpha r) \Psi_T )
-    \\
-    &= \frac{1}{r^{d-1}} \qty(-2d \alpha r^{d-1} + 4 \alpha^2 r^{d+1}) \Psi_T
-    \\
-    &= \qty(-2d \alpha + 4 \alpha^2 r^2) \Psi_T
-\end{align*}
+%\begin{align*}
+%    \grad^2 \Psi_T &= \frac{1}{r^{d-1}} \pdv{r} \qty(r^{d-1} \pdv{r} \e^{-\alpha \abs{r}^2})
+%    \\
+%    &= \frac{1}{r^{d-1}} \pdv{r} \qty(r^{d-1} \qty(- 2 \alpha r) \Psi_T)
+%    \\
+%    &= \frac{1}{r^{d-1}} \pdv{r} \qty(- 2 \alpha r^d \Psi_T)
+%    \\
+%    &= \frac{1}{r^{d-1}} \qty(-2d\alpha r^{d-1} \Psi_T + \qty(- 2 \alpha r^d)\qty(- 2 \alpha r) \Psi_T )
+%    \\
+%    &= \frac{1}{r^{d-1}} \qty(-2d \alpha r^{d-1} + 4 \alpha^2 r^{d+1}) \Psi_T
+%    \\
+%    &= \qty(-2d \alpha + 4 \alpha^2 r^2) \Psi_T
+%\end{align*}
 
-Hamiltonian vs trial wf: 
+%Hamiltonian vs trial wf: 
 
-\begin{align*}
-    H \Psi_T &= \qty[ - \frac{1}{2} \qty(-2d \alpha + 4 \alpha^2 r^2) + \frac{1}{2} \omega^2 r^2] \Psi_T
-    \\
-    &= \qty[ d \alpha + r^2 \qty(\frac{1}{2} \omega^2 - 2 \alpha^2) ] \Psi_T
-\end{align*}
+%\begin{align*}
+%    H \Psi_T &= \qty[ - \frac{1}{2} \qty(-2d \alpha + 4 \alpha^2 r^2) + \frac{1}{2} \omega^2 r^2] \Psi_T
+%    \\
+%    &= \qty[ d \alpha + r^2 \qty(\frac{1}{2} \omega^2 - 2 \alpha^2) ] \Psi_T
+%\end{align*}
 
-Local energy: 
+%Local energy: 
 
-\begin{equation*}
-    E_L = \frac{1}{\Psi_T} H \Psi_T = d \alpha + r^2 \qty(\frac{1}{2} \omega^2 - 2 \alpha^2),
-\end{equation*}
+%\begin{equation*}
+%    E_L = \frac{1}{\Psi_T} H \Psi_T = d \alpha + r^2 \qty(\frac{1}{2} \omega^2 - 2 \alpha^2),
+%\end{equation*}
 
-where $r \in \R^d$.
+%where $r \in \R^d$.
 
-\textbf{Drift Force}
+%\textbf{Drift Force}
 
-\begin{equation*}
-    F = \frac{2 \grad \Psi_T}{\Psi_T} = \frac{2 \pdv{r} \e^{-\alpha \abs{r}^2}}{\Psi_T} = \frac{2 \qty(-2 \alpha r) \Psi_T}{\Psi_T} = - 4 \alpha r
-\end{equation*}
+%\begin{equation*}
+%    F = \frac{2 \grad \Psi_T}{\Psi_T} = \frac{2 \pdv{r} \e^{-\alpha \abs{r}^2}}{\Psi_T} = \frac{2 \qty(-2 \alpha r) \Psi_T}{\Psi_T} = - 4 \alpha r
+%\end{equation*}
 
 %----------------------------------------------------------------
 %\subsubsection*{Non-interacting,  N particles}
 %---------------------------------------------------------------- 
 
-\textbf{Local energy}
+%\textbf{Local energy}
 
-... 
+%\begin{equation*}
+%    E_L = N d \alpha + \sum_{i=1}^N r_i^2 \qty(\frac{1}{2} \omega^2 - 2 \alpha^2),
+%\end{equation*}
 
-\begin{equation*}
-    E_L = N d \alpha + \sum_{i=1}^N r_i^2 \qty(\frac{1}{2} \omega^2 - 2 \alpha^2),
-\end{equation*}
+%where $r_i \in \R^d$.
 
-where $r_i \in \R^d$.
+%\textbf{Drift Force}
 
-\textbf{Drift Force}
-
-\begin{equation*}
-    F = \frac{2 \grad \Psi_T}{\Psi_T} = \frac{2 \pdv{r} \qty( \prod_{i=1}^N \e^{-\alpha \abs{r_i}^2})}{\prod_{i=1}^N \e^{-\alpha \abs{r_i}^2}} = \frac{2 (-2 \alpha) \sum_{i=1}^N r_i \e^{-\alpha \abs{r_i}^2}}{\prod_{i=1}^N \e^{-\alpha \abs{r_i}^2}} = - 4 \alpha \sum_{i=1}^N r_i
-\end{equation*}
+%\begin{equation*}
+%    F = \frac{2 \grad \Psi_T}{\Psi_T} = \frac{2 \pdv{r} \qty( \prod_{i=1}^N \e^{-\alpha \abs{r_i}^2})}{\prod_{i=1}^N \e^{-\alpha \abs{r_i}^2}} = \frac{2 (-2 \alpha) \sum_{i=1}^N r_i \e^{-\alpha \abs{r_i}^2}}{\prod_{i=1}^N \e^{-\alpha \abs{r_i}^2}} = - 4 \alpha \sum_{i=1}^N r_i
+%\end{equation*}
 
 %----------------------------------------------------------------
-\subsubsection*{Interacting System}
+%\subsubsection*{Interacting System}
 %---------------------------------------------------------------- 
 
-Jørn har utledninger i log space (Nicolai har utledninger, men de må ryddes opp i)
+%Jørn har utledninger i log space (Nicolai har utledninger, men de må ryddes opp i)
+
+% Trenger nok ikke å være så detaljert med ny teori over
 
 %%
 %%
 % Får kompileringsfeil, så har kommentert ut ligninger med rød error for å få kompilert
 
-The local energy is 
+%The local energy is 
 
 %\begin{equation}
 %    \mathrm{E}_{\mathrm{L}} = \frac{1}{\Psi_T}H\Psi_T, 
 %\end{equation}
 
-which means we need to find the laplacian of the trial wave function. 
-The laplacian of $\Psi_T$
+%which means we need to find the laplacian of the trial wave function. 
+%The laplacian of $\Psi_T$
 
 %\begin{equation}
 %    \sum_{i=1}^N\frac{1}{\Psi_T}\laplacian_i\Psi_T = %\sum_{i=1}^N\qty(\frac{\laplacian_i\Phi}{\Phi} + 2\frac{\grad_i\Phi_i\grad_i J}{\Phi_i J} + \frac{\laplacian_i J}{J}), 
 %\end{equation}
-which becomes 
+%which becomes 
 
 %\begin{align*}
 %    \sum_{i=1}^N\frac{1}{\Psi_T}\laplacian_i\Psi_T &= \sum_{i=1}^N\qty(\frac{1}{\Phi_i}\laplacian_i\Phi_i + 2\frac{\grad_i\Phi_i\grad_i J}{\Phi_i J} + \frac{1}{J}\laplacian_i J) \\
@@ -472,13 +648,29 @@ which becomes
 %    &= \sum_{i=1}^N\qty(\laplacian_i\log{\Psi_T} + \qty[\grad_i\log{\Psi_T}]^2)
 %\end{align*}
 
-if the wave function is computed in log space. Check out subsection B of section \RNum{2} in \cite{FermiNet} if this is unclear. The wave function must be strictly positive (alternatively, use $\abs{\Psi_T}$), as the log domain consists of only positive numbers. Firstly, the laplacian in ordinary space looks like 
+%if the wave function is computed in log space. Check out subsection B of section \RNum{2} in \cite{FermiNet} if this is unclear. The wave function must be strictly positive (alternatively, use $\abs{\Psi_T}$), as the log domain consists of only positive numbers. Firstly, the laplacian in ordinary space looks like 
 
 %\begin{align*}
 %    \sum_{i=1}^N\frac{1}{\Psi_T}\laplacian_i\Psi_T &= \sum_{i=1}^N\qty(\frac{\laplacian_i\Phi_i}{\Phi_i} + 2\frac{\grad_i\Phi_i}{\Phi_i}\vdot\sum_{j\neq i}^N
 %\end{align*}
 
+%\textbf{Derivation of the local Laplacian in log domain.}\label{sec:derivation_log_laplacian}
 
+%The expression for the local Laplacian in log domain is 
+%\begin{equation}\label{eq:local_Laplacian_log}
+%    \frac{1}{\Psi}\laplacian\Psi = \laplacian\log{\Psi} + \qty(\grad\log{\Psi})^2.
+%\end{equation}
+%To see that this is the case we begin with the right-hand side of \autoref{eq:local_Laplacian_log}
+%\begin{align*}
+%    \laplacian\log{\Psi} + \qty(\grad\log{\Psi})^2 &= \grad\cdot\grad\log{\Psi} + \grad\log{\Psi}\cdot\grad\log{\Psi}
+%    \\
+%    &= \grad\cdot\qty(\frac{1}{\Psi}\grad\Psi) + \qty(\frac{1}{\Psi}\grad\Psi)\cdot\qty(\frac{1}{\Psi}\grad\Psi)
+%    \\
+%    &= -\qty(\frac{1}{\Psi^2}\grad\Psi\cdot\grad\Psi) + \qty(\frac{1}{\Psi}\laplacian\Psi) + \qty(\frac{1}{\Psi^2}\grad\Psi\cdot\grad\Psi)
+%    \\
+%    &= \frac{1}{\Psi}\laplacian\Psi,
+%\end{align*}
+%and after using the equality $\grad\log{\Psi} = \frac{1}{\Psi}\grad\Psi$ and a simple product rule we end up with the left-hand side of \autoref{eq:local_Laplacian_log}.
 
 
 
