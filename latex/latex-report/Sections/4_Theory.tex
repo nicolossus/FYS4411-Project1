@@ -5,56 +5,165 @@
 %----------------------------------------------------------------
 \subsection{Variational Monte Carlo}
 %----------------------------------------------------------------
-Variational Monte Carlo is a method applicable for finding an estimate to the ground state energy of a given quantum mechanical system. It proposes a trial wave function, $\ket{\Psi_T}$, and calculates the expected energy (or any other observable, given its operator) by making use of a Monte Carlo evaluation of the integral. The trial wave function is designed with care and hopefully resembles the true wave function in architecture. By adding variational parameters in the trial wave function we may make use of the variational principle (\autoref{sec:variational_principle}) such that the energy functional on the trial wave function becomes a convex functional. A convex functional has a single global minimum. Therefore, if our trial wave function architecture resembles the architecture of the ground state wave function, we may simply make a search in the variational parameter space for the minima, and find an upper bound approximation to the ground state energy, $E_0$.
+
+Variational Monte Carlo (VMC) is a method applicable for finding an estimate to the ground state energy of a given quantum mechanical system. It proposes a trial wave function, $\ket{\Psi_T}$, and calculates the expected energy, or any other observable given its operator, by making use of a Monte Carlo evaluation of the integral. The trial wave function is designed with care and hopefully resembles the true wave function in architecture. By adding variational parameters in the trial wave function we may make use of the variational principle such that the energy functional on the trial wave function becomes a convex functional. A convex functional has a single global minimum. Therefore, if our trial wave function architecture resembles the architecture of the ground state wave function, we may simply make a search in the variational parameter space for the minima, and find an upper bound estimate of the exact ground state energy, $E_0$. In the following, we provide the details of the VMC method. 
+
+%---------------------------------------------------------------- 
+\subsubsection{Monte Carlo Integration and Expectation Values}
+%----------------------------------------------------------------
+
+The general motivation to use Monte Carlo integration in quantum physics is its capability to compute multidimensional definite integrals, that is, integrals on the form 
+
+\begin{equation*}
+    I = \int \dd{x_1} \int \dd{x_2} ... \int \dd{x_n} f \qty(x_1, x_2, ..., x_n),
+\end{equation*}
+
+where $f \qty(x_1, x_2, ..., x_n)$ is a function in $n$ variables. Fundamental to quantum mechanics is the computation of the expectation value of an observable. In general, for any absolutely continuous stochastic variable $X$ with probability density function (pdf) $p(x)$ over states $x$, the law of the unconscious statistician states that the expectation value of $X$ is given by 
+
+\begin{equation}\label{eq:general_expval}
+    \expval{X} = \int_\R x p (x) \dd{x},
+\end{equation}
+
+which for quantum systems typically will be a multidimensional integral. The Monte Carlo integration approach to compute the above integral is to sample $M$ possible states $x$ from $p(x)$. The law of large numbers then gives that 
+
+\begin{equation*}
+    \expval{X} = \lim_{M \to \infty} \frac{1}{M} \sum_{i=1}^M p \qty(x_i),
+\end{equation*}
+
+such that the expectation value can be approximated by
+
+\begin{equation}\label{eq:mc_integration}
+    \expval{X} \approx \frac{1}{M} \sum_{i=1}^M p \qty(x_i).
+\end{equation}
+
+The number $M$ is usually referred to as the number of Monte Carlo samples or cycles. The estimation error of Monte Carlo integration is independent of the dimensionality of the integral and decreases as $1 / \sqrt{N}$. Monte Carlo integration is therefore more efficient for multidimensional integrals than traditional methods, such as the trapezoidal rule, which typically suffer from the curse of dimensionality. 
+
+When applying Monte Carlo integration, the naive Monte Carlo approach is to sample points uniformly on the phase space and evaluate the pdf at those points. Generally, systems only span a tiny portion of their phase space such that $p(x) \simeq 0$ for most states $x$. The contribution to the expectation value will therefore be negligible for a large portion of the samples, rendering the naive Monte Carlo approach inefficient. There is thus a need for procedures prioritizing sampling toward the values of $x$ that significantly contribute to the expectation value. The family of Markov chain Monte Carlo (MCMC) sampling algorithms have this convergence property and are the predominant choice. The MCMC sampling algorithms used in this project will be discussed in \autoref{sec:sampling_algos}.
+
+For the sake of completeness, we introduce a particularly useful class of expectation values called \textit{moments}. The $n$-th moment of a stochastic variable $X$ with pdf $p(x)$ is defined as 
+
+\begin{equation*}
+    \expval{X^n} \equiv \int x^n p(x) \dd{x}.
+\end{equation*}
+
+Moments about the mean of the pdf are called \textit{central moments}, and are used in preference to ordinary moments as they describe the spread and shape of the pdf in a  location-invariant manner. The $n$-th central moment is defined as 
+
+\begin{equation*}
+    \expval{\qty(X - \expval{X})^n} \equiv \int \qty(x - \expval{x})^n p(x) \dd{x}.
+\end{equation*}
+
+The second central moment, known as the variance, is of particular interest. For a stochastic variable $X$, the variance is denoted as $\Var \qty(X)$ and given by 
+
+\begin{equation}
+    \Var \qty(X) =  \expval{\qty(X - \expval{X})^2} = \expval{X^2} - \expval{X}^2.
+\end{equation}
+
+
+
 %---------------------------------------------------------------- 
 \subsubsection{Review of the Variational Principle}\label{sec:variational_principle}
 %----------------------------------------------------------------
-The variational principle states that, given a trial wave function $\ket{\Psi_T}$, the energy functional of the wave function has the ground state energy, $E_0$, as a lower bound. Any trial wave function can be expanded in terms of the orthonormal basis set of eigenfunctions of the Hamiltonian operator in Hilbert space, as they form a complete set. Denoting the eigenfunctions as $\ket{\Psi_k}$ and the Hamiltonian as $H$, such that $H\ket{\Psi_k}=E_k\ket{\Psi_k}$, we expand the trial wave function in this eigenspace
+
+The variational principle states that, given a trial wave function $\ket{\Psi_T}$, the energy functional of the wave function has the ground state energy, $E_0$, as a lower bound. Any trial wave function can be expanded in terms of the orthonormal basis set of eigenfunctions of the Hamiltonian operator in Hilbert space, as they form a complete set. Denoting the eigenfunctions as $\ket{\Psi_k}$ and the Hamiltonian as $H$, such that $H\ket{\Psi_k}=E_k\ket{\Psi_k}$, we may expand the trial wave function in this eigenspace
+
 \begin{equation*}
     \ket{\Psi_T} = \sum_{k}c_k\ket{\Psi_k}.
 \end{equation*}
-Making use of the orthonormality of the basis set, the normalization of the trial wave function is 
+
+Making use of the orthonormality of the basis set, the normalization of the trial wave function is given by
+
 \begin{equation*}
     \braket{\Psi_T} = \sum_k\sum_l c_kc_l\braket{\Psi_k}{\Psi_l} = \sum_k \abs{c_k}^2.
 \end{equation*}
-The expected value of the Hamiltonian then becomes
-\begin{equation}\label{eq:energy_functional_basis_set}
+
+The expected value of the Hamiltonian is then given by
+
+\begin{equation*}\label{eq:energy_functional_basis_set}
     \bra{\Psi_T}H\ket{\Psi_T} = \sum_k\abs{c_k}^2E_k
+\end{equation*}
+
+and the energy functional can be written as 
+
+\begin{equation}\label{eq:variational_expval}
+    \expval{E} = \expval{H} = \frac{\bra{\Psi_T}H\ket{\Psi_T}}{\braket{\Psi_T}} = \frac{\sum_k\abs{c_k}^2E_k}{\sum_k\abs{c_k}^2}, 
 \end{equation}
-and the energy functional can be rewritten as 
-\begin{equation}
-    E[H] = \frac{\bra{\Psi_T}H\ket{\Psi_T}}{\braket{\Psi_T}} = \frac{\sum_k\abs{c_k}^2E_k}{\sum_k\abs{c_k}^2}, 
+
+which, since $E_k\geq E_0 \forall k$, shows that the ground state energy is a lower bound of the energy functional. The variance
+
+%The integral which defines the expectation value of the $n$th moment of the Hamiltonian becomes
+% Blir ikke denne litt feil? 
+%\begin{equation*}
+%    \bra{\Psi_T} H \ket{\Psi_T} = \frac{\bra{\Psi_T} H^n \ket{\Psi_T}}{\braket{\Psi_T}} = E_0^n
+%\end{equation*} 
+%if $\ket{\Psi_T}=\ket{\Psi_0}$ with $\ket{\Psi_0}$ denoting as the ground state. This leads to a variance 
+
+\begin{equation}\label{eq:variational_variance}
+    \mathrm{Var}(E) = \frac{\bra{\Psi_T}H^2\ket{\Psi_T}}{\braket{\Psi_T}} -\qty(\frac{\bra{\Psi_T}H\ket{\Psi_T}}{\braket{\Psi_T}})^2,
 \end{equation}
-which, since $E_k\geq E_0$ for all $k$, shows that the ground state energy is a lower bound of the energy functional. Note also that the moments of the Hamilatonian becomes 
-\begin{equation}
-    \bra{\Psi_T}H\ket{\Psi_T} = \frac{\bra{\Psi_T}H^N\ket{\Psi_T}}{\braket{\Psi_T}} = E_0^N
-\end{equation}
-if $\ket{\Psi_T}=\ket{\Psi_0}$, when $\ket{\Psi_0}$ is denoted as the ground state. 
+
+becomes zero when $\ket{\Psi_T}$ is equal to the (generally not normalized) ground state. Thus, we know we have the exact ground state energy if the variance of the expectation value of the energy is zero. 
+
 
 %---------------------------------------------------------------- 
-\subsubsection{The Variational Monte Carlo algorithm}
+\subsubsection{The Variational Monte Carlo Method}
 %---------------------------------------------------------------- 
-To summarize what the Variational Monte Carlo method is; first, we state a trial wave function, $\Psi_T(\vb{R}; \alpha)$. The next step is evaluate the expected value of the energy functional, which can be shown to be equal to evaluating the \textbf{local energy},
-\begin{equation}\label{eq:local_energy}
-    E_L = \frac{H\Psi_T(\vb{R};\alpha)}{\Psi_T(\vb{R};\alpha)}.
+
+The first step of the VMC method is to formulate a trial wave function, $\Psi_T \qty(\bm{r}; \bm{\alpha})$, where $\bm{r} = \qty(\bm{r}_1, \bm{r}_2, ..., \bm{r}_N)$ denotes the spatial coordinates, in total $d\times N$ if we have $N$ particles in $d$ dimensions present, and $\bm{\alpha} = \qty(\alpha_1, \alpha_2, ..., \alpha_m)$ the variational parameters. The next step is to evaluate the expectation value of the energy given by \autoref{eq:variational_expval}. In order to bring Monte Carlo integration (\autoref{eq:mc_integration}) to the quantum realm, we need to bring \autoref{eq:variational_expval} to an expression on the form of \autoref{eq:general_expval}. By noting that the trial wave function defines the quantum pdf as 
+
+\begin{equation}\label{eq:wf_pdf}
+    p \qty(\bm{r}; \bm{\alpha}) = \frac{\abs{\Psi_T \qty(\bm{r}; \bm{\alpha})}^2}{\int \dd{\bm{r}} \abs{\Psi_T \qty(\bm{r}; \bm{\alpha})}^2}
 \end{equation}
-The third step depends on the optimization method, but a gradient descent method is often used to find the direction in variational parameter space which lowers the local energy. We update the variational parameters $\alpha$ and start over until we have found some optimal $\alpha$ that passes some stopping criterion. 
-Another quantity, the \textbf{drift force}, 
-\begin{equation}\label{eq:drift_force}
-    \vb{F(\vb{R};\alpha)} = \frac{\nabla_{\vb{R}}\Psi_T(\vb{R};\alpha)}{\Psi_T(\vb{R};\alpha)},
+
+and introducing the local quantum operator known as the \textit{local energy}
+
+\begin{equation}\label{eq:variational_local_energy}
+    E_L \qty(\bm{r}; \bm{\alpha}) \equiv \frac{1}{\Psi_T \qty(\bm{r}; \bm{\alpha})} H \Psi_T \qty(\bm{r}; \bm{\alpha}),
 \end{equation}
-is useful if we use the Metropolis-Hastings sampling algorithm. 
+
+we can write the expectation value of the energy as 
+
+\begin{equation}
+    \expval{E} = \int \dd{\bm{r}} E_L \qty(\bm{r}; \bm{\alpha}) p \qty(\bm{r}; \bm{\alpha}).
+\end{equation}
+
+Monte Carlo integration can then be applied, and the approximation takes the form
+
+\begin{equation}
+    \expval{E} \approx \frac{1}{M} \sum_{i=1}^M E_L \qty(\bm{r}_i; \bm{\alpha}) p \qty(\bm{r}_i; \bm{\alpha}).
+\end{equation}
 
 
-\begin{algorithm}
-\caption{Variational Monte Carlo}\label{algo:variational_monte_carlo}
-\begin{algorithmic}[1]
-\State $\Psi_T(\alpha)$\Comment{Stating a trial wave function.}
-\State $\mathbb{E}[E_L], \nabla_{\alpha}\mathbb{E}[E_L]\gets$ MCSampling($\Psi_T(\alpha)$)\Comment{Finding expected values of the energy and gradient w.r.t. variational parameters, $\alpha$.}
-\State Update $\alpha$. 
+The final step of the VMC method is to vary $\bm{\alpha}$ while re-evaluating the expectation value of the energy until it yields the minimum possible energy. For a convex functional, gradient descent optimization may be used to find the direction in the variational parameter space which lowers the expected value of the energy and update the variational parameters in that direction. We discuss gradient descent optimization in \autoref{sec:gradient_descent}.
 
-\end{algorithmic}
-\end{algorithm}
+% Removing this for now
+%\autoref{alg:vmc} summarizes the VMC method.
+
+%\begin{algorithm}
+%\caption{Variational Monte Carlo}
+%\begin{algorithmic}[1]
+%\State $\Psi_T(\alpha)$\Comment{Stating a trial wave function.}
+%\State $\mathbb{E}[E_L], \nabla_{\alpha}\mathbb{E}[E_L]\gets$ MCSampling($\Psi_T(\alpha)$)\Comment{Finding expected values of the energy and gradient w.r.t. variational parameters, $\alpha$.}
+%\State Update $\alpha$. 
+%\end{algorithmic}
+%\label{alg:vmc}
+%\end{algorithm}
+
+% OLD
+
+%To summarize what the Variational Monte Carlo method is; first, we state a trial wave function, $\Psi_T(\vb{R}; \alpha)$. The next step is evaluate the expectation value of the energy functional. We will evaluate the \textit{local energy},
+
+%\begin{equation}\label{eq:local_energy}
+%    \mathrm{E}_{\mathrm{L}} = \frac{H\Psi_T(\vb{R};\alpha)}{\Psi_T(\vb{R};\alpha)},
+%\end{equation}
+
+%for each step in the sampling process, and averaging over all samples. The third step depends on the optimization method, but a gradient descent method is often used by finding the direction in variational parameter space which lowers the expected value of the local energy, and updating the variational parameters in that direction. The direction is found by finding the gradient with respect to the variational parameters of the expectation value of the local energy. We stop the parameter search by some stopping criterion, e.g. a minimum difference in the variational parameters after an update. 
+
+%Another quantity, the \textit{drift force},  
+%\begin{equation}\label{eq:drift_force}
+%    \vb{F(\vb{R};\alpha)} = \frac{\nabla_{\vb{R}}\Psi_T(\vb{R};\alpha)}{\Psi_T(\vb{R};\alpha)},
+%\end{equation}
+%is useful if we use the Metropolis-Hastings sampling algorithm. 
+
 
 %----------------------------------------------------------------
 \subsection{The System}
@@ -103,79 +212,156 @@ where the notation $i<j$ under the last summation sign signifies a double sum ru
 The trial wave function is chosen to take the form of a Slater-Jastrow wave function: 
 
 \begin{equation}\label{eq:twf}
-    \Psi_T (\bm{r}) = \Phi \qty(\bm{r}) J \qty(\bm{r}).
+    \Psi_T \qty(\bm{r}; \alpha) = \Phi \qty(\bm{r}; \alpha) J \qty(\bm{r}),
 \end{equation}
 
-The Slater permanent, $\Phi \qty(\bm{r})$, is given by the first $N$ single-particle wave functions chosen to be proportional to the harmonic oscillator function for the ground state: 
+where $\alpha$ is a variational parameter. The Slater permanent, $\Phi \qty(\bm{r}; \alpha)$, is given by the first $N$ single-particle wave functions chosen to be proportional to the harmonic oscillator function for the ground state: 
 
 \begin{equation}\label{eq:slater}
-    \Phi \qty(\bm{r}) = \prod_i^N \phi \qty(\bm{r}_i) = \prod_i^N \exp{-\alpha \qty(x_i^2 + y_i^2 + \beta z_i^2)},
+    \Phi \qty(\bm{r}; \alpha) = \prod_{i=1}^N \phi \qty(\bm{r}_i; \alpha) = \prod_{i=1}^N \exp{-\alpha \qty(x_i^2 + y_i^2 + \beta z_i^2)}.
 \end{equation}
 
-where $\alpha$ and $\beta$ are variational parameters. For spherical traps we have $\beta = 1$ such that
+Here, $\beta$ could also be a variational parameter. However, in this project we will not treat $\beta$ as a variational parameter, i.e., we limit ourselves to a single variational parameter, $\alpha$. For elliptical traps we set $\beta=2.82843$. For spherical traps we have $\beta = 1$ such that
 
 \begin{equation}\label{eq:slater_spherical}
-    \Phi \qty(\bm{r}) =  \prod_i^N \exp{-\alpha \abs{\bm{r}_i}^2} \quad \text{(S)}.
+    \Phi \qty(\bm{r}; \alpha) =  \prod_{i=1}^N \exp{-\alpha \abs{\bm{r}_i}^2} \quad \text{(S)}.
 \end{equation} 
 
 The Jastrow correlation factor, $J(\bm{r})$, is chosen to be the exact solution of the Schrödinger equation for interacting pairs of hard spheres atoms:
 
-\begin{equation}
+\begin{equation}\label{eq:jastrow_factor}
     J \qty(\bm{r}) = \prod_{i<j}^N f \qty(a, \norm{\bm{r}_i - \bm{r}_j}),
 \end{equation}
 
 where the correlation wave functions are given by
-\begin{equation*}
+
+\begin{equation}\label{eq:corr_wf}
     f \qty(a, \norm{\bm{r}_i - \bm{r}_j}) = 
     \begin{cases}
         0 \quad &\norm{\bm{r}_i - \bm{r}_j} \leq a
         \\
         1 - \frac{a}{\norm{\bm{r}_i - \bm{r}_j}} \quad &\norm{\bm{r}_i - \bm{r}_j} > a
     \end{cases}.
+\end{equation}
+
+In practice, with this formulation of the correlation wave functions, the inclusion of the repulsive potential (\autoref{eq:Vint}) in the Hamiltonian (\autoref{eq:full_hamiltonian}) becomes redundant as the correlation wave functions yield a probability density of zero whenever $\norm{\bm{r}_i - \bm{r}_j} \leq a$. For non-interacting bosons, $a=0$. 
+
+
+%---------------------------------------------------------------- 
+\subsubsection{Drift Force and One-Body Densities}
+%---------------------------------------------------------------- 
+
+Here, we introduce quantities that will be important moving forward. First is the \textit{drift force} of the system given by
+
+\begin{equation}\label{eq:drift_force}
+    \bm{F} \qty(\bm{r}; \alpha) = \frac{2 \grad \Psi_T \qty(\bm{r}; \alpha)}{\Psi_T \qty(\bm{r}; \alpha)}.
+\end{equation}
+
+The drift force comes into play in the Langevin Metropolis-Hastings sampling algorithm (\autoref{sec:lmh}) as a part that allows the algorithm to traverse the phase space efficiently by moving towards regions of high probability density.
+
+
+One-body density - Tar du denne Jørn?
+
+
+%---------------------------------------------------------------- 
+\subsubsection{Scaling and Optimization}\label{sec:Theory_scaling_and_opt}
+%---------------------------------------------------------------- 
+
+In our computations, we use natural $\hbar = c =  m = 1$ in order to avoid computing with small numbers as they quickly can lead to large numerical errors. Furthermore, inspired by \cite{FermiNet}, we perform computations with the trial wave function in the log domain. The reason for this is two-fold. Firstly, the form of expressions that need to be evaluated becomes easier. Secondly, the use of logarithmic densities in the MCMC algorithms (see \autoref{sec:sampling_algos}) avoid computational over- and underflows as the evaluation of the ratio between the densities in the common formulation of the algorithms is then computed as the difference of the log densities. In the log domain, the trial wave function of \autoref{eq:twf} assumes the form
+
+\begin{equation}\label{eq:logwf}
+\begin{aligned}
+  \ln \Psi_T \qty(\bm{r}; \alpha) &= \prod_{i=1}^N \ln \phi \qty(\bm{r}_i; \alpha)  \prod_{i<j}^N \ln f \qty(a, \norm{\bm{r}_i - \bm{r}_j}) \\ 
+  &= \sum_{i=1}^N \ln \phi \qty(\bm{r}_i; \alpha)  + \sum_{i<j}^N \ln f \qty(a, \norm{\bm{r}_i - \bm{r}_j}),
+\end{aligned}
+\end{equation} 
+
+where 
+
+\begin{equation*}
+    \ln \phi \qty(\bm{r}_i; \alpha) = -\alpha \qty(x_i^2 + y_i^2 + \beta z_i^2).
 \end{equation*}
 
-For non-interacting bosons, $a=0$. 
+By using the relation $\Psi_T^{-1} \grad \Psi_T = \grad \ln \Psi_T$, the drift force of \autoref{eq:drift_force} can be written as 
 
-%---------------------------------------------------------------- 
-\subsubsection{Scaling and Optimization}
-%---------------------------------------------------------------- 
+\begin{equation}\label{eq:log_drift_force}
+    \bm{F} \qty(\bm{r}; \alpha) = 2 \grad \ln \Psi_T \qty(\bm{r}; \alpha).
+\end{equation}
 
-natural units 
+With natural units and in the log domain, the local energy defined by \autoref{eq:variational_local_energy} is given by
 
-The spherical harmonic oscillator potential has the characteristic dimension of $a_{ho}=\sqrt{\frac{\hbar}{m\omega}}$, where $\omega$ is the angular frequency of the oscillator potential (see e.g. \cite{Dalfovo1999}). This is a natural length unit for this system. This is shown in \autoref{app:derivation_of_characteristic_length}
+\begin{equation}
+\begin{aligned}
+    E_L &= \Psi_T \qty(\bm{r}; \alpha)^{-1} H \Psi_T \qty(\bm{r}; \alpha) \\
+    &= - \frac{1}{2} \sum_{i=1}^N \qty[\grad_i^2 \ln \Psi_T \qty(\bm{r}; \alpha) + \qty(\grad_i \ln \Psi_T \qty(\bm{r}; \alpha))^2] + \sum_{i=1}^{N} V_\mathrm{trap}\qty(\bm{r}_i).
+\end{aligned}
+\end{equation}
 
-scaling of Hamiltonian
 
-will be computed in the log domain
+---
+
+Scaling
+
+We scale by aho. However, for brevity, we will denote xstar as x, i.e., $r \to r / a_\mathrm{ho}$.
+
+Then we only need to state the Hamiltonian in exercise g), which only applies to elliptical HO, and (a =) arb/aho = 4.33e-3
+
+---
+
+In our code implementation we use the natural units $\hbar = c =  m = 1$. This is done to avoid working with very small numbers, which could lead to large numerical errors. 
+The spherical harmonic oscillator potential has the characteristic length of $a_{\mathrm{ho}}=\sqrt{\frac{\hbar}{m\omega}}$, where $\omega$ is the angular frequency of the oscillator potential (see e.g. \cite{Dalfovo1999}). This is a characteristic length unit for this system. We scale the positions in all arrays to be in units of $a_{\mathrm{ho}}$. That is, 
+
+\begin{equation*}
+    x^* = \frac{x}{a_{\mathrm{ho}}}, 
+\end{equation*}
+
+where $x$ is one dimension, and $\hat{x}$ is our scaled dimension length. The single particle part of the Hamiltonian in one dimension then becomes
+
+% Gir feilmelding
+%\begin{equation}
+%    H = -\frac{\hbar^2}{2ma^2_{\mathrm{ho}}}\dv[2]{x^*} + \frac{m\omega a^2_{\mathrm{ho}}}{2}x^{*2}.
+%\end{equation}
+
+When natural units are applied, the characteristic length is simplified to $a_{\mathrm{ho}}=\omega^{-\frac{1}{2}}$, and we set the angular frequency of the system to $\omega=1$. The Hamiltonian for a single particle in one-dimensional space is then significantly simplified to 
+
+% Gir feilmelding
+%\begin{equation}
+%    H = -\frac{1}{2}\dv[2]{x^*} + \frac{1}{2}x^{*2}, 
+%\end{equation}
+
+which generalizes to $N$ particles in $D$-dimensional space as 
+
+% Gir feilmelding
+%\begin{equation}
+%    H = -\frac{D}{2}\sum_{i=1}^{N}\qty(\laplacian_i^*-\bm{r_i^{*}}\vdot\bm{r_n^*}) + \sum_{i<j}^{N}V_{\mathrm{int}}\qty(\norm{\bm{r_i}-\bm{r_j}}).
+%\end{equation}
+
+The two-body potential $V_{\mathrm{int}}$ remains the same when the hard sphere diameter $a$ is expressed in terms of $a_{\mathrm{ho}}$ aswell. 
+
+
 
 %----------------------------------------------------------------
 \subsubsection{Closed-Form Expressions}
 %---------------------------------------------------------------- 
 
+In the following, we derive closed-form expressions for both a non-interacting and interacting system of $N$ atoms trapped in a $d$ dimensional spherical harmonic oscillator. 
+
 %----------------------------------------------------------------
 \subsubsection*{Non-Interacting System}
 %---------------------------------------------------------------- 
 
-Nicolai har utledninger i log space
+In a non-interacting system, the trial wave function is given by 
+
+\begin{equation*}
+    \ln \Psi_T \qty(\bm{r}; \alpha) = \sum_{i=1} -\alpha \abs{r_i}^2
+\end{equation*}
+
+---
+
+Nicolai har utledninger i log space - må fikse litt på disse
 
 %----------------------------------------------------------------
-\subsubsection*{Interacting System}
-%---------------------------------------------------------------- 
-
-Jørn har utledninger i log space
-
-%----------------------------------------------------------------
-\subsection{Draft}
-%---------------------------------------------------------------- 
-
-%----------------------------------------------------------------
-\subsubsection*{Derivations}
-%---------------------------------------------------------------- 
-
-In the following derivations we will use natural units, i.e., $c = \hbar = m = 1$.
-
-%----------------------------------------------------------------
-\subsubsection*{Non-interacting, 1 particle}
+%\subsubsection*{Non-interacting, 1 particle}
 %---------------------------------------------------------------- 
 
 \textbf{Local Energy}
@@ -237,7 +423,7 @@ where $r \in \R^d$.
 \end{equation*}
 
 %----------------------------------------------------------------
-\subsubsection*{Non-interacting,  N particles}
+%\subsubsection*{Non-interacting,  N particles}
 %---------------------------------------------------------------- 
 
 \textbf{Local energy}
@@ -256,123 +442,50 @@ where $r_i \in \R^d$.
     F = \frac{2 \grad \Psi_T}{\Psi_T} = \frac{2 \pdv{r} \qty( \prod_{i=1}^N \e^{-\alpha \abs{r_i}^2})}{\prod_{i=1}^N \e^{-\alpha \abs{r_i}^2}} = \frac{2 (-2 \alpha) \sum_{i=1}^N r_i \e^{-\alpha \abs{r_i}^2}}{\prod_{i=1}^N \e^{-\alpha \abs{r_i}^2}} = - 4 \alpha \sum_{i=1}^N r_i
 \end{equation*}
 
-
 %----------------------------------------------------------------
-\subsubsection*{Optimization}
+\subsubsection*{Interacting System}
 %---------------------------------------------------------------- 
 
-\textbf{Gradient of expected value of local energy wrt $\alpha$}
+Jørn har utledninger i log space (Nicolai har utledninger, men de må ryddes opp i)
 
-...
+%%
+%%
+% Får kompileringsfeil, så har kommentert ut ligninger med rød error for å få kompilert
 
-Analytical expression: 
-\begin{equation}\label{eq:grad_expval_E_L}
-    \frac{\partial \expval{E_L[\mathbf{\alpha}]}}{\partial\mathbf{\alpha}} = 2\qty(\expval{\frac{d\Psi[\mathbf{\alpha}]}{d\mathbf{\alpha}}\frac{1}{\Psi[\mathbf{\alpha}]}E_L[\mathbf{\alpha}]} - \expval{\frac{d\Psi[\mathbf{\alpha}]}{d\mathbf{\alpha}}\frac{1}{\Psi[\mathbf{\alpha}]}}\expval{E_L[\mathbf{\alpha}})
-\end{equation}
+The local energy is 
 
+%\begin{equation}
+%    \mathrm{E}_{\mathrm{L}} = \frac{1}{\Psi_T}H\Psi_T, 
+%\end{equation}
 
-%----------------------------------------------------------------
-\subsection*{Variational Monte Carlo}
-%---------------------------------------------------------------- 
+which means we need to find the laplacian of the trial wave function. 
+The laplacian of $\Psi_T$
 
-\textbf{Mathemical foundation of the Monte Carlo methods.}
+%\begin{equation}
+%    \sum_{i=1}^N\frac{1}{\Psi_T}\laplacian_i\Psi_T = %\sum_{i=1}^N\qty(\frac{\laplacian_i\Phi}{\Phi} + 2\frac{\grad_i\Phi_i\grad_i J}{\Phi_i J} + \frac{\laplacian_i J}{J}), 
+%\end{equation}
+which becomes 
 
-The standard Monte Carlo approximation of $\mathbb{E}[f(X)]$, for some random variable $X:\Omega\to\R$, and a continous function $f:\R\to\R$ is
-\begin{equation}
-    E_M[f](\omega)= \frac{1}{M}\sum_{m=1}^Mf(X_m(\omega)), \quad \omega\in\Omega
-\end{equation}
-where $M\in\mathbb{N}$, $X_1, \dots, X_m$ are independent and identically distributed random varibles distributed with $X$. For definitions of indepent and identically distributed random variables, see appendix \ref{app:stochastic_maths}. We denote the standard deviation of the stochastic variable $f(X)$ as $\sigma_f$. The mean square error of the Monte Carlo approximation can be shown (shown in \ref{app:MC_error}) to be 
-\begin{equation}
-    \mathcal{E}_M(f) = \frac{\sigma_f}{\sqrt{M}}. 
-\end{equation}
-As $M\to\infty$, the error $\epsilon_M$ will therefore approach zero.
+%\begin{align*}
+%    \sum_{i=1}^N\frac{1}{\Psi_T}\laplacian_i\Psi_T &= \sum_{i=1}^N\qty(\frac{1}{\Phi_i}\laplacian_i\Phi_i + 2\frac{\grad_i\Phi_i\grad_i J}{\Phi_i J} + \frac{1}{J}\laplacian_i J) \\
+%    &= \sum_{i=1}^N\qty(\laplacian_i\log{\Phi_i} + \qty[\grad_i\log{\Phi_i}]^2 + 2\grad_i\log{\Phi_i}\grad_i\log{J}+ \laplacian_i\log{J} + \qty[\grad_i \log{J}]^2) \\
+%    &= \sum_{i=1}^N\qty(\laplacian_i\log{\Psi_T} + \qty[\grad_i\log{\Psi_T}]^2)
+%\end{align*}
 
-\textbf{The Variational Principle.}
+if the wave function is computed in log space. Check out subsection B of section \RNum{2} in \cite{FermiNet} if this is unclear. The wave function must be strictly positive (alternatively, use $\abs{\Psi_T}$), as the log domain consists of only positive numbers. Firstly, the laplacian in ordinary space looks like 
 
-Given a Hamiltonian $H$ and a trial wave function $\Psi_T$, the variational principle states that the expectation value $\expval{H}$, defined through
-\begin{equation}
-    \mathbb{E}[H]=\expval{H}= \frac{\int d\mathbf{R}\Psi_T^*(\mathbf{R})H(\mathbf{R})\Psi_T(\mathbf{R})}{\int d\mathbf{R}\Psi_T^*(\mathbf{R})\Psi_T(\mathbf{R})}, 
-\end{equation}
-is an upper bound tho the ground state energy $E_0$ of the Hamiltonian $\hat{H}$, that is 
-\begin{equation}
-    E_0 \leq \expval{H}.
-\end{equation}
-The eigenstates, $\psi_i$, of the Hamiltonian,
-\begin{equation}
-    H\psi_i(\mathbf{R}) = E_i\psi_i(\mathbf{R}), 
-\end{equation}
-form a complete set. The trial wave function can therefore be expanded in terms of them,
-\begin{equation}
-    \Psi_T(\mathbf{R}) = \sum_i a_i\Psi_i(\mathbf{R}), 
-\end{equation}
-and assuming the set of eigenfunctions to be normalized we obtain
-\begin{equation}
-    \frac{\sum_{nm}a_m^*a_n\int d\mathbf{R}\Psi_m^*(\mathbf{R})H(\mathbf{R})\Psi_n(\mathbf{R})}{\sum_{nm}a_m^*a_n\int d\mathbf{R}\Psi_m^*(\mathbf{R})\Psi_n(\mathbf{R})} = \frac{\sum_n a_n^2E_n}{\sum_n a_n^2} \geq E_0, 
-\end{equation}
-and the equality holds only if $\Psi_T = \psi_0$. Thus, the variational principle states that the lowest expectation value is our best approximation to the ground state. We utilise this by making a wave function that has a number of variational parameters, and search for a minimum in the space of the variational parameters. Note also that the moments of the Hamiltonian becomes
-\begin{equation}
-    \expval{H^N} = \frac{\int d\mathbf{R}\Psi_T^*(\mathbf{R}, \mathbf{\alpha})H^N\Psi_T(\mathbf{R},\mathbf{\alpha})}{\int d\mathbf{R}\Psi_T^*(\mathbf{R}, \mathbf{\alpha})\Psi_T(\mathbf{R}, \mathbf{\alpha})} = E_0^N
-\end{equation}
-when $\Psi_T=\psi_0$. The variance, 
-\begin{equation}
-    \text{Var}[E] = \expval{H^2}-\expval{H}^2, 
-\end{equation}
-is therefore zero when the ground state is found. Variation is then performed by minimizing both energy and variance. 
-
-\textbf{Markov Chain Monte Carlo.}
-
-Markov Chain Monte Carlo (MCMC) uses a Markov Chain method to sample in configuration space. A Markov Chain is a decision process which is only dependent on the current state when deciding the new state of the system, not on any previous states. For many-dimensional configuration space (in our case we simulate $N$ particles in $d$ dimensions, which yields a $N\times d$ dimensional configuration space) homogeneous uniform random sampling in configuration space would require a very large number of samples to sufficiently map the expectation values. We therefore use a kind of Markov Chain process where we start at an initial position in configuration space and move according to a sampling rule which takes into account the probability densities at the current and proposed states. This way we will sample regions of configuration space that are interesting to us, and thus we will need fewer samples compared to the homogeneous uniform random sampling of the standard Monte Carlo method. 
-
-\textbf{Metropolis algorithm.}
-
-The Metropolis algorithm is a stochastic sampling algorithm that takes into account a current state $\Psi_T(\mathbf{R_i})\to\bra{\mathbf{R_i}, \alpha}$ and a proposed next state $\Psi_T(j)\to\bra{j}$. We denote the transition probability from state $\bra{i}$ to state $\bra{j}$ as $T_{i\to j}$, $\bra{j}$ to $\bra{i}$ as $T_{j\to i}$. We denote the respective acceptance probabilities $A_{i\to j}$ and $A_{j\to i}$. In normal Metropolis sampling we simply set the transition probabilities $T_{i\to j}:=T_{j\to i}$, and set the acceptance probabilities equal to the probability distribution function (PDF) at state $\bra{i}$ and $\bra{j}$. In our case the PDF at position $\mathbf{R}_i$ is
-\begin{equation}
-    P(\mathbf{R}_i, \mathbf{\alpha}) = \frac{|\Psi_T(\mathbf{R}_i, \mathbf{\alpha})|^2}{\int d\mathbf{R}|\Psi_T^(\mathbf{R}, \mathbf{\alpha})|^2}, 
-\end{equation}
-where $\mathbf{\alpha}$ is the variational parameters. In the Metropolis sampling algorithm, which there is a small pseudocode for in \ref{Metropolis}, we only need the ratio between the PDFs of the proposed and current states, and we therefore don't need to evaluate the normalization factor of the PDF. The ratio between the PDFs of states $\Psi_T(\mathbf{R}_{j}, \mathbf{\alpha})$ and $\Psi_T(\mathbf{R}_i, \mathbf{\alpha})$ is 
-\begin{equation}
-    \frac{P(\mathbf{R}_j, \mathbf{\alpha})}{P(\mathbf{R}_i)} = \frac{|\Psi_T(\mathbf{R}_j, \mathbf{\alpha})|^2}{|\Psi_T(\mathbf{R}_i, \mathbf{\alpha})|^2}.
-\end{equation}
-
-
-\begin{algorithm}
-\caption{Metropolis sampling algorithm}\label{Metropolis}
-\begin{algorithmic}[1]
-\Procedure{Metropolis}{($\mathbf{R}_{\text{old}}, \mathbf{R}_{\text{new}}$)}\Comment{Takes in the old and new parameters.}
-\State $P_T(\mathbf{R}_{\text{old}}, \mathbf{\alpha}) \gets |\Psi_T(\mathbf{R}_{\text{old}}, \mathbf{\alpha})|^2$
-\State $P_T(\mathbf{R}_{\text{new}}, \mathbf{\alpha}) \gets |\Psi_T(\mathbf{R}_{\text{new}}, \mathbf{\alpha})|^2$
-\State $P_{\text{acceptance}}\gets\frac{P_T(\mathbf{R}_{\text{new}}, \mathbf{\alpha})}{P_T(\mathbf{R}_{\text{old}}, \mathbf{\alpha})}$\Comment{Finds the acceptance rate, purely based on transition rates being equal.}
-\State $r = \text{RNG}[0,1]$\Comment{Generate a random number between $0$ and $1$ from uniform distribution.}
-\If{r<\text{min}(P_{\text{acceptance}}, 1)}
-\State $\text{Accept move}$
-\Else 
-\State $\text{Reject move}$
-\EndIf
-\EndProcedure
-\end{algorithmic}
-\end{algorithm}
+%\begin{align*}
+%    \sum_{i=1}^N\frac{1}{\Psi_T}\laplacian_i\Psi_T &= \sum_{i=1}^N\qty(\frac{\laplacian_i\Phi_i}{\Phi_i} + 2\frac{\grad_i\Phi_i}{\Phi_i}\vdot\sum_{j\neq i}^N
+%\end{align*}
 
 
 
-\begin{algorithm}
-\caption{Markov Chain Monte Carlo(MCMC)}\label{MCMC}
-\begin{algorithmic}[1]
-\Procedure{MCMC}{($\text{Number of cycles(nCycles)}$)}
-\State $\mathbf{R}_{\text{old}}\gets\text{Initialise system}$\Comment{Find initial state of the system.}
-\State $\text{Define } P_T(\mathbf{R}, \mathbf{\alpha})$\Comment{Define how to measure the PDF.}
-\State ($P_T(\mathbf{R}_{\text{old}}, \mathbf{\alpha}) \gets |\Psi_T(\mathbf{R}_{\text{old}}, \mathbf{\alpha})|^2$)\Comment{In our case, we use this.}
-\algblockdefx{For}{EndFor}[1]{\textbf{for} #1 \textbf{to} \text{nCycles} \textbf{do}}{\textbf{end for}}
-\For{$1$}{}
-    \State $\mathbf{R}_{\text{new}} = \mathbf{R}_{\text{old}} + \text{RNG}$\Comment{Suggest new position based on the old one, and add a randomly generated number (RNG).}
-    \If{\mathbf{R}_{new} \text{ is accepted}}\Comment{Here we use a sampling rule to decide whether the stochastic move is accepted or rejected.}
-        \State $\text{Update }\mathbf{R}_{old}\gets\mathbf{R}_{\text{new}}\text{ and collect data from new state.}$
-    \Else
-        \State $\text{Reject move and collect data from old state.}$
-    \EndIf
-\EndFor
-\State $\text{Collect averages from collected data.}$
-\EndProcedure
-\end{algorithmic}
-\end{algorithm}
+
+
+
+
+
+
+
 
 

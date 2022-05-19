@@ -3,30 +3,146 @@
 %================================================================
 
 %----------------------------------------------------------------
-\subsection{Project Method 1}\label{sec:project method}
+\subsection{Sampling Algorithms}\label{sec:sampling_algos}
 %----------------------------------------------------------------
 
 %----------------------------------------------------------------
-\subsection*{Monte Carlo method for evaluating integrals.}
+\subsubsection{Markov Chain Monte Carlo}
 %----------------------------------------------------------------
+
 The Monte Carlo (MC) method for evaluating integrals is a stochastic method that samples evaluations of the function (or a property of the function) uniformly over the domain of the integral, and returns the mean value of these. As we increase the number of evaluations, the law of large numbers tells us that the mean value will approach the expectation value. When the dimensionality of the problem becomes large, it is computationally very costly to evaluate the integral using numerical methods.
 
-%----------------------------------------------------------------
-\subsection*{Markov Chain Monte Carlo}
-%----------------------------------------------------------------
 We want to evaluate the integral 
 \begin{equation}
     I = \int_{D\in\mathcal{R^{n, d}}}\hat{Q}P(\mathbf{x_1}, \dots, \mathbf{x_n})d\mathbf{x_1}\dots d\mathbf{x_n},
 \end{equation}
 where $\hat{Q}$ is an operator that acts on the $n\times d$-dimensional probability distribution $P(\mathbf{x_1}, \dots, \mathbf{x_n})$, where $\mathbf{x_i}$ is $d$-dimensional vectors for $1\leq i\leq n$, and $i\in\mathbb{N}$. 
 
-%----------------------------------------------------------------
-\subsection*{Variational Monte Carlo}
-%----------------------------------------------------------------
-Given a Hamiltonian $\hat{H}$ and a trial wave function $\Psi_T$, the variational principle states that the expectation value of $\langle \hat{H} \rangle$, defined through
+
+Markov Chain Monte Carlo (MCMC) uses a Markov Chain method to sample in configuration space. A Markov Chain is a decision process which is only dependent on the current state when deciding the new state of the system, not on any previous states. For many-dimensional configuration space (in our case we simulate $N$ particles in $d$ dimensions, which yields a $N\times d$ dimensional configuration space) homogeneous uniform random sampling in configuration space would require a very large number of samples to sufficiently map the expectation values. We therefore use a kind of Markov Chain process where we start at an initial position in configuration space and move according to a sampling rule which takes into account the probability densities at the current and proposed states. This way we will sample regions of configuration space that are interesting to us, and thus we will need fewer samples compared to the homogeneous uniform random sampling of the standard Monte Carlo method. 
+
 
 %----------------------------------------------------------------
-\subsection*{Blocking}
+\subsubsection{Random Walk Metropolis}\label{sec:rwm}
+%----------------------------------------------------------------
+
+The Metropolis algorithm is a stochastic sampling algorithm that takes into account a current state $\Psi_T(\mathbf{R_i})\to\bra{\mathbf{R_i}, \alpha}$ and a proposed next state $\Psi_T(j)\to\bra{j}$. We denote the transition probability from state $\bra{i}$ to state $\bra{j}$ as $T_{i\to j}$, $\bra{j}$ to $\bra{i}$ as $T_{j\to i}$. We denote the respective acceptance probabilities $A_{i\to j}$ and $A_{j\to i}$. In normal Metropolis sampling we simply set the transition probabilities $T_{i\to j}:=T_{j\to i}$, and set the acceptance probabilities equal to the probability distribution function (PDF) at state $\bra{i}$ and $\bra{j}$. In our case the PDF at position $\mathbf{R}_i$ is
+\begin{equation}
+    P(\mathbf{R}_i, \mathbf{\alpha}) = \frac{|\Psi_T(\mathbf{R}_i, \mathbf{\alpha})|^2}{\int d\mathbf{R}|\Psi_T^(\mathbf{R}, \mathbf{\alpha})|^2}, 
+\end{equation}
+where $\mathbf{\alpha}$ is the variational parameters. In the Metropolis sampling algorithm, which there is a small pseudocode for in \ref{Metropolis}, we only need the ratio between the PDFs of the proposed and current states, and we therefore don't need to evaluate the normalization factor of the PDF. The ratio between the PDFs of states $\Psi_T(\mathbf{R}_{j}, \mathbf{\alpha})$ and $\Psi_T(\mathbf{R}_i, \mathbf{\alpha})$ is 
+\begin{equation}
+    \frac{P(\mathbf{R}_j, \mathbf{\alpha})}{P(\mathbf{R}_i)} = \frac{|\Psi_T(\mathbf{R}_j, \mathbf{\alpha})|^2}{|\Psi_T(\mathbf{R}_i, \mathbf{\alpha})|^2}.
+\end{equation}
+
+
+\begin{algorithm}
+\caption{Metropolis sampling algorithm}\label{Metropolis}
+\begin{algorithmic}[1]
+\Procedure{Metropolis}{($\mathbf{R}_{\text{old}}, \mathbf{R}_{\text{new}}$)}\Comment{Takes in the old and new parameters.}
+\State $P_T(\mathbf{R}_{\text{old}}, \mathbf{\alpha}) \gets |\Psi_T(\mathbf{R}_{\text{old}}, \mathbf{\alpha})|^2$
+\State $P_T(\mathbf{R}_{\text{new}}, \mathbf{\alpha}) \gets |\Psi_T(\mathbf{R}_{\text{new}}, \mathbf{\alpha})|^2$
+\State $P_{\text{acceptance}}\gets\frac{P_T(\mathbf{R}_{\text{new}}, \mathbf{\alpha})}{P_T(\mathbf{R}_{\text{old}}, \mathbf{\alpha})}$\Comment{Finds the acceptance rate, purely based on transition rates being equal.}
+\State $r = \text{RNG}[0,1]$\Comment{Generate a random number between $0$ and $1$ from uniform distribution.}
+\If{r<\text{min}(P_{\text{acceptance}}, 1)}
+\State $\text{Accept move}$
+\Else 
+\State $\text{Reject move}$
+\EndIf
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+\caption{Markov Chain Monte Carlo(MCMC)}\label{MCMC}
+\begin{algorithmic}[1]
+\Procedure{MCMC}{($\text{Number of cycles(nCycles)}$)}
+\State $\mathbf{R}_{\text{old}}\gets\text{Initialise system}$\Comment{Find initial state of the system.}
+\State $\text{Define } P_T(\mathbf{R}, \mathbf{\alpha})$\Comment{Define how to measure the PDF.}
+\State ($P_T(\mathbf{R}_{\text{old}}, \mathbf{\alpha}) \gets |\Psi_T(\mathbf{R}_{\text{old}}, \mathbf{\alpha})|^2$)\Comment{In our case, we use this.}
+\algblockdefx{For}{EndFor}[1]{\textbf{for} #1 \textbf{to} \text{nCycles} \textbf{do}}{\textbf{end for}}
+\For{$1$}{}
+    \State $\mathbf{R}_{\text{new}} = \mathbf{R}_{\text{old}} + \text{RNG}$\Comment{Suggest new position based on the old one, and add a randomly generated number (RNG).}
+    \If{\mathbf{R}_{new} \text{ is accepted}}\Comment{Here we use a sampling rule to decide whether the stochastic move is accepted or rejected.}
+        \State $\text{Update }\mathbf{R}_{old}\gets\mathbf{R}_{\text{new}}\text{ and collect data from new state.}$
+    \Else
+        \State $\text{Reject move and collect data from old state.}$
+    \EndIf
+\EndFor
+\State $\text{Collect averages from collected data.}$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+%----------------------------------------------------------------
+\subsubsection{Langevin Metropolis-Hastings}\label{sec:lmh}
+%----------------------------------------------------------------
+
+%----------------------------------------------------------------
+\subsubsection{Optimal Proposal Scale}
+%----------------------------------------------------------------
+
+Metropolis 20-50\%, Metropolis-Hastings 40-80\% 
+
+%----------------------------------------------------------------
+\subsection{Gradient Descent Optimization}\label{sec:gradient_descent}
+%----------------------------------------------------------------
+
+% Moved from theory
+The third step depends on the optimization method, but a gradient descent method is often used by finding the direction in variational parameter space which lowers the expected value of the local energy, and updating the variational parameters in that direction. The direction is found by finding the gradient with respect to the variational parameters of the expectation value of the local energy. We stop the parameter search by some stopping criterion, e.g. a minimum difference in the variational parameters after an update. 
+
+\textit{Everything here is strictly derived from the lecture notes \cite{Gradient-Descent} for Gradient Descent.} \\
+
+For the non-interacting case we managed to determine analytically which value for $\alpha$ coincides with the ground state. It's not always apparent which value of our variational parameter yields the ground state energy and for that we need a method to determine the minimum value. Here's where The Gradient Descent method comes in
+
+\begin{align}
+    \alpha_{i+1} &= \alpha_i + \gamma \nabla \left\langle E_L (\alpha_i) \right\rangle
+\end{align}
+
+Where we've used the derivative of the expectation value for the local energy wrt. $\alpha$ as a cost function to find the best-suited value of $\alpha$ that minimizes the local energy, which in turn approaches the ground state and $\gamma$ is a manually selected step length. So instead of having to manually find the best optimal variational parameter, which might be tough manually now, we will be using this iterative scheme to hopefully determine where the global minimum lies. Since, Gradient descent has one design flaw and that is this approach finds a minimum disregarding whether it's a local or a global one. Meaning the initial guess is very important in regard to finding the global minimum and thus some trial and error must be expected.
+
+As for the cost function 
+
+\begin{align}
+    \bar{E}_\alpha &= \nabla \left\langle E_L (\alpha_i) \right\rangle = \frac{d\left\langle E_L (\alpha_i) \right\rangle}{d\alpha}
+\end{align}
+
+by the chain rule and the hermiticity of the Hamiltonian the derivative wrt. $\alpha$ is given by
+
+\begin{align}
+    \bar{E}_\alpha &= 2\left( \left\langle \frac{\bar{\mathbf{\Psi}}_\alpha}{\mathbf{\Psi}_\alpha} E_L(\alpha) \right\rangle - \left\langle \frac{\bar{\mathbf{\Psi}}_\alpha}{\mathbf{\Psi}_\alpha}  \right\rangle \left\langle E_L(\alpha) \right\rangle \right)
+\end{align}
+
+Where
+
+\begin{align}
+    \bar{\mathbf{\Psi}}_\alpha &= \frac{d \mathbf{\Psi}_\alpha}{d\alpha}
+\end{align}
+
+is the derivative of the wave function wrt. $\alpha$.
+
+---
+
+\textbf{Gradient of expected value of local energy wrt $\alpha$}
+
+...
+
+Analytical expression: 
+\begin{equation}\label{eq:grad_expval_E_L}
+    \frac{\partial \expval{E_L[\mathbf{\alpha}]}}{\partial\mathbf{\alpha}} = 2\qty(\expval{\frac{d\Psi[\mathbf{\alpha}]}{d\mathbf{\alpha}}\frac{1}{\Psi[\mathbf{\alpha}]}E_L[\mathbf{\alpha}]} - \expval{\frac{d\Psi[\mathbf{\alpha}]}{d\mathbf{\alpha}}\frac{1}{\Psi[\mathbf{\alpha}]}}\expval{E_L[\mathbf{\alpha}})
+\end{equation}
+
+%----------------------------------------------------------------
+\subsubsection{Standard}
+%----------------------------------------------------------------
+
+%----------------------------------------------------------------
+\subsubsection{ADAM}
+%----------------------------------------------------------------
+
+
+%----------------------------------------------------------------
+\subsection{Blocking}
 %----------------------------------------------------------------
 
 The blocking method was first popularized by H. Flyvbjerg and H. G. Petersen [a]. The idea behind blocking is to provide an alternative method for estimating the variance $\text{Var}(\hat{\theta})$ for the estimator $\hat{\theta} = \overline{X}$. It can be compared to dependent bootstrapping but with a much lower computational complexity of $\mathcal{O}(n)$. This allows for speedups compared to other methods with a big-O of $\mathcal{O}(n^2)$ or $\mathcal{O}(n \log n)$ [b]. \\\\
@@ -35,3 +151,16 @@ Let's assume that we have a sample size of $n = 2^d$ for any $d \in \mathbb{N}$ 
 
 %https://aip.scitation.org/doi/pdf/10.1063/1.457480
 %https://www.duo.uio.no/bitstream/handle/10852/68360/PhysRevE.98.043304.pdf?sequence=2&isAllowed=y
+
+%----------------------------------------------------------------
+\subsection{Parallelization}
+%---------------------------------------------------------------- 
+
+Parallelizing a single Markov chain is not a straightforward task. However, MCMC sampling with multiple chains is so-called \textit{embarrassingly parallelizable}, which means there is little to no effort to divide the workload as the computations are independent. We will therefore implement procedures where we let multiple chains sample independently in parallel. Note that each chain still needs sufficient time to converge towards the stationary distribution, i.e., each will still need a sufficient number of Monte Carlo cycles to propagate in its workload. 
+
+%----------------------------------------------------------------
+\subsection{Automatic Differentiation}
+%---------------------------------------------------------------- 
+
+JAX
+
