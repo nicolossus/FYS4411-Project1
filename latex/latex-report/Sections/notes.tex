@@ -47,3 +47,46 @@ when $\Psi_T=\psi_0$. The variance,
     \text{Var}[E] = \expval{H^2}-\expval{H}^2, 
 \end{equation}
 is therefore zero when the ground state is found. Variation is then performed by minimizing both energy and variance. 
+
+
+% Kommentert ut ettersom dette mer eller mindre også er omhandlet i Sec. 2.1 
+
+%For some operator $Q$ and its expectation value $\expval{Q}$ we want to evaluate the integral
+
+%\begin{equation}
+%    \expval{Q} = \int_{D\in\mathbb{R^{\mathrm{N}\times\mathrm{d}}}}Q P(\bm{r}_1,\bm{r}_2, \dots, \bm{r}_N)\mathrm{d}\bm{r}_1\mathrm{d}\bm{r}_2\dots \mathrm{d}\bm{r}_{\mathrm{N}},
+%\end{equation}
+
+%where $\hat{Q}$ is an operator that acts on the $\mathrm{N}\times\mathrm{d}$-dimensional probability distribution $P(\bm{r}_1,\bm{r}_2, \dots, \bm{r}_{\mathrm{N}})$, where $\bm{r}_{\mathrm{i}}$ is $\mathrm{d}$-dimensional position coordinates for particle number $\mathrm{i}$, where $1\leq \mathrm{i}\leq \mathrm{N}$ and $\mathrm{i}\in\mathbb{N}$. 
+ 
+%The Monte Carlo (MC) method for evaluating integrals is a stochastic method that samples evaluations of the function to be integrated either uniformly over the domain of the integral, or by a using a stochastic sampling algorithm. As we increase the number of evaluations, the law of large numbers tells us that the mean value will approach the expectation value (\autoref{eq:mc_integration}). When the dimensionality of the problem becomes large, it is computationally very costly to evaluate the integral using non-stochastic numerical methods.  
+
+% Brukte dette som basis og la til litt flere detaljer
+
+% Markov Chain Monte Carlo (MCMC) uses a Markov Chain method to sample in configuration space. A Markov Chain is a decision process which is only dependent on the current state when deciding the new state of the system, not on any previous states. For many-dimensional configuration space (in our case we simulate $\mathrm{N}$ particles in $\mathrm{d}$ dimensions, which yields a $\mathrm{N}\times\mathrm{d}$ dimensional configuration space) homogeneous uniform random sampling in configuration space would require a very large number of samples to sufficiently map the distribution. We therefore use a kind of Markov Chain process where we start at an initial position in configuration space and move according to a sampling rule which takes into account the probability densities at the current and proposed states. The principle of detailed balance \autoref{sec:detailed_balance}, which both Random Walk Metropolis and Langevin Metropolis-Hastings follows, secures that - given enough cycles - the desired distribution will be sampled.  
+
+% The principle of detailed balance ensures that the probability is preserved within a closed cycle of states, by setting the product of all transition probabilities, state probabilities and acceptance probabilities equal to the product of the transition probability, state probability and acceptance probability of their reverse steps. This can be thought of as an equilibrium condition, and we want to sample from the distribution which corresponds to the equilibrium state (or maximum of entropy, if you will). By setting detailed balance we ensure that the system has a \textit{stationary distribution}. We denote the transition probability as $T_{\bm{r}\to\bm{r'}}$ from a state $\Psi_T(\bm{r};\bm{\alpha})\to\ket{\bm{r}}$ to a state $\Psi_T(\bm{r'};\bm{\alpha})\to\ket{\bm{r'}}$, $A_{\bm{r}\to\bm{r'}}$ the acceptance probability and $p_{\bm{r}}$ and $p_{\bm{r'}}$ the states' respective densities, which we will use as probability in the continuous space. Mathematically, the principle of detailed balance can be stated as a single line
+%\begin{equation}
+%    p_{\bm{r}}T_{\bm{r}\to\bm{r'}}A_{\bm{r}\to\bm{r'}} = p_{\bm{r'}}T_{\bm{r'}\to\bm{r}}A_{\bm{r'}\to\bm{r}},
+%\end{equation}
+%where $\ket{\bm{r}}$ and $\ket{\bm{r'}}$ can be any two states of the system. The principle of detailed balance is a strong condition, and in some cases the desired distribution will be achievable with the weaker \textit{balance} requirement 
+%\begin{equation*}
+%    \sum_{\mathrm{j}}\qty[p_{\bm{r}}T_{\bm{r}\to\bm{r'}}A_{\bm{r}\to\bm{r'}}-p_{\bm{r'}}T_{\bm{r'}\to\bm{r}}A_{\bm{r'}\to\bm{r}}] = 0.
+%\end{equation*}
+% When we enforce the detailed balance condition, we get certainty in the convergence of our Markov Chain, and the Markov Chain becomes \textit{reversible}. That is, if the Markov Chain has converged to the desired distribution, it will remain in that distribution.
+
+% Detailed balance
+%In terms of our quantum system, we can denote the probability of being in state $\Psi_T(\bm{r}; \alpha) \to \ket{\bm{r}}$ and transitioning to state $\Psi_T(\bm{r}'; \alpha) \to \ket{\bm{r}'}$ by $T_{\bm{r}\to\bm{r}'}$. Similarly, we can denote the probability of accepting the next state by $A_{\bm{r}\to\bm{r}'}$. Then the principle of detailed balance can be stated as 
+
+%\begin{equation}
+%    p_{\bm{r}} T_{\bm{r} \to \bm{r}'} A_{\bm{r} \to \bm{r}'} = p_{\bm{r}'} T_{\bm{r}' \to \bm{r}} A_{\bm{r}'\to\bm{r}},
+%\end{equation}
+
+%where $p_{\bm{r}}$ and $p_{\bm{r}'}$ are the probability densities associated with the current and proposed state, respectively. 
+
+%We need the stationary probability distribution to be unique. If not, the system is undetermined. The uniqueness is guaranteed by the \textit{ergodicity} of the Markov Chain. For a Markov Chain to be ergodic, there are two requirements: 
+%\begin{enumerate}
+%    \item It needs to be a-periodic. 
+%    \item It needs to be positive recurrent. 
+%\end{enumerate}
+%The a-periodic condition states that there cannot be a fixed number of steps for the chain to return to a state. A stochastic method for progression in the chain assures a-periodicity. For a chain to be positive recurrent means that for any state in configuration space, there is an expected number of steps for the chain to return to that state. This assures that the distribution is fully mapped by the Markov Chain. 
