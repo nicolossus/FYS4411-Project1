@@ -167,48 +167,10 @@ class ASHOIB(WaveFunction):
 
     def _laplacian(self, r, alpha):
         grad2_spf = self._laplacian_spf(r, alpha)
-        grad_spf = self._gradient_spf(r, alpha)
-        grad_jastrow = self._gradient_jastrow(r, alpha)
         grad2_jastrow = self._laplacian_jastrow(r, alpha)
         grad2 = np.sum(grad2_spf) + np.sum(grad2_jastrow)
-        grad = grad_spf*grad_spf + 2*grad_spf*grad_jastrow + grad_jastrow*grad_jastrow
         grad = self._gradient(r, alpha)
         laplacian = grad2 + np.sum(grad*grad)
-        non_interacting_part = np.sum(grad2_spf) + np.sum(grad_spf*grad_spf)
-        second_term = np.sum(2*grad_spf*grad_jastrow)
-        third_term = np.sum(grad_jastrow*grad_jastrow)
-        fourth_term = np.sum(grad2_jastrow)
-        """
-        print("Non-interacting part: ", non_interacting_part)
-        print(f"Parts of non_interact: grad2_spf={grad2_spf}, grad_spf={np.sum(grad_spf*grad_spf)}")
-        print("Second term: ", second_term)
-        print("Third term: ", third_term)
-        print("Fourth term: ", fourth_term)
-        print("Sum grad2: ", grad2)
-        print("Sum grad: ", np.sum(grad))
-        """
-        """
-        grad2_spf = self._laplacian_spf(r, alpha)
-        print("Grad2_spf: ", grad2_spf)
-        grad2_jastrow = self._laplacian_jastrow(r, alpha)
-        grad2 = np.sum(grad2_spf)+np.sum(grad2_jastrow)
-        print("Grad2: ", grad2)
-        print("Grad2 jastrow: ", np.sum(grad2_jastrow))
-
-        # experimental
-        #grad = self._gradient(r, alpha)
-        grad_direct = self._gradient(r, alpha)
-        grad_spf = self._gradient_spf(r, alpha)
-        grad_jastrow = self._gradient_jastrow(r, alpha)
-        #print("Grad direct: ", np.sum(grad_direct*grad_direct))
-        grad = grad_spf*grad_spf + 2*grad_spf*grad_jastrow + grad_jastrow*grad_jastrow
-        #grad_fix = grad_spf*grad_spf#+2*grad_spf*grad_jastrow+grad_jastrow*grad_jastrow
-        non_interacting_part = grad2_spf + np.sum(grad_spf*grad_spf)
-        #print("Non-interact: ", non_interacting_part)
-        #print("2 GradSPF GradJ: ", np.sum(2*grad_spf*grad_jastrow))
-        #print("GradJ*GradJ: ", np.sum(grad_jastrow*grad_jastrow))
-        #print("Grad spf: ", np.sum(grad_spf*grad_spf))
-        """
         return laplacian
 
     def _kinetic_energy(self, r, alpha):
@@ -229,6 +191,129 @@ class ASHOIB(WaveFunction):
         """Gradient of wave function w.r.t. variational parameter alpha"""
 
         return -np.sum(r * r)
+
+class AEHOIB(WaveFunction):
+
+    def __init__(self, N, dim, omega, a=0.00433):
+        super().__init__(N, dim)
+        self._beta = 2.82843
+        self._gamma2 = self._beta * self._beta
+        self._omega2 = omega*omega
+        self._a = a
+
+    def wf(self, r, alpha):
+        return self._single(r, alpha) + self._correlation(r)
+
+
+    def _single(self, r, alpha):
+        r2 = r*r
+        r2[:, 2] = r2[:, 2]*self._beta
+        return -alpha * np.sum(r2)
+
+    def _correlation(self, r):
+        i, j = np.triu_indices(r.shape[0], 1)
+        axis = r.ndim - 1
+        rij = np.linalg.norm(r[i] - r[j], ord=2, axis=axis)
+        f = 1 - self._a / rij * (rij > self._a)
+
+        return np.sum(np.log(f))
+
+    def _gradient_spf(self, r, alpha):
+        # Single particle gradient
+        r_ = r.copy()
+        r_[:, 2] = r_[:, 2]*self._beta
+        return - 2 * alpha * r_
+
+    def _gradient_jastrow(self, r, alpha):
+        # Correlation gradient
+        N = r.shape[0]
+        axis = r.ndim - 1
+
+        # Generate indices
+        ii, jj = np.meshgrid(range(N), range(N), indexing='ij')
+        i, j = (ii != jj).nonzero()
+        #print("Jastrow indices: ", i)
+        #print(j)
+        # Compute quantities
+        rij = r[i] - r[j]
+        dij = np.linalg.norm(rij, ord=2, axis=axis)
+        du_tmp = self._a / (dij * dij * (dij - self._a))
+        du_dij = rij * du_tmp[:, np.newaxis]
+
+        # Sum contributions
+        _, indices = np.unique(i, return_counts=True)
+        row_summing = np.append([0], np.cumsum(indices))[:-1]
+        #print(row_summing)
+        grad_jastrow = np.add.reduceat(du_dij, row_summing, axis=0)
+
+        return grad_jastrow
+
+    def _gradient(self, r, alpha):
+        # Gather gradients
+        grad_spf = self._gradient_spf(r, alpha)
+        grad_jastrow = self._gradient_jastrow(r, alpha)
+        gradient = grad_spf + grad_jastrow
+        return gradient
+
+    def _laplacian_spf(self, r, alpha):
+        N, d = r.shape
+        return -2 * (d-1+self._beta)* alpha * N
+        # grad = -2a*(x + y + b*z)
+        # lap = -2a(1 + 1 + b)
+
+    def _laplacian_jastrow(self, r, alpha):
+        # Correlation gradient
+        N = r.shape[0]
+        axis = r.ndim - 1
+
+        # Generate indices
+        ii, jj = np.meshgrid(range(N), range(N), indexing='ij')
+        i, j = (ii != jj).nonzero()
+
+        # Compute quantities
+        rij = r[i] - r[j]
+        dij = np.linalg.norm(rij, ord=2, axis=axis)
+        dij_a = dij - self._a
+        du_dr = 2 * self._a / (dij * dij * dij_a)
+        d2u_dr2 = self._a * (self._a - 2 * dij) / (dij * dij * dij_a * dij_a)
+        grad2_tmp = du_dr + d2u_dr2
+
+        # Sum contributions
+        _, indices = np.unique(i, return_counts=True)
+        row_summing = np.append([0], np.cumsum(indices))[:-1]
+        grad2_jastrow = np.add.reduceat(grad2_tmp, row_summing, axis=0)
+        return grad2_jastrow
+
+    def _laplacian(self, r, alpha):
+        grad2_spf = self._laplacian_spf(r, alpha)
+        grad2_jastrow = self._laplacian_jastrow(r, alpha)
+        grad2 = np.sum(grad2_spf) + np.sum(grad2_jastrow)
+        grad = self._gradient(r, alpha)
+        laplacian = grad2 + np.sum(grad*grad)
+        return laplacian
+
+    def _kinetic_energy(self, r, alpha):
+        return -0.5 * self._laplacian(r, alpha)
+
+    def _potential_energy(self, r):
+        r2 = r*r
+        r2[:, 2] *= self._gamma2
+        return 0.5 * self._omega2 * np.sum(r2)
+
+    def local_energy(self, r, alpha):
+        ke = self._kinetic_energy(r, alpha)
+        pe = self._potential_energy(r)
+        return ke + pe
+
+    def drift_force(self, r, alpha):
+        return 2 * self._gradient(r, alpha)
+
+    def grad_alpha(self, r, alpha):
+        """Gradient of wave function w.r.t. variational parameter alpha"""
+        r_ = r.copy()
+        r_[:, 2] = r_[:, 2]*self._beta
+        return -np.sum(r_ * r_)
+
 
 
 if __name__ == "__main__":
