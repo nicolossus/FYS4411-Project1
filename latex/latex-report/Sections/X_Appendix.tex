@@ -65,6 +65,14 @@ which leads to
 \begin{equation*}
     \mathcal{E}_M = \frac{\sqrt{\text{Var}[f(X)]}}{\sqrt{M}}.
 \end{equation*}
+%------------------------------------------------------------------
+\subsection{Derivation of characteristic length of spherical trap.}
+%------------------------------------------------------------------
+A single-dimensional harmonic oscillator potential has the Hamiltonian,
+\begin{equation*}
+    H_{1D-ho} = -\frac{\hbar^2}{2m}\dv[2]{x} + \frac{m\omega^2_{ho}x^2}{2}, 
+\end{equation*}
+where $x$ is the position in 1D-space, $m$ is the weight of the particle in the potential, $\hbar$ is the reduced Planck's constant and $\omega_{ho}$ is the angular frequency of the oscillator potential. The ground state energy of this single-dimensional particle in this harmonic potential is $E_0=\frac{\hbar\omega_{ho}}{2}$. Thus the analytical expectation value of 
 
 
 
@@ -172,3 +180,27 @@ Third way:
         &+ 2\bra{\frac{\Psi^*}{\Psi}}\hat{H}\ket{\Psi^2}\expval{\frac{d\Psi}{d\alpha}\frac{1}{\Psi}}
     \end{split}
 \end{equation*}
+
+
+%------------------------------------------------------------------
+\subsection{Derivation of the gradient of the local energy with respect to the variational parameters.}\label{sec:gradient_local_energy}
+%------------------------------------------------------------------
+
+The expected value of the energy is 
+\begin{equation}
+    \expval{E} = \int\mathrm{d}\bm{r}E_L(\bm{r};\bm{\alpha})p(\bm{r};\bm{\alpha}),
+\end{equation}
+which can be rewritten as 
+\begin{equation}
+    \expval{E} = \frac{\int\mathrm{d}\bm{r}\Psi^*H\Psi}{\int\mathrm{d}\bm{r}\Psi^*\Psi}.
+\end{equation}
+Now we want to take the derivative of this expression with respect to the variational parameters $\bm{\alpha}$. 
+\begin{align*}
+    \grad_{\bm{\alpha}}\expval{E} &= \frac{\int\mathrm{d}\bm{r}\qty(\grad_{\bm{\alpha}}\Psi^*H\Psi + \Psi^*H\grad_{\bm{\alpha}})}{\int\mathrm{d}\bm{r}\Psi^*\Psi} - \frac{\qty(\int\mathrm{d}\bm{r}\Psi^*H\Psi)\qty(\int\mathrm{d}\bm{r}\qty[\Psi\grad_{\bm{\alpha}}\Psi^* + \Psi^*\grad_{\bm{\alpha}}\Psi])}{\qty(\int\mathrm{d}\bm{r}\Psi^*\Psi)^2} \\
+    &(*)= \frac{\int\mathrm{d}\bm{r}\qty(\grad_{\bm{\alpha}}\Psi^*H\Psi + \Psi\qty[H\grad_{\bm{\alpha}}\Psi]^*)}{\int\mathrm{d}\bm{r}\Psi^*\Psi} - 2\expval{E}\expval{\frac{\grad_{\bm{\alpha}}\Psi}{\Psi}} \\
+    &= 2\expval{E\frac{\grad_{\bm{\alpha}}\Psi}{\Psi}} - 2\expval{E}\expval{\frac{\grad_{\bm{\alpha}}\Psi}{\Psi}},
+\end{align*}
+where we assume hermiticity in the Hamiltonian in (*). Thus, the gradient with respect to the variational parameters becomes 
+\begin{equation}
+    \grad_{\bm{\alpha}}\expval{E} = 2\qty(\expval{E\frac{\grad_{\bm{\alpha}}\Psi}{\Psi}}-\expval{E}\expval{\frac{\grad_{\bm{\alpha}}\Psi}{\Psi}}).
+\end{equation}

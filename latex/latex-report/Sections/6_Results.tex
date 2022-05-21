@@ -10,7 +10,7 @@
 \subsubsection{Non-Interacting}
 %----------------------------------------------------------------
 
-\autoref{fig:gridsearch} shows a VMC computations for a grid of $\alpha$ values for the non-interacting system for both the analytical and automatic differentiation approaches. 
+\autoref{fig:gridsearch} shows a VMC computations for a grid of $\alpha$ values for a non-interacting system with spherical potential with $500$ particles for both the analytical and automatic differentiation approaches. Both approaches find the exact energy of the ground state when $\alpha=0.5$. 
 
 \begin{figure}[H]
 \centering
@@ -28,8 +28,28 @@ Discussion
 %----------------------------------------------------------------
 \subsubsection{Interacting}
 %----------------------------------------------------------------
+\autoref{tab:verification_energy} displays the calculated local energies using identical positions for two implementations of a system of interacting bosons in a spherical potential. One implementation calculates the energy performing the calculations in normal domain, while the other does the same calculations in logarithmic domain. The local energies matches for all calculations performed here, showing the equality between the implementations. They are equal, and may be used as an indication for the validity of the implementation regarding the interacting system with a spherical potential, since they are equal and calculated by different roads. 
+\begin{table}[]
+    \centering
+\begin{tabular}{c|c|c}
+\hline \hline
+ Number of particles &  Local energy &  Local energy (log domain) \\
+\hline \hline
+                   2 &         3.001 &                    3.001 \\
+                   5 &         7.512 &                    7.512 \\
+                  10 &        15.052 &                   15.052 \\
+                  20 &        30.236 &                   30.236 \\
+                  50 &        76.497 &                   76.497 \\
+                 100 &       155.915 &                  155.915 \\
+                 200 &       324.771 &                  324.771 \\
+                 500 &       897.372 &                  897.372 \\
+                1000 &     2,095.517 &                2,095.517 \\
+\hline \hline
+\end{tabular}
+    \caption{Comparison between the implementations of analytical interacting systems of bosons in spherical potentials, one performed in log domain, while the other is performed without altering the space in any way.}
+    \label{tab:verification_energy}
+\end{table}
 
-Compare log vs normal
 
 %----------------------------------------------------------------
 \subsection{Variational Energy}
@@ -59,3 +79,36 @@ Discussion
 %----------------------------------------------------------------
 \subsubsection{Interacting}
 %----------------------------------------------------------------
+\autoref{fig:interactions_plot} shows 
+\begin{figure}[!htb]
+\centering
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_analytical_wo_interactions_N_50.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_analytical_w_interactions_N_10.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_analytical_w_interactions_N_50.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_analytical_w_interactions_N_100.pdf}}}
+\caption{\textbf{(a)} Metropolis with 50 non-interacting particles. \textbf{(b)} Metropolis with ten interacting particles. \textbf{(c)} Metropolis with 50 interacting particles. \textbf{(d)} Metropolis with 100 interacting particles.}
+\label{fig:interactions_plot}
+\end{figure}
+
+\autoref{fig:comparisons_interactions_plot} shows 
+
+\begin{figure}[H]
+\begin{center}\includegraphics[scale=0.5]{latex/figures/grid_search_analytical_w_interactions_all_N.pdf}
+\end{center}
+\caption{Metropolis energy comparison between $N=10, 50, 100$ interacting particles, and $N=50$ non-interacting particles.}
+\label{fig:comparisons_interactions_plot}
+\end{figure}
+
+\subsubsection{One-body densities}
+\autoref{fig:one_body_densities} shows the sampled one body densities for $10$ and $100$ particles with interactions turned on and off. As the number of particles increases, the density of particles increases, and the interactions between the particles becomes a larger factor. For $10$ particles, the one body densities with and without interactions are almost identical. This means that for $10$ particles, the interactions do not have a large impact on the system. For $100$ particles, the radial one body densities for the interacting and non-interacting cases differ more. The particles in the interacting case are more spread out in the $2$-dimensional space than the non-interacting case. The interactions makes quite a difference when there are $100$ particles. 
+\begin{figure}[H]
+\centering
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/OBD_N10.pdf}}} 
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/OBD_N100.pdf}}}
+\caption{\textbf{(a)} Comparison between the radial one body densities for $10$ particles with and without interactions (Jastrow factor $a=0.00433$) in $2$-dimensional space. \textbf{(b)} Comparison between the radial one body densities for $100$ particles with and without interactions (Jastrow factor $a=0.00433$) in $2$-dimensional space.}
+\label{fig:one_body_densities}
+\end{figure}

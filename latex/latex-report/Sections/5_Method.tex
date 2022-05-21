@@ -1,26 +1,512 @@
 %================================================================
-\section{Method}\label{sec:Method}
+\section{Methodology}\label{sec:Method}
 %================================================================
 
 %----------------------------------------------------------------
-\subsection{Project Method 1}\label{sec:project method}
+\subsection{Sampling Algorithms}\label{sec:sampling_algos}
 %----------------------------------------------------------------
 
-%----------------------------------------------------------------
-\subsection*{Monte Carlo method for evaluating integrals.}
-%----------------------------------------------------------------
-The Monte Carlo (MC) method for evaluating integrals is a stochastic method that samples evaluations of the function (or a property of the function) uniformly over the domain of the integral, and returns the mean value of these. As we increase the number of evaluations, the law of large numbers tells us that the mean value will approach the expectation value. When the dimensionality of the problem becomes large, it is computationally very costly to evaluate the integral using numerical methods.
+The system under investigation consists of $N$ bosons in $d$ dimensions, which gives a $N\times d$ dimensional configuration space. As mentioned in \autoref{sec:mc_integration}, sampling points uniformly on the configuration space will, in general, require a sizeable number of samples to obtain an accurate estimate. A more efficient approach is to iteratively sample points such that at each step we expect to sample from a distribution that becomes closer to the target distribution, $p(x)$.
 
 %----------------------------------------------------------------
-\subsection*{Markov Chain Monte Carlo}
+\subsubsection{Markov Chain Monte Carlo}
 %----------------------------------------------------------------
-We want to evaluate the integral 
-\begin{equation}
-    I = \int_{D\in\mathcal{R^{n, d}}}\hat{Q}P(\mathbf{x_1}, \dots, \mathbf{x_n})d\mathbf{x_1}\dots d\mathbf{x_n},
+
+
+\textit{Markov chain Monte Carlo} (MCMC) methods (for reference literature see e.g. \cite{ProbModels} or \cite{BDA}) constitute a class of computational sampling algorithms that are particularly well-suited for sampling from high-dimensional distributions. The name MCMC is the combination of two properties: \textit{Monte Carlo} and \textit{Markov chain}. Monte Carlo is the practice of estimating statistical properties of a distribution by examining random samples from the distribution, whereas the Markov chain property is a sequential process in which the probability of transitioning to the next state is only dependent on the current state. The property that the probability of transitioning to the next state is conditional solely on the present state is known as the Markov property. Hence, the key idea of MCMC is to generate a sequence $\qty{X_t \colon t\geq 0}$ of random samples $X_t$, where the index $t \in \mathbb{N}$ is interpreted as time, with the Markov property,
+
+\begin{equation*}
+    \mathrm{P} \qty( X_{t+1} = x' \mid X_0 = x_0, X_1 = x_1, ..., X_t = x) = \mathrm{P} \qty( X_{t+1} = x' \mid X_t = x) = p \qty(x' \mid x),
+\end{equation*}
+
+where $p \qty(x' \mid x)$ denotes the probability of transitioning from any given state $x$ to any other given state $x'$. Vital to the method's success, however, is not the Markov property but rather the construction of transition probabilities, $p \qty(x' \mid x)$, for which the Markov chain converges to a unique stationary distribution $\pi(x)$ such that $\pi(x) = p(x)$. A sufficient, but not necessary, condition for the existence of a stationary distribution is \textit{detailed balance}, which requires that each transition is reversible; 
+
+\begin{equation}\label{eq:detailed_balance}
+    \pi(x) p \qty(x' \mid x) = \pi \qty(x') p \qty(x \mid x').
 \end{equation}
-where $\hat{Q}$ is an operator that acts on the $n\times d$-dimensional probability distribution $P(\mathbf{x_1}, \dots, \mathbf{x_n})$, where $\mathbf{x_i}$ is $d$-dimensional vectors for $1\leq i\leq n$, and $i\in\mathbb{N}$. 
+
+The uniqueness of a the stationary distribution is guaranteed by \textit{ergodicity} of a Markov chain. A Markov chain is ergodic if it has an aperiodic state, which implies that all remaining states are also aperiodic, and every state is positive recurrent, which means that the expected amount of time for returning to the same state is finite.   
+
+For the MCMC algorithms discussed in the next sections it is useful to decompose the transition probability $p \qty(x' \mid x)$ as  
+
+\begin{equation*}
+     p \qty(x' \mid x) = q \qty(x' \mid x)  a \qty(x' \mid x),
+\end{equation*}
+
+where $q \qty(x' \mid x)$ is a proposal distribution that proposes a move to state $x'$ from $x$ and $a \qty(x' \mid x)$ is the acceptance probability, i.e., the probability of accepting the proposed transition $x \to x'$. The proposal distribution $q \qty(x' \mid x)$ can in principle be chosen completely arbitrarily, although algorithms may be limited to the use of proposal distributions with certain properties, such as being symmetric. Typically, the proposal distribution is chosen among a set of well-known and tractable distributions, so that sampling from the distribution is straightforward. The proposal distribution $q \qty(x' \mid x)$ should share the same support as the target distribution $p(x)$.
+
+Practically, MCMC algorithms are generally implemented with multiple Markov chains starting from arbitrary points in the configuration space. In the random walk MCMC algorithms presented in the subsequent sections, the Markov chains then stochastically explore the configuration space according to the algorithm and tend to move toward regions of higher probability density. After a sufficient number of (time) steps, the Markov chain reaches the stationary distribution, i.e., the distribution does not depend on the position within the chain and the samples are just meandering around a stationary point. Only after convergence to the stationary distribution is the sampler guaranteed to be sampling from the target distribution. In performing MCMC sampling, the difficulty usually does not reside in constructing a Markov chain with the desired properties but rather in determining the number of steps needed for the chain to converge to the stationary distribution within an admissible error. 
+
+
+% Detailed balance
+%In terms of our quantum system, we can denote the probability of being in state $\Psi_T(\bm{r}; \alpha) \to \ket{\bm{r}}$ and transitioning to state $\Psi_T(\bm{r}'; \alpha) \to \ket{\bm{r}'}$ by $T_{\bm{r}\to\bm{r}'}$. Similarly, we can denote the probability of accepting the next state by $A_{\bm{r}\to\bm{r}'}$. Then the principle of detailed balance can be stated as 
+
+%\begin{equation}
+%    p_{\bm{r}} T_{\bm{r} \to \bm{r}'} A_{\bm{r} \to \bm{r}'} = p_{\bm{r}'} T_{\bm{r}' \to \bm{r}} A_{\bm{r}'\to\bm{r}},
+%\end{equation}
+
+%where $p_{\bm{r}}$ and $p_{\bm{r}'}$ are the probability densities associated with the current and proposed state, respectively. 
+
 
 %----------------------------------------------------------------
-\subsection*{Variational Monte Carlo}
+\subsubsection{Random Walk Metropolis}\label{sec:rwm}
 %----------------------------------------------------------------
-Given a Hamiltonian $\hat{H}$ and a trial wave function $\Psi_T$, the variational principle states that the expectation value of $\langle \hat{H} \rangle$, defined through
+
+The random walk Metropolis (RWM) algorithm \citep{Metropolis} is one of the most established MCMC sampling methods. In its original form, the RWM algorithm is an adaptation of a random walk that explores the local neighborhood of the current state of a Markov chain using a symmetrical proposal distribution. The RWM algorithm was later generalized to the more general case of using non-symmetrical proposal distributions in the Metropolis-Hastings (MH) algorithm \citep{Hastings}. The MH algorithm can be derived by using the condition for detailed balance (\autoref{eq:detailed_balance}) as the point of departure: 
+
+\begin{align*}
+    p(x) p \qty(x' \mid x) &= p \qty(x') p \qty(x \mid x')
+    \intertext{or}
+    p(x) q \qty(x' \mid x) a \qty(x' \mid x)  &= p \qty(x') q \qty(x \mid x') a \qty(x \mid x'),
+    \intertext{which can be written as}
+    \frac{a \qty(x' \mid x)}{a \qty(x \mid x')} &= \frac{p \qty(x') q \qty(x \mid x') }{p(x) q \qty(x' \mid x)}.
+\end{align*}
+
+The condition for detailed balance is satisfied by setting 
+
+\begin{equation}\label{eq:metropolis-hastings}
+    a \qty(x' \mid x) = \min \qty(1, \frac{p \qty(x') q \qty(x \mid x') }{p(x) q \qty(x' \mid x)}),
+\end{equation}
+
+which is known as the Metropolis criterion. Here, we have set $a \qty(x \mid x') = 1$, but note that setting $a \qty(x' \mid x)=1$ instead also satisfies the condition. If the proposal distribution is symmetric, i.e., $q \qty(x' \mid x) = q \qty(x \mid x') \, \forall \qty(x, x')$, then the Metropolis criterion simplifies to 
+
+\begin{equation}\label{eq:metropolis}
+    a \qty(x' \mid x) = \min \qty(1, \frac{p \qty(x')}{p(x)}).
+\end{equation}
+
+Both the normal and uniform distributions are examples of symmetric distributions.
+
+The Metropolis criterion is a rule that decides whether to accept or reject a proposed move. The quality of the proposed state is evaluated by computing its relative probability density, as normalization constants will cancel each other out, and comparing it to the relative probability density of the current state. If the probability density of the proposed state is higher than that of the current state, the proposed state is accepted and becomes the next state in the chain. If the probability density of the proposed state is lower than that of the current state, the proposed state is accepted with a probability determined by the ratio of probability densities. In this way, the states in the Markov chain tend to move toward the highest probability regions, but can still move away from these high-probability regions. In order to implement the acceptance/rejection rule in a computer program, we generate a uniform random number $u \sim \mathrm{U}(0, 1)$ after computing $a \qty(x' \mid x)$ for a given proposal $x'$. If $u \leq a \qty(x' \mid x)$, we accept the proposal. On the other hand, if $u > a \qty(x' \mid x)$, we reject the proposal. 
+
+In terms of our quantum system, we denote the current state, or configuration, by $\bm{r}$ and a proposed state by $\bm{r}'$. As proposal distribution for the RWM algorithm we choose a normal distribution with the location parameter specified by the current state $\bm{r}$ and a common scale parameter $\sigma$, $q \qty(\bm{r}' \mid \bm{r}) = \mathrm{N} \qty(\bm{r}' \mid \bm{r}, \sigma)$. We remark that expressing the normal distribution in terms of the scale, or standard deviation, $\sigma$ and not the more common squared scale, or variance, $\sigma^2$, is deliberate. In computer programs, the normal distribution is typically parametrized by the scale parameter. By following this convention our methodology and associated equations will more directly translate to computer code. The scale parameter $\sigma$ is a tuning parameter that we increase or decrease if the acceptance rate of the Markov chain simulation is too high or low, respectively (see \autoref{sec:tuning}). Recall that the target quantum probability density is given by \autoref{eq:wf_pdf}, such that the RWM algorithm's Metropolis criterion (\autoref{eq:metropolis}) then becomes
+
+\begin{equation*}
+    a \qty(\bm{r}' \mid \bm{r}) = \min \qty(1, \frac{\abs{\Psi_T \qty(\bm{r}';\alpha)}^2}{\abs{\Psi_T \qty(\bm{r}';\alpha)}^2}).
+\end{equation*}
+
+As we perform computations with the trial wave function in the log domain, the above ratio of densities simplifies to the difference of the log densities:
+
+\begin{equation}\label{eq:log_rwm}
+    \ln \qty(a \qty(\bm{r}' \mid \bm{r})) = \min \qty(0, 2 \ln \Psi_T \qty(\bm{r}';\alpha) - 2 \ln \Psi_T \qty(\bm{r};\alpha)).
+\end{equation}
+
+\autoref{algo:rmw} outlines a simple implementation of the RWM algorithm in our VMC study. In our VMC framework the sampler will be more complex (see \autoref{seq:vmc_framework}), but the general idea is encapsulated by the algorithm. 
+
+\begin{algorithm}[H]
+\caption{Random Walk Metropolis}\label{algo:rmw}
+\hspace*{\algorithmicindent} \textbf{Inputs:} \\
+\hspace*{\algorithmicindent} Initial configuration $\bm{r}_0$ \\
+\hspace*{\algorithmicindent} Variational parameter $\alpha$ \\
+\hspace*{\algorithmicindent} Number of Monte Carlo cycles $\mathrm{M}$
+\begin{algorithmic}[1]
+\State $t=0$
+%\State $\log{\qty(P)}\gets 2\log{\qty(\abs{\Psi_{\mathrm{T}}(\bm{r};\bm{\alpha})})}$ \Comment{Calculate the log density of initial state.}
+\Repeat 
+    \State Sample proposals $\bm{r'} \sim \mathrm{N}\qty(\bm{r}_t,\sigma)$
+    \State Calculate the Metropolis criterion, $a$, given by \autoref{eq:log_rwm} 
+    \State Sample $u \sim \ln{\qty(\mathrm{U}(0, 1))}$
+    \If{u \leq a}
+        \State Accept proposal $\bm{r}_{t+1} \gets \bm{r'}$
+    \Else
+        \State Reject proposal $\bm{r}_{t+1} \gets\bm{r}_t$
+    \EndIf
+    \State Sample the local energy $E_L^t$ given by \autoref{eq:local_energy}
+    \State $\mathrm{t}\gets\mathrm{t}+1$
+\Until{$t=N$}
+\State Compute the expectation value of the energy $\expval{E} = \frac{1}{M} \sum_t E_L^t$
+\end{algorithmic}
+\end{algorithm}
+
+
+%The Random Walk Metropolis algorithm \citep{Metropolis} is a stochastic sampling algorithm that takes into account a current state $\ket{\bm{r}}$, and a proposed next state $\ket{\bm{r'}}$. The proposed next state of the system is randomly sampled from a symmetrical distribution. In this project we use a normal distribution with the location parameter specified by the particle positions, $\bm{r}$, and a scale parameter which we tune to fit our desired acceptance ratio ($\qty[20,50]\%$). In general, for a Metropolis-Hastings algorithm \citep{Hastings}, we begin with the detailed balance condition
+
+%\begin{equation}\label{eq:probability_transition}
+%    \frac{p_{\bm{r'}}T_{\bm{r'}\to\bm{r}}}{p_{\bm{r}}T_{\bm{r}\to\bm{r'}}} = \frac{A_{\bm{r}\to\bm{r'}}}{A_{\bm{r'}\to\bm{r}}}.
+%\end{equation}
+
+%In the Random Walk Metropolis sampling we simply set the transition probabilities equal both ways; $T_{\bm{r}\to\bm{r'}}\coloneqq T_{\bm{r'}\to\bm{r}}$, and maximize the acceptance probability 
+
+%\begin{equation}\label{eq:rwm_acceptance_rate}
+%    A_{\bm{r}\to\bm{r'}} = \mathrm{min}\qty(1, \frac{p_{\bm{r'}}}{p_{\bm{r}}}).
+%\end{equation}
+
+%The density at state $\ket{\bm{r}}$ is
+%\begin{equation}
+%    p_{\bm{r}} = \frac{\abs{\Psi_T(\bm{r};\bm{\alpha})}^2}{\int_{D\in\mathbb{R}^{\mathrm{N}\times\mathrm{d}}}\mathrm{d}\bm{R}\abs{\Psi_T(\bm{R};\bm{\alpha})}^2}
+%\end{equation}
+%where $\bm{\alpha}$ are the variational parameters, and $\bm{R}$ represents all possible configurations of the particles. In \autoref{eq:rwm_acceptance_rate} we need the ratio between the densities of the proposed and current state, and we therefore do not need to evaluate the normalization factor. The ratio between the values of the densities of state $\ket{\bm{r}}$ and state $\ket{\bm{r'}}$ is 
+%\begin{equation}
+%    \frac{p_{\bm{r'}}}{p_{\bm{r}}} = \frac{\abs{\Psi_T(\bm{r'};\bm{\alpha})}^2}{\abs{\Psi_T(\bm{r}; \bm{\alpha})}^2}.
+%\end{equation}
+%The acceptance probability in logarithmic domain becomes 
+%\begin{align*}
+%    \log{\qty(A_{\bm{r}\to\bm{r'}})} &= \mathrm{min}\qty(0, \log{\qty(p_{\bm{r'}})}-\log{\qty(p_{\bm{r}})})
+%    \\
+%    &= \mathrm{min}\qty(0, 2\log{\qty(\abs{\Psi_T(\bm{r'};\bm{\alpha})})} - 2\log{\qty(\abs{\Psi_T(\bm{r};\bm{\alpha})})}).
+%\end{align*}
+%A number, $u$, is drawn from the uniform distribution $\textit{U}\qty(0, 1)$, transformed into logarithmic domain, $\log{\qty(u)}$, and compared with the acceptance probability. If 
+%\begin{equation}
+%    \log{\qty(u)} < A_{\bm{r}\to\bm{r'}}, 
+%\end{equation}
+%we move the state from the current to the proposed state, $\ket{\bm{r}}\to\ket{\bm{r'}}$. If not, we keep the current state $\ket{\bm{r}}$. We sample from all steps in the Markov chain. 
+
+
+
+
+%This quantity is crucial for the acceptance probability, as it takes the form 
+%\begin{equation*}
+%    A_{\bm{r}\to\bm{r'}} = \mathrm{min}\qty(1, \frac{P(\bm{r'})}{P(\bm{r})}), 
+%\end{equation*}
+%which means that if $P(\bm{r})<P(\bm{r'})$, the proposal is accepted. However, if the proposed state has a lower %probability density compared to the previous state, the Random Walk metropolis algorithm randomly samples a number %from $\textit{U}(0, 1)$ and accepts the proposal if that value is smaller than the probability density ratio. For %every step, we collect the quantities we are interested in (i.e. local energy). 
+
+%We implemented a slightly modified version to this, as we collect the logarithm of the probability densities, $\log{\qty(P(\bm{r};\bm{\alpha}))}$. Let's denote the randomly sampled number from the uniform distribution $\textit{U}(0, 1)$ as $\mathrm{u}$. The acceptance criterion then becomes 
+%\begin{equation*}
+%    \mathrm{Acceptance}(\bm{r}, \bm{r'}, u) = 
+%    \begin{cases}
+%    \mathrm{Accept} &\text{if } \log{\qty(u)} < \log{\qty(P(\bm{r'}))}-\log{\qty(P(\bm{r}))}
+%    \\
+%    \mathrm{Reject} &\text{else},
+%    \end{cases}
+%\end{equation*}
+%where $\ket{\bm{r'}}$ and $\ket{\bm{r}}$ are the proposed new state and current state of the system, respectively. As every $P(\bm{R})\geq 0$, we do not need to take the absolute value of it when we take its logarithmic value. Again $\bm{R}$ represents all possible configurations of the particles. %I hope this has sufficiently explained our take on the Random Walk Metropolis sampling. 
+
+%\begin{algorithm}
+%\caption{Metropolis sampling algorithm}\label{Metropolis}
+%\begin{algorithmic}[1]
+%\Procedure{Metropolis}{($\mathbf{R}_{\text{old}}, \mathbf{R}_{\text{new}}$)}\Comment{Takes in the old and new %parameters.}
+%\State $P_T(\mathbf{R}_{\text{old}}, \mathbf{\alpha}) \gets |\Psi_T(\mathbf{R}_{\text{old}}, \mathbf{\alpha})|^2$
+%\State $P_T(\mathbf{R}_{\text{new}}, \mathbf{\alpha}) \gets |\Psi_T(\mathbf{R}_{\text{new}}, \mathbf{\alpha})|^2$
+%\State $P_{\text{acceptance}}\gets\frac{P_T(\mathbf{R}_{\text{new}}, \mathbf{\alpha})}{P_T(\mathbf{R}_{\text{old}}, %\mathbf{\alpha})}$\Comment{Finds the acceptance rate, purely based on transition rates being equal.}
+%\State $r = \text{RNG}[0,1]$\Comment{Generate a random number between $0$ and $1$ from uniform distribution.}
+%\If{r<\text{min}(P_{\text{acceptance}}, 1)}
+%\State $\text{Accept move}$
+%\Else 
+%\State $\text{Reject move}$
+%\EndIf
+%\EndProcedure
+%\end{algorithmic}
+%\end{algorithm}
+
+%\begin{algorithm}
+%\caption{Markov Chain Monte Carlo(MCMC)}\label{MCMC}
+%\begin{algorithmic}[1]
+%\Procedure{MCMC}{($\text{Number of cycles(nCycles)}$)}
+%\State $\mathbf{R}_{\text{old}}\gets\text{Initialise system}$\Comment{Find initial state of the system.}
+%\State $\text{Define } P_T(\mathbf{R}, \mathbf{\alpha})$\Comment{Define how to measure the PDF.}
+%\State ($P_T(\mathbf{R}_{\text{old}}, \mathbf{\alpha}) \gets |\Psi_T(\mathbf{R}_{\text{old}}, %\mathbf{\alpha})|^2$)\Comment{In our case, we use this.}
+%\algblockdefx{For}{EndFor}[1]{\textbf{for} #1 \textbf{to} \text{nCycles} \textbf{do}}{\textbf{end for}}
+%\For{$1$}{}
+%    \State $\mathbf{R}_{\text{new}} = \mathbf{R}_{\text{old}} + \text{RNG}$\Comment{Suggest new position based on %the old one, and add a randomly generated number (RNG).}
+%    \If{\mathbf{R}_{new} \text{ is accepted}}\Comment{Here we use a sampling rule to decide whether the stochastic %move is accepted or rejected.}
+%        \State $\text{Update }\mathbf{R}_{old}\gets\mathbf{R}_{\text{new}}\text{ and collect data from new state.}$
+%    \Else
+%        \State $\text{Reject move and collect data from old state.}$
+%    \EndIf
+%\EndFor
+%\State $\text{Collect averages from collected data.}$
+%\EndProcedure
+%\end{algorithmic}
+%\end{algorithm}
+
+%----------------------------------------------------------------
+\subsubsection{Langevin Metropolis-Hastings}\label{sec:lmh}
+%----------------------------------------------------------------
+By guiding the proposals according to the gradient flow of the density of the trial wave function, the sampling quality will increase. The following algorithm, which we have dubbed Langevin Metropolis-Hastings (LMH), has its root in the Fokker-Planck equation from statistical mechanics. This partial differential equation describes the time-evolution of the probability density of the velocity of a particle under the influence of a system and random forces. It has the form
+
+\begin{equation}\label{eq:fokker-planck}
+    \pdv{p}{t} = \sum_{\mathrm{i}}^{\mathrm{N}}\mathrm{D}\grad_{\mathrm{i}}\cdot\qty(\grad_{\mathrm{i}}-\bm{F}_i)p(\bm{r}, t), 
+\end{equation}
+
+where $p$ is the probability density, $\bm{F}_{\mathrm{i}}$ is the $\mathrm{i}$th component of the drift force and $D$ is the diffusion coefficient. To find the maxima of the probability density (the equilibrium state), we find $\pdv{p}{t} = 0$, which yields
+
+\begin{equation*}
+    \laplacian_{\mathrm{i}} p(\bm{r}, t) = p(\bm{r}, t)\grad_{\mathrm{i}}\bm{F}_{\mathrm{i}} + \bm{F}_{\mathrm{i}}\grad_{\mathrm{i}}p(\bm{r}, t). 
+\end{equation*}
+
+For this equation to be independent of the configuration $\bm{r}$ and yield $0$ for all $\mathrm{i}$, we set $\bm{F} = g\grad_{\mathrm{i}}p$ and the equation becomes 
+
+\begin{align*}
+    &\laplacian_{\mathrm{i}}p(\bm{r}, t) = p(\bm{r}, t)\grad_{\mathrm{i}}\cdot\qty[g\grad_{\mathrm{i}}p(\bm{r}, t)] + g\grad_{\mathrm{i}}p(\bm{r}, t)\cdot\grad_{\mathrm{i}}p(\bm{r}, t),
+    \\
+    &\laplacian_{\mathrm{i}}p(\bm{r}, t) = p(\bm{r}, t)\grad_{p}g\qty[\grad_{\mathrm{i}}p(\bm{r}, t)]^2 + p(\bm{r}, t)g\laplacian_{\mathrm{i}}p(\bm{r}, t) + g\qty[\grad_{\mathrm{i}}p(\bm{r}, t)]^2, 
+\end{align*} 
+
+which results in $g=\frac{1}{p}$. This defines the gradient flow of the probability density of the trial wave function, the drift force $\bm{F}$ (\autoref{eq:log_drift_force}). The proposed new state $\bm{r'}$ comes from the solution of the Langevin equation 
+
+\begin{equation}\label{eq:langevin}
+    \pdv{\bm{r}}{t} = \mathrm{D}\bm{F}\qty[\bm{r}(t)] + \eta, 
+\end{equation}
+
+where $\eta$ is a random variable. The solution we use is found using Euler's method, and is 
+
+\begin{equation}
+    \bm{r'} = \bm{r} + \mathrm{D}\bm{F}\qty(\bm{r})\Delta t + \bm{\xi}\sqrt{\Delta t},
+\end{equation}
+
+where $\bm{\xi}$ is a multidimensional Gaussian random variable, yields the proposed state $\bm{r'}$. Notice that the time-step $\Delta t$ becomes a scale parameter that we need to tune to fit our desired acceptance ratio (see \autoref{sec:tuning}). The solution to the Fokker-Planck equation yields a proposal distribution ($q\qty(\bm{r}\mid\bm{r'})$) given by the Green's function,  
+
+\begin{equation}
+    G\qty(\bm{r'}, \bm{r}, \Delta t) = \frac{1}{\qty(4\pi\mathrm{D}\Delta t)^{\frac{3N}{2}}}\exp[-\frac{\qty(\bm{r'}-\bm{r}-\mathrm{D}\Delta t\bm{F}\qty(\bm{r}))^2}{4\mathrm{D}\Delta t}].
+\end{equation}
+
+% From here we can reduce the text by referencing eqs from the previous section
+We insert the transition probability into the detailed balance equation and get 
+
+\begin{align*}
+    a\qty(\bm{r'}\mid\bm{r})&= \frac{p\qty({\bm{r'}})q\qty(\bm{r'}\mid\bm{r})}{p\qty({\bm{r}})q\qty(\bm{r}\mid\bm{r'})}
+    \\
+    &= \frac{p\qty({\bm{r'}})G\qty(\bm{r}, \bm{r'}, \Delta t)}{p\qty({\bm{r'}})G\qty(\bm{r'}, \bm{r}, \Delta t)}.
+\end{align*}
+
+Now we do the same trick, set either $a\qty(\bm{r}\mid\bm{r'})$ or $A_{\bm{r'}\to\bm{r}}$ equal to $1$ and define the acceptance probability as 
+
+\begin{equation}
+    a\qty(\bm{r'}\mid\bm{r}) = \mathrm{min}\qty(1, \frac{p\qty({\bm{r'}})G\qty(\bm{r}, \bm{r'}, \Delta t)}{p\qty({\bm{r}})G\qty(\bm{r'}, \bm{r}, \Delta t)}).
+\end{equation}
+
+Our implementation of the Langevin Metropolis-Hastings is performed in logarithmic domain,  
+
+\begin{equation}
+    \ln{\qty(a\qty(\bm{r}\mid\bm{r'}))} = \mathrm{min}\qty(0, \ln{\qty(p\qty(\bm{r'}))} + \ln{\qty(G'\qty(\bm{r}, \bm{r'}, \Delta t))} - \ln{\qty(p\qty(\bm{r}))}-\ln{\qty(G'\qty(\bm{r'}, \bm{r}, \Delta t))})
+\end{equation}
+
+where $G'$ denotes Green's function without the normalization constant, will reflect what is compared to the logarithm of a randomly sampled number from the uniform distribution $\textit{U}\qty(0, 1)$. 
+
+A simple overview of the Langevin Metropolis-Hastings sampling algorithm is listed in \autoref{algo:lmh}, where, for simplicity and generality, also here only the general idea is encapsulated by the algorithm. 
+
+\begin{algorithm}
+\caption{Langevin Metropolis-Hastings MCMC}\label{algo:lmh}
+\hspace*{\algorithmicindent} \textbf{Inputs: }\text{Initial positions, $\bm{r}$, and number of cycles, $\mathrm{N}$}
+\begin{algorithmic}[1]
+\State $\mathrm{t}=1$
+\State $\ln{\qty(P)}\gets 2\log{\qty(\abs{\Psi_{\mathrm{T}}(\bm{r};\bm{\alpha})})}$ \Comment{Calculate the log density of initial state.}
+\Repeat 
+    \State Calculate drift force from current state $\bm{F}(\bm{r})$ given by \autoref{eq:drift_force}
+    \State Generate proposals $\bm{r'}\sim\bm{r}+\mathrm{D}\bm{F}(\bm{r})\Delta t + \mathcal{N}\qty(\bm{r},\Delta t)$
+    \State Generate random number $\mathrm{u}\sim\ln{\qty(\textit{U}(0, 1))}$
+    \State Calculate drift force from proposed state $\bm{F}(\bm{r'})$ also by \autoref{eq:drift_force}
+    \State Calculate acceptance criterion
+    \State $\mathrm{A}\gets\mathrm{min}\qty(0, \ln{\qty(p_{\bm{r'}})} + \ln{\qty(G'\qty(\bm{r}, \bm{r'}, \Delta t))} - \ln{\qty(p_{\bm{r'}})}-\ln{\qty(G'\qty(\bm{r'}, \bm{r}, \Delta t))})$
+    \If{\mathrm{u}<\mathrm{A}}
+        \State Accept proposal $\bm{r}\gets\bm{r'}$
+    \Else
+        \State Reject proposal $\bm{r}\gets\bm{r}$
+    \EndIf
+    \State Sample the local energy $E^t_L$ given by \autoref{eq:local_energy}
+    \State $\mathrm{t}\gets\mathrm{t}+1$
+\Until{$t=N$}
+\State Compute the expectation value of the energy $\expval{E}=\frac{1}{M}\sum_t E^t_L$
+\end{algorithmic}
+\end{algorithm}
+
+%----------------------------------------------------------------
+\subsubsection{Optimal Scale Parameter}\label{sec:tuning}
+%----------------------------------------------------------------
+
+% As with the Metropolis algorithm in general, these tuning parameters can be set ahead of time, or they can be altered completely at random (a strategy which can sometimes be helpful in keeping an algorithm from getting stuck), but one has to take care when altering them given information from previous iterations. Except in some special cases, adaptive updating of the tuning parameters alters the algorithm so that it no longer converges to the target distribution. So when we set the tuning parameters, we do so during the warm-up period: that is, we start with some initial settings, then run HMC for a while, then reset the tuning parameters based on the iterations so far, then discard the early iterations that were used for warm-up. This procedure can be repeated if necessary, as long as the saved iterations use only simulations after the last setting of the tuning parameters. [BDA]
+
+The scale parameters, the scale of the normal distribution of the proposed states for the Random Walk Metropolis, and for the Langevin Metropolis-Hastings, the time step, $\Delta t$, decides how large leaps the system will take each step in the algorithm. A suitable step-length can be tough to estimate, given that we initialize different systems with different number of particles and properties (interactions, i.e.). For the Random Walk Metropolis, sampling a single particle in a single dimension would have an optimal acceptance rate of $0.44$, almost half the proposed states are accepted by the sampler. However, in multidimensional space, the optimal acceptance rate is lowered to $0.23$, which means a bit fewer than a quarter of the proposed states are accepted. We decided to record the acceptance rate, and tune the scale parameter to suit our desired acceptance rate. However, an adaptive tuning of the scale parameter alters the algorithm so that it may no longer converge to the desired distribution. Therefore the tuning has to be done before sampling, and we do this by running iterations of the MCMC in a warm-up period. During the warm-up we record the acceptance rate over given interval of cycles, and multiply the scales with a suitable scalar. If the acceptance rate is too high, we increase the scale by a factor, and vice versa. This is reiterated until the acceptance rate is within a desired range. We have set our desired acceptance rate for the Random Walk Metropolis to be between 20-50\%. For the Langevin Metropolis-Hastings we hope to increase the number of relevant samples as the drift force guides the direction of the next step, and the desired range is set to 40-80\%.
+
+
+%----------------------------------------------------------------
+\subsection{Blocking}\label{sec:blocking}
+%---------------------------------------------------------------- 
+
+Unlike conventional Monte Carlo integration where the random samples are statistically independent, those in MCMC are autocorrelated. Consequently, the autocorrelation should be taken into account in the calculation of statistical errors of the estimated statistics. Here, we discuss the \textit{blocking} method which can be used to address the autocorrelation of a Markov chain.   
+
+In the statistical theory of the design of experiments, blocking is the arranging of experimental units in groups (blocks) that are similar to one another. Typically, a blocking factor is a source of variability that is not of primary interest to the experimenter. An example of a blocking factor might be the sex of a patient; by blocking on sex, this source of variability is controlled for, thus leading to greater accuracy.
+
+In Probability Theory the blocks method consists of splitting a sample into blocks (groups) separated by smaller subblocks so that the blocks can be considered almost independent. The blocks method helps proving limit theorems in the case of dependent random variables. Intuitively, we compress the samples into means of neighboring samples until the autocorrelation between them vanishes. 
+
+The blocking method was first popularized by H. Flyvbjerg and H. G. Petersen \citep{doi:10.1063/1.457480}. It provides an alternative method for estimating the variance $\text{Var}(\hat{\theta})$ for the estimator $\hat{\theta} = \overline{X}$, where $\overline{X}$ denotes the mean of the dataset $\bm{X}$. It can be compared to dependent bootstrapping but with a much lower computational complexity of $\mathcal{O}(n)$. This allows for speedups compared to other methods with a big-O of $\mathcal{O}(n^2)$ or $\mathcal{O}(n \log n)$ [b]. Further advantages includes effective scaling for large number of observations,  $n$. Whereas for large $n$, dependent bootstrapping scales poorly, blocking does not, in fact it becomes more accurate for larger $n$.  
+
+Let's assume that we have a sample size of $n = 2^d$ for any $d \in \mathbb{N}$ and an n-tuple $\bm{X} = (X_1, X_2, \dots, X_n)$ of stationary time series which we assume are \textit{asymptotically uncorrelated}, which means that the correlation between two samples rapidly decays as the number of time steps between them increases. This now let us define the $\textit{blocking transformation}$. The idea here is to take the mean of a subsequent pair of elements from $\bm{X}$ and form a new sample $\bm{X}_1$. This process is repeated $d$ times, which is why $n=2^d$ is required, yielding $\bm{X}_0, \dots, \bm{X}_{d-1}$ containing the subsequent averages of observations. This gives for each iteration a dataset of size $N_i = 2^{d-i}$, with the number of observations with each iteration. We can recursively define $\bm{X}_i$ as
+
+\begin{align*}
+(\bm{X}_0)_k &\equiv (\bm{X})_k \nonumber \\
+(\bm{X}_{i+1})_k &\equiv \frac{1}{2}\qty( (\bm{X}_i)_{2k-1} +
+(\bm{X}_i)_{2k} ) \qquad \text{for all} \qquad 1 \leq i \leq d-1
+\label{eq:recursiveX}
+%\tag{x}
+\end{align*}
+The sample $\bm{X}_k$ is $\bm{X}_0$ subjected to $k$ blocking transformations.
+The variance in the mean of $\bm{X}_k$ is consequently defined by
+
+\begin{equation*}
+Var(\overline{X}_k) = \frac{\sigma_k^2}{n_k} + \underbrace{\frac{2}{n_k} \sum_{h=1}^{n_k-1}\left( 1 - \frac{h}{n_k} \right)\gamma_k(h)}_{\equiv e_k} = \frac{\sigma^2_k}{n_k} + e_k \quad \text{if} \quad \gamma_k(0) = \sigma_k^2
+\label{eq:var_bloc} 
+%\tag{x}
+\end{equation*}
+as result of the blocking transformation. Where $e_k$ is the truncation error defined as
+\begin{equation*}
+e_k = \frac{2}{n_k} \sum_{h=1}^{n_k-1}\left( 1 - \frac{h}{n_k} \right)\gamma_k(h), 
+\label{eq:truncartion} 
+%\tag{x}
+\end{equation*}
+and $n_k$ denotes the number of samples in $\qty(\bm{X})_k$, $h=\abs{i-j}$ is the number of time steps between the samples which we calculate the autocovariance between, while $\gamma_k\qty(h)$ is the autocovariance for the $k$th sample. 
+
+It can be shown (for a proof the convergence of the blocking method and an automatic implementation, see \citep{MariusJonsson}) that $Var\qty(\overline{X}_k)=Var\qty(\overline{X})$  for all $0 \leq k \leq d-1$ when the truncation error is included in the calculations. The sequence $\qty{e_k}_{k=0}^{d-1}$ is decreasing, and, given enough samples (large enough $d$), it can be as made as small as we want. Thus, given enough blocking transformations, the true sample variance, $Var\qty(\overline{X})$, will be well approximated by the variance of $\bm{X}_k$ for a sufficiently large $k$. The sample variance 
+\begin{equation}
+    Var\qty(\overline{X}) \approx \frac{\sigma_k^2}{n_k}, 
+\end{equation}
+and we can make this approximation arbitrarily good.
+
+%Here we have that $n_k = \frac{n}{2^k}$ which is the size of the $\overline{X}_k$ vector after $k$ blocking transformations while $\gamma_k$ and $\sigma_k^2$ are the autovariance and variance respectively. As shown by [a], the blocking transformation may be applied until the truncation error becomes a relatively small quantity for estimating $\text{Var}(\overline{X}_k)$ which will then converge the estimate to $\frac{\sigma_k^2}{n_k}$. This is because the sequence containing the truncation errors becomes sufficently small for a large number of iterations, yielding a large $d$. [double check]. 
+
+
+
+%https://aip.scitation.org/doi/pdf/10.1063/1.457480
+%https://www.duo.uio.no/bitstream/handle/10852/68360/PhysRevE.98.043304.pdf?sequence=2&isAllowed=y
+
+%----------------------------------------------------------------
+\subsection{Gradient Descent Optimization}\label{sec:gradient_descent}
+%----------------------------------------------------------------
+
+% Motivation 
+The variational principle ensures convexity in the energy functional with respect to the variational parameters. A gradient descent method converges to the only minima when a functional is convex. Therefore, assuming proper estimation of the energy functional and its gradient with respect to the variational parameter $\alpha$, a gradient descent method assures convergence to the ground state of the system. 
+% Moved from theory
+%The third step depends on the optimization method, but a gradient descent method is often used by finding the direction in variational parameter space which lowers the expected value of the local energy, and updating the variational parameters in that direction. The direction is found by finding the gradient with respect to the variational parameters of the expectation value of the local energy. We stop the parameter search by some stopping criterion, e.g. a minimum difference in the variational parameters after an update. 
+
+
+Gradient descent utilises the fact that the negative of the gradient of a function points in the direction of steepest descent. The multivariate Newton-Raphson iterative method for finding the minima of a multivariate functional $f:\mathbb{R}^N\to\mathbb{R}$ is   
+\begin{equation}
+    \bm{x}^{\mathrm{i}+1} = \bm{x}^{\mathrm{i}} - \qty[\mathrm{H}_{f(\bm{x}^{\mathrm{i}})}]^{-1}\grad_{\bm{x}^{\mathrm{i}}} f(\bm{x}^{\mathrm{i}})
+\end{equation}
+where $\bm{x}$ are the variatonal parameters, $\mathrm{H}$ is the Hessian of the function and $\grad_{\bm{x}}$, both with respect to the variational parameters. This iteration scheme converges quadratically for convex functionals. However, evaluation of the inverse of the Hessian is often computationally costly, and is not needed to reach convergence. In many applications (machine learning i.e.), the inverse of the Hessian is often replaced with a single scalar, the \textit{learning rate}, often denoted as $\eta$. The simplified iterative scheme 
+\begin{equation}
+    \bm{x}^{\mathrm{i}+1} = \bm{x}^{\mathrm{i}} - \eta\grad_{\bm{x}^{\mathrm{i}}} f(\bm{x}^{\mathrm{i}})
+\end{equation}
+is the simple gradient descent method. The simple gradient descent method is guaranteed to converge (when the functional is convex) if the learning rate is smaller than some threshold value. On the other hand, if the learning rate is too small, the number of iterations needed for finding the minima of the functional may be very large. We need to tune the learning rate to be in that sweet spot such that the functional converges, and converges within an acceptable time-frame.
+
+In machine learning the functional to be minimized is often called a cost (or loss) function. For our system, we want to minimize the energy functional
+\begin{equation}
+    \expval{E} = \int\mathrm{d}\bm{r}E_L(\bm{r};\bm{\alpha})p(\bm{r};\bm{\alpha}),  
+\end{equation}
+with respect to the variational parameters $\bm{\alpha}$. The gradient with respect to the variational parameters of the energy functional becomes
+\begin{equation}\label{eq:gradient_local_energy}
+    \grad_{\bm{\alpha}}\expval{E} = 2\qty(\expval{\frac{\grad_{\mathrm{\bm{\alpha}}}\Psi_T}{\Psi_T}E_L} - \expval{\frac{\grad_{\mathrm{\bm{\alpha}}}\Psi_T}{\Psi_T}}\expval{E_L}), 
+\end{equation}
+and we need to sample this equation in the MCMC. A derivation of \autoref{eq:gradient_local_energy} can be found in \autoref{sec:gradient_local_energy}. Three integrals are needed to evaluate this expression, and we evaluate them by sampling the local gradient with respect to the variational parameters of the trial wave function 
+\begin{equation}
+    \expval{\frac{\grad_{\bm{\alpha}}\Psi}{\Psi}} \approx \frac{1}{M}\sum_{i=1}^M\frac{\grad_{\bm{\alpha}}\Psi_T(\bm{r};\bm{\alpha})}{\Psi_T(\bm{r};\bm{\alpha})}p(\bm{r};\bm{\alpha}), 
+\end{equation}
+the energy
+\begin{equation}
+    \expval{E} \approx \frac{1}{M}\sum_{i=1}^ME_L(\bm{r};\bm{\alpha})p(\bm{r};\bm{\alpha}), 
+\end{equation}
+and their product
+\begin{equation}
+    \expval{\frac{\grad_{\bm{\alpha}}\Psi}{\Psi}E} \approx \frac{1}{M}\sum_{i=1}^M E_L(\bm{r};\bm{\alpha})p(\bm{r};\bm{\alpha})\frac{\grad_{\bm{\alpha}}\Psi(\bm{r};\bm{\alpha})}{\Psi(\bm{r};\bm{\alpha})}p(\bm{r};\bm{\alpha}).
+\end{equation}
+The variational parameters is then updated by the iterative scheme 
+\begin{equation}
+    \bm{\alpha}^{(k+1)} = \bm{\alpha}^{(k)} - \eta\grad_{\bm{\alpha}}\expval{E}, 
+\end{equation}
+where the superscript $k$ denotes how many times the variational parameters have been updated, until convergence in $\bm{\alpha}$. A typical stopping criterion for the optimization algorithm would be to check if the L2-norm of the difference between the $k$th and $k+1$th iteration is less than some tolerance, $\epsilon$. If
+\begin{equation}
+    \norm{\bm{\alpha}^{(k+1)}-\bm{\alpha}^{(k)}}_2^2 \leq \epsilon 
+\end{equation}
+we stop the iterative scheme, and return the variational parameters $\bm{\alpha}^{(k+1)}$ as our optimal parameters.
+
+Since we are only looking at a single variational parameter, $\alpha$, we could have found the second derivative of the expected value of the energy with respect to $\alpha$. However, for further work regarding a more general wave function, we stayed with a gradient descent method that can optimize an arbitrary number of variational parameters with relatively low computational cost. 
+%\textit{Everything here is strictly derived from the lecture notes \cite{Gradient-Descent} for Gradient Descent.} \\
+% Nicolai - Stoppe her? 
+%For the non-interacting case we managed to determine analytically which value for $\alpha$ coincides with the ground state. It's not always apparent which value of our variational parameter yields the ground state energy and for that we need a method to determine the minimum value. Here's where The Gradient Descent method comes in
+
+%\begin{align}
+ %   \alpha_{i+1} &= \alpha_i + \gamma \nabla \left\langle E_L (\alpha_i) \right\rangle
+%\end{align}
+
+%Where we've used the derivative of the expectation value for the local energy wrt. $\alpha$ as a cost function to find the best-suited value of $\alpha$ that minimizes the local energy, which in turn approaches the ground state and $\gamma$ is a manually selected step length. So instead of having to manually find the best optimal variational parameter, which might be tough manually now, we will be using this iterative scheme to hopefully determine where the global minimum lies. Since, Gradient descent has one design flaw and that is this approach finds a minimum disregarding whether it's a local or a global one. Meaning the initial guess is very important in regard to finding the global minimum and thus some trial and error must be expected.
+
+%As for the cost function 
+
+%\begin{align}
+%    \bar{E}_\alpha &= \nabla \left\langle E_L (\alpha_i) \right\rangle = \frac{d\left\langle E_L (\alpha_i) \right\rangle}{d\alpha}
+%\end{align}
+
+%by the chain rule and the hermiticity of the Hamiltonian the derivative wrt. $\alpha$ is given by
+
+%\begin{align}
+%    \bar{E}_\alpha &= 2\left( \left\langle \frac{\bar{\mathbf{\Psi}}_\alpha}{\mathbf{\Psi}_\alpha} E_L(\alpha) \right\rangle - \left\langle \frac{\bar{\mathbf{\Psi}}_\alpha}{\mathbf{\Psi}_\alpha}  \right\rangle \left\langle E_L(\alpha) \right\rangle \right)
+%\end{align}
+
+%Where
+
+%\begin{align}
+%    \bar{\mathbf{\Psi}}_\alpha &= \frac{d \mathbf{\Psi}_\alpha}{d\alpha}
+%\end{align}
+
+%is the derivative of the wave function wrt. $\alpha$.
+
+%---
+
+%\textbf{Gradient of expected value of local energy wrt $\alpha$}
+
+%...
+
+%Analytical expression: 
+%\begin{equation}\label{eq:grad_expval_E_L}
+%    \frac{\partial \expval{E_L[\mathbf{\alpha}]}}{\partial\mathbf{\alpha}} = 2\qty(\expval{\frac{d\Psi[\mathbf{\alpha}]}{d\mathbf{\alpha}}\frac{1}{\Psi[\mathbf{\alpha}]}E_L[\mathbf{\alpha}]} - \expval{\frac{d\Psi[\mathbf{\alpha}]}{d\mathbf{\alpha}}\frac{1}{\Psi[\mathbf{\alpha}]}}\expval{E_L[\mathbf{\alpha}})
+%\end{equation}
+
+%----------------------------------------------------------------
+\subsubsection{ADAM}
+%----------------------------------------------------------------
+
+The simple gradient descent method will converge under the right circumstances, but may not be the fastest and most efficient optimizing scheme. In a multidimensional variational parameter space, the negative of the gradient will typically not point directly to the minima, and typically we end up moving from one side of a `valley' in the cost function to the other. To make this scheme more efficient \textit{momentum} is added, which is a weighted addition of the previous gradients to the calculation. This way the gradient and the momentum will point more along the valley towards the minima, and less `across the valley'. Another implementation which improves the choice of step length in each dimension (specifically for non-convex functions), is the Root Mean Squared Propagation (RMSProp). A third improvement, mostly designed to escape local minima of the cost function, is a stochastic batching of the data, often referred to as Stochastic Gradient Descent. For more information on optimization algorithms, we refer you to chapter 8 of \citep{Goodfellow-et-al-2016}. 
+
+We have implemented ADAM (derived from `adaptive moments') as our optimizer. The ADAM optimizer \citep{kingma2017adam} is a method that utilises momentum and RMSProp, both with bias corrections. The algorithm keeps track of the first and second moments of the gradient, then bias corrects them, for then to use the second moment as an RMSProp rescaler of the gradient with momentum. $\beta_1$ and $\beta_2$ are exponential decay factors for the their respective moments. 
+By appropriating this into our iteration scheme for finding the minima of the expected energy, we can update our variational parameters, $\bm{\alpha}$, as follows
+
+\begin{align*}%\label{eq:ADAM}
+    \bm{g}_t &= \nabla_{\bm{\alpha}}\expval{E}(\bm{\alpha}_t) \\
+    \bm{m}_t &= \beta_1 \bm{m}_{t-1} + (1-\beta_1)\bm{g}_t \\
+    \bm{s}_t &= \beta_2 \bm{s}_{t-1} + (1-\beta_2)\bm{g}_t\cdot\bm{g}_t \\
+    \bm{\hat{m}}_t &= \frac{\bm{m}_t}{1-\beta_1^t} \\
+    \bm{\hat{s}}_t &= \frac{\bm{s}_t}{1-\beta_2^t} \\
+    \bm{\alpha}_{t+1} &= \bm{\alpha}_t - \eta_t\frac{\bm{\hat{m}}_t}{\sqrt{\bm{\hat{s}}_t} + \epsilon}
+    %\tag{x}
+\end{align*}
+where $\bm{m}_t = \mathbb{E}[g_t]$ and $\bm{s}_t = \mathbb{E}[g_t^2]$ are the running average of both the first and second moment of the gradient. $\epsilon \sim 10^{-8}$ is a regularization constant to prevent divergence and singularities. In the update equation the fraction is performed element-wise. 
+
+%Aleksandar
+%https://compphysics.github.io/MachineLearning/doc/LectureNotes/_build/html/chapteroptimization.html#adam-optimizer
+
+%https://pytorch.org/docs/stable/generated/torch.optim.Adam.html#torch.optim.Adam 
+
+%https://arxiv.org/pdf/1412.6980.pdf
+
+%https://www.uio.no/studier/emner/matnat/ifi/IN5400/v22/lecture-materials/in5400_2022_noslides_lecture7.pdf
+
+%https://www.deeplearningbook.org/contents/optimization.html % 8.5.3, 7
+
+\iffalse
+In 2015, D. Kingma and  J. Lei Ba proposed ADAM (short for ADAptive Moment estimation).
+
+Let $f(\theta)$ be a noisy objective function: a stochastic scalar function that is differentiable w.r.t. parameters $\theta$. We are interested in minimizing the expected value of this function, $ \mathbb{E}[f(\theta)]$ w.r.t. its parameters $\theta$. We let $ g_t = \nabla_{\theta} E_{B_k}(\theta_t)$ where $ E_{B_k}(\theta_t) =f_t(\theta_{t-1})$. The sequence $f_1, \cdots , f_T$ denotes the realisations of the stochastic function at subsequent timesteps. The algorithm is given by,
+-
+As we see, the moment
+
+\fi
+
+
+%----------------------------------------------------------------
+\subsection{Parallelization}
+%---------------------------------------------------------------- 
+
+Parallelizing a single Markov chain is not a straightforward task. However, MCMC sampling with multiple chains is so-called \textit{embarrassingly parallelizable}, which means there is little to no effort to divide the workload as the computations are independent. We will therefore implement procedures where we let multiple chains sample independently in parallel. Note that each chain still needs sufficient time to converge towards the stationary distribution, i.e., each will still need a sufficient number of Monte Carlo cycles to propagate in its workload. 
+
+%----------------------------------------------------------------
+\subsection{Automatic Differentiation}
+%---------------------------------------------------------------- 
+
+Automatic differentiation is a tool which uses numerical methods to accurately calculate the derivatives of functions, with many applications, maybe most notably in the backpropagation algorithm in machine learning. A derivative of a function can be determined by finding the derivative of every operation in the function and we can use the chain rule to calculate the derivative. In backpropagation the derivative is calculated by reversing all the operations, but it can just as easily be calculated from input to output.
+We decided to use JAX \citep{jax2018github}, a machine learning framework developed by Google Research teams, for automatically calculating the needed gradients. Our ambition is to make a Variational Monte Carlo method which can take an arbitrary trial wave function, and automatically carry out the computations needed to find a good approximation to its ground state energy. Due to the inner workings of JAX, our formulation of the trial wave function in the interacting case is not straightforward to automatically differentiate. 
+In this project we limit ourselves to implement automatic differentiation for the non-interacting case to investigate its viability. 
+
+%----------------------------------------------------------------
+\subsection{The Variational Monte Carlo Sampler}\label{seq:vmc_framework}
+%---------------------------------------------------------------- 
+
+The Variational Monte Carlo (VMC) sampler framework is built with a base sampler that needs a step forward algorithm (Langevin Metropolis-Hastings or Random Walk Metropolis) and a trial wave function class. The trial wave function classes are all based on a base wave function class that assures they have the needed implementations to perform the operations needed for the VMC sampling algorithm. There are analytical wave function classes for the interacting and non-interacting cases, and also a numerical wave function class for the non-interacting case. The base sampler class contains functionalities as tuning of scale parameters, warm-up of the chain, and an optimizer (ADAM) algorithm. The states in the chain make use of a State-class which inherits from a NamedTuple class. The implementation can be found in \url{https://github.com/nicolossus/FYS4411-Project1.git}. % her er det sikkert litt mangler, og dårlig med begrunnelser. 

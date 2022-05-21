@@ -56,7 +56,7 @@ class BaseVMC:
         self._locE_fn = self._wf.local_energy
         self._driftF_fn = self._wf.drift_force
         self._grad_alpha_fn = self._wf.grad_alpha
-        self._pdf = self._wf.PDF_vectorized
+        #self._pdf = self._wf.PDF_vectorized
 
     def _check_inference_scheme(self, inference_scheme):
         if inference_scheme is None:
@@ -127,13 +127,13 @@ class BaseVMC:
         seeds = generate_seed_sequence(seed, nchains)
 
         if nchains == 1:
-            self._final_state, results, self._energies, self._distances, self._pdfs = self._sample(nsamples,
-                                                                                                   initial_positions,
-                                                                                                   alpha,
-                                                                                                   eta,
-                                                                                                   seeds[0],
-                                                                                                   **kwargs
-                                                                                                   )
+            self._final_state, results, self._energies = self._sample(nsamples,
+                                                                      initial_positions,
+                                                                      alpha,
+                                                                      eta,
+                                                                      seeds[0],
+                                                                      **kwargs
+                                                                      )
 
             self._results_full = pd.DataFrame([results])
 
@@ -150,18 +150,17 @@ class BaseVMC:
 
             with ProcessPool(nchains) as pool:
                 # , self._distances
-                self._final_state, results, self._energies, self._distances, self._pdfs = zip(*pool.map(self._sample,
-                                                                                              nsamples,
-                                                                                              initial_positions,
-                                                                                              alpha,
-                                                                                              eta,
-                                                                                              seeds,
-                                                                                              kwargs,
-                                                                                                        ))
+                self._final_state, results, self._energies = zip(*pool.map(self._sample,
+                                                                 nsamples,
+                                                                 initial_positions,
+                                                                 alpha,
+                                                                 eta,
+                                                                 seeds,
+                                                                 kwargs,
+                                                                 ))
 
                 self._results_full = pd.DataFrame(results)
 
-        #print("Shape of pdfs within sample: ", self._pdfs.shape)
         return self.results
 
     def _sample(self, *args, **kwargs):
@@ -200,14 +199,21 @@ class BaseVMC:
 
             print("Tune done")
 
+        if rewarm:
+            state = self.warmup_chain(state, alpha, seed, **kwargs)
+            actual_warm_iter += state.delta
+            subtract_iter = actual_warm_iter
+            print("Warm after tune done")
+
         # Optimize?
         if self._optimize:
             state, alpha = self.optimizer(state, alpha, eta, seed, **kwargs)
             actual_optim_iter += state.delta - subtract_iter
             subtract_iter = actual_optim_iter + actual_tune_iter + actual_warm_iter
-            # retune = True
+            retune = True
             """
             ^ TURNED OFF FOR DEBUG
+            TURNED ON AGAIN
             """
 
             print(f"Optimize done, final alpha: {alpha}")
@@ -221,21 +227,19 @@ class BaseVMC:
             state = self.warmup_chain(state, alpha, seed, **kwargs)
             actual_warm_iter += state.delta
             subtract_iter = actual_warm_iter
-            print("Warm after tune done")
+            print("Rewarming done")
 
         print("Sampling energy")
         # Sample energy
-        # , distances
-        state, energies, distances, pdfs = self.sample_energy(nsamples,
-                                                              state,
-                                                              alpha,
-                                                              seed,
-                                                              **kwargs
-                                                              )
+        state, energies = self.sample_energy(nsamples,
+                                             state,
+                                             alpha,
+                                             seed,
+                                             **kwargs
+                                             )
 
         results = self._accumulate_results(state,
                                            energies,
-                                           distances,
                                            nsamples,
                                            alpha,
                                            eta,
@@ -244,14 +248,13 @@ class BaseVMC:
                                            actual_optim_iter,
                                            **kwargs
                                            )
-        #print("Shape pdfs within _sample: ", pdfs.shape)
-        return state, results, energies, distances, pdfs
+
+        return state, results, energies
 
     def _accumulate_results(
         self,
         state,
         energies,
-        distances,
         nsamples,
         alpha,
         eta,
@@ -266,13 +269,9 @@ class BaseVMC:
 
         N, d = state.positions.shape
 
-        # total_moves = nsamples * N * d
-        #total_moves = nsamples
-        # total_moves = nsamples*N
-        total_moves = nsamples  # *N*d
+        total_moves = nsamples
         acc_rate = state.n_accepted / total_moves
         energy = np.mean(energies)
-        mean_distance = np.mean(distances)
         # blocking
         error = block(energies)
         # effective samples?
@@ -289,7 +288,6 @@ class BaseVMC:
                    "eta": eta,
                    "alpha": alpha,
                    "energy": energy,
-                   "mean_distance": mean_distance,
                    "standard_error": error,
                    "accept_rate": acc_rate,
                    "nsamples": nsamples,
@@ -365,10 +363,8 @@ class BaseVMC:
         steps_before_tune = self._tune_interval
         # Reset n_accepted
         state = State(state.positions, state.logp, 0, state.delta)
-        N, d = state.positions.shape
-        #total_moves = self._tune_interval * N * d
         total_moves = self._tune_interval
-        #total_moves = self._tune_interval * N
+
         count = 0
         for i in range(self._tune_iter):
             state = self.step(state, alpha, seed, scale=scale, **kwargs)
@@ -493,33 +489,12 @@ class BaseVMC:
 
         # Reset n_accepted
         state = State(state.positions, state.logp, 0, state.delta)
-        # For one body density calculation
-        nparticles = state.positions.shape[0]
-        #distances = np.zeros(nsamples, nparticles)
-        #pdfs = np.zeros((nsamples, nparticles))
-        #distances = np.zeros((nsamples, nparticles))
         energies = np.zeros(nsamples)
-
         for i in range(nsamples):
             state = self.step(state, alpha, seed, **kwargs)
             energies[i] = self._locE_fn(state.positions, alpha)
-            distances[i, :] = np.linalg.norm(state.positions, axis=1)
-            pdfs[i, :] = self._pdf(state.positions, alpha)
+        return state, energies
 
-        #print("Shape pdfs inside sample_energy: ", pdfs.shape)
-        return state, energies  # , distances, pdfs
-    """
-    def sample_distance(self, nsamples, state, alpha, seed, **kwargs):
-
-        # Reset n_accepted
-        state = State(state.positions, state.logp, 0, state.delta)
-
-        nparticles = state.positions.shape[0]
-        distances = np.zeros(nsamples, nparticles)
-
-        for i in range(nsamples):
-            state = self.step(state, alpha, seed, **kwargs)
-    """
     @property
     def results_all(self):
         try:
@@ -531,7 +506,7 @@ class BaseVMC:
     @property
     def results(self):
         df = self.results_all[["nparticles", "dim", "alpha",
-                               "energy",  "mean_distance", "standard_error", "accept_rate"]]
+                               "energy", "standard_error", "accept_rate"]]
         return df
 
     @property
