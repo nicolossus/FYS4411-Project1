@@ -133,7 +133,6 @@ class System:
 
         def ke_closure(r): return self._local_kinetic_energy(r, alpha)
         ke = jnp.sum(jax.vmap(ke_closure)(r))
-
         #ke = jnp.sum(ke_closure(r))
         #ke = ke_closure(r)
 

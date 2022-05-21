@@ -486,6 +486,7 @@ class BaseVMC:
                 if self._early_stop:
                     if early_stopping(alpha, old_alpha, tolerance=self._tol_optim):
                         break
+
         return state, alpha
 
     def sample_energy(self, nsamples, state, alpha, seed, **kwargs):
