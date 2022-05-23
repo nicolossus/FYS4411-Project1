@@ -16,10 +16,10 @@ sys.path.insert(0, '../src/')
 import vmc  # noqa
 
 """
-Grid search for optimal alpha with ASHONIB and RWM
+Grid search for optimal alpha with SHONIB and RWM
 """
 
-output_filename = "../data/grid_search_ashonib_rwm.csv"
+output_filename = "../data/grid_search_shonib_rwm.csv"
 
 # Remove file if it exists
 if os.path.exists(output_filename):
@@ -56,8 +56,7 @@ for i in range(len(outer_loop)):
     inner_loop.reset()  # reuse bar
 
     # Instantiate wave function
-    wf = vmc.ASHONIB(Ns[i], dim)
-    #wf = vmc.SHONIB()
+    wf = vmc.SHONIB()
 
     # Instantiate sampler
     sampler = vmc.RWM(wf)
