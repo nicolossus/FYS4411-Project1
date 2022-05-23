@@ -5,31 +5,45 @@ from abc import abstractmethod
 
 import numpy as np
 
+from ..utils import advance_PRNG_state
 from .base_sampler import BaseVMC
-from .pool_tools import advance_PRNG_state
 from .state import State
 
 
-class Metropolis(BaseVMC):
+class RWM(BaseVMC):
 
     def __init__(self, wavefunction, rng=None):
-        super().__init__(wavefunction, inference_scheme='metropolis', rng=rng)
+        super().__init__(wavefunction,
+                         inference_scheme='Random Walk Metropolis',
+                         rng=rng)
 
     def step(self, state, alpha, seed, scale=1.0):
         """One step of the random walk Metropolis algorithm
 
         Parameters
         ----------
-        state : State
+        state : vmc.State
             Current state of the system. See state.py
         alpha :
             Variational parameter
         scale : float
             Scale of proposal distribution. Default: 1.0
+
+        Returns
+        -------
+        new_state : vmc.State
+            The updated state of the system.
         """
+
+        N, dim = state.positions.shape
+
         # Advance RNG
         next_gen = advance_PRNG_state(seed, state.delta)
         rng = self._rng(next_gen)
+<<<<<<< HEAD
+=======
+
+>>>>>>> 275ff94435f066994bc075a08c7d61d02855d80e
         # Sample proposal positions, i.e., move walkers
         proposals = rng.normal(loc=state.positions, scale=scale)
 
@@ -42,18 +56,20 @@ class Metropolis(BaseVMC):
         # Metroplis acceptance criterion
         accept = log_unif < logp_proposal - state.logp
 
+<<<<<<< HEAD
+=======
+        # If accept is True, yield proposal, otherwise keep old state
+>>>>>>> 275ff94435f066994bc075a08c7d61d02855d80e
         new_positions = proposals if accept else state.positions
 
-        new_logp = self._logp_fn(new_positions, alpha)
-
-        new_n_accepted = state.n_accepted + accept
-
-        new_logp = self._logp_fn(new_positions, alpha)
-
-        new_delta = state.delta + 1
-
         # Create new state
+        new_logp = self._logp_fn(new_positions, alpha)
+<<<<<<< HEAD
 
+=======
+>>>>>>> 275ff94435f066994bc075a08c7d61d02855d80e
+        new_n_accepted = state.n_accepted + accept
+        new_delta = state.delta + 1
         new_state = State(new_positions, new_logp, new_n_accepted, new_delta)
 
         return new_state

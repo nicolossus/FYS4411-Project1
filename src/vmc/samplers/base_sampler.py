@@ -4,15 +4,17 @@ import sys
 import warnings
 from abc import abstractmethod
 from functools import partial
+from multiprocessing import Lock, RLock
 
 import numpy as np
 import pandas as pd
 from numpy.random import default_rng
 from pathos.pools import ProcessPool
+from tqdm.auto import tqdm
 
-from .blocking import block
-from .pool_tools import check_and_set_jobs, generate_seed_sequence
-from .sampler_utils import early_stopping, tune_dt_table, tune_scale_table
+from ..utils import (block, check_and_set_nchains, early_stopping,
+                     generate_seed_sequence, setup_logger, tune_dt_table,
+                     tune_scale_table)
 from .state import State
 
 warnings.filterwarnings("ignore", message="divide by zero encountered")
@@ -56,7 +58,6 @@ class BaseVMC:
         self._locE_fn = self._wf.local_energy
         self._driftF_fn = self._wf.drift_force
         self._grad_alpha_fn = self._wf.grad_alpha
-        #self._pdf = self._wf.PDF_vectorized
 
     def _check_inference_scheme(self, inference_scheme):
         if inference_scheme is None:
@@ -66,6 +67,56 @@ class BaseVMC:
         if not isinstance(inference_scheme, str):
             msg = 'inference_scheme must be passed as str'
             raise TypeError(msg)
+
+    def _check_and_set_iterable(self, item, nchains, item_name):
+        if isinstance(item, (int, float)):
+            return (item,) * nchains
+        elif isinstance(item, (list, tuple, np.ndarray)):
+            if not len(item) == nchains:
+                msg = (f"{item_name} must be an iterable with length nchains "
+                       "or just a scalar value")
+                raise ValueError(msg)
+        return item
+
+    def _check_initial_positions(self, init_pos, nchains):
+        msg = (f"initial_positions must be an iterable with length "
+               "nchains or just an array with all the particles "
+               "initial configuration")
+        if isinstance(init_pos, np.ndarray):
+            # check if init_pos is an array with multiple initial positions
+            if init_pos.ndim == 3:
+                if not len(init_pos) == nchains:
+                    raise ValueError(msg)
+            else:
+                return (init_pos,) * nchains
+        elif isinstance(init_pos, (list, tuple)):
+            if not len(init_pos) == nchains:
+                raise ValueError(msg)
+        else:
+            raise TypeError("The initial_positions dtype is not supported")
+
+        return init_pos
+
+    def _check_logger(self, log, logger_level):
+        if not isinstance(log, bool):
+            raise TypeError("'log' must be True or False")
+
+        if not isinstance(logger_level, str):
+            raise TypeError("'logger_level' must be passed as str")
+
+    def _initialize_logger(self, log, logger_level, nchains):
+        self._check_logger(log, logger_level)
+        self._log = log
+
+        if self._log:
+            self.logger = setup_logger(self.__class__.__name__,
+                                       level=logger_level)
+            str_nchains = "chain" if nchains == 1 else "chains"
+            msg = (f"Initialize {self._inference_scheme} sampler with "
+                   f"{nchains} {str_nchains}")
+            self.logger.info(msg)
+        else:
+            self.logger = None
 
     @abstractmethod
     def step(self, state, alpha, **kwargs):
@@ -86,10 +137,10 @@ class BaseVMC:
         nchains=1,
         seed=None,
         warm=True,
-        warmup_iter=500,
+        warmup_iter=10000,
         tune=True,
-        tune_iter=5000,
-        tune_interval=250,
+        tune_iter=10000,
+        tune_interval=500,
         tol_tune=1e-5,
         optimize=True,
         max_iter=50000,
@@ -98,9 +149,69 @@ class BaseVMC:
         eta=0.01,
         tol_optim=1e-5,
         early_stop=True,
+        log=True,
+        logger_level="INFO",
         **kwargs
     ):
-        """Sampling procedure"""
+        """Sampling procedure
+
+        Parameters
+        ----------
+        n_samples : int
+            Number of energy samples to obtain
+        initial_positions : array_like
+            Initial points in configuration space
+        alpha : float or array_like
+            Variational parameter.
+        nchains: int
+            Number of Markov chains
+        seed : int, optional
+            Random number generator seed.
+        warm : bool, optional
+            Whether to run warm-up cycles or not. Default: True
+        warmup_iter : int, optional
+            The number of warm-up iterations. Deafult: 1000
+        tune : bool, optional
+            Whether to tune the proposal scale or not. Default: True
+        tune_iter : int, optional
+            The maximum number of tuning cycles, Default: 5000
+        tune_interval : int, optional
+            The number of cycles between each tune update. Default: 250
+        tol_tune : float, optional
+            The tolerance level to decide whether to early stop the tuning or
+            not. Default: 1e-5
+        optimize : bool, optional
+            Whether to optimize the variational parameter or not. Default: True
+        max_iter : int, optional
+            The maximum number of optimize cycles, Default: 50000
+        batch_size : int, optional
+            The number of cycles in a batch used in optimization. Default: 500
+        gradient_method : str, optional
+            The gradient descent optimization method, either 'gd' or 'adam'.
+            Default: 'adam'
+        eta : float, optional
+            The gradient descent optimizer's learning rate. Default: 0.01
+        tol_optim : float, optional
+            The tolerance level to decide whether to early stop the optimization
+            or not. Default: 1e-5
+        log : bool, optional
+            Whether to show logger or not. Default: True
+        logger_level : str, optional
+            Logging level. One of ["DEBUG", "INFO", "WARNING", "ERROR",
+            "CRITICAL"]. Default: "INFO"
+        **kwargs
+            Arbitrary keyword arguments are passed to step method of the
+            sampling algorithm
+
+        Returns
+        -------
+        pandas.DataFrame
+            A dataframe with sampling results.
+        """
+
+        # Logger
+        self._initialize_logger(log, logger_level, nchains)
+
         self._reject_batch = False
         # Settings for warm-up
         self._warm = warm
@@ -123,43 +234,65 @@ class BaseVMC:
         self._early_stop = early_stop
 
         # Set and run chains
-        nchains = check_and_set_jobs(nchains)
+        nchains = check_and_set_nchains(nchains, self.logger)
         seeds = generate_seed_sequence(seed, nchains)
 
         if nchains == 1:
+            chain_id = 0
             self._final_state, results, self._energies = self._sample(nsamples,
                                                                       initial_positions,
                                                                       alpha,
                                                                       eta,
                                                                       seeds[0],
+                                                                      chain_id,
                                                                       **kwargs
                                                                       )
 
             self._results_full = pd.DataFrame([results])
 
         else:
-            # kwargs
-            # iterables
-            nsamples = (nsamples,) * nchains
-            initial_positions = (initial_positions,) * nchains
-            alpha = (alpha,) * nchains
-            eta = [eta] * nchains
-            kwargs = (kwargs,) * nchains
 
-            # nsamples, initial_positions, alpha, eta, **kwargs
+            if self._log:
+                # for managing output contention
+                initializer = tqdm.set_lock(Lock(),)
+                initargs = (tqdm.get_lock(),)
+            else:
+                initializer = None
+                initargs = None
+
+            # Handle iterables
+            nsamples = self._check_and_set_iterable(nsamples,
+                                                    nchains,
+                                                    "nsamples")
+            initial_positions = self._check_initial_positions(initial_positions,
+                                                              nchains)
+            alpha = self._check_and_set_iterable(alpha,
+                                                 nchains,
+                                                 "alpha")
+            eta = self._check_and_set_iterable(eta,
+                                               nchains,
+                                               "eta")
+            kwargs = (kwargs,) * nchains
+            chain_ids = range(nchains)
 
             with ProcessPool(nchains) as pool:
-                # , self._distances
-                self._final_state, results, self._energies = zip(*pool.map(self._sample,
-                                                                 nsamples,
-                                                                 initial_positions,
-                                                                 alpha,
-                                                                 eta,
-                                                                 seeds,
-                                                                 kwargs,
-                                                                 ))
+                r = zip(*pool.map(self._sample,
+                                  nsamples,
+                                  initial_positions,
+                                  alpha,
+                                  eta,
+                                  seeds,
+                                  chain_ids,
+                                  kwargs,
+                                  initializer=initializer,
+                                  initargs=initargs
+                                  ))
 
-                self._results_full = pd.DataFrame(results)
+            self._final_state, results, self._energies = r
+            self._results_full = pd.DataFrame(results)
+
+        if self._log:
+            self.logger.info("Sampling done")
 
         return self.results
 
@@ -168,9 +301,9 @@ class BaseVMC:
 
         # Some trickery to get this to work with multiprocessing
         if not kwargs:
-            nsamples, initial_positions, alpha, eta, seed, kwargs = args
+            nsamples, initial_positions, alpha, eta, seed, chain_id, kwargs = args
         else:
-            nsamples, initial_positions, alpha, eta, seed = args
+            nsamples, initial_positions, alpha, eta, seed, chain_id = args
 
         # Set some flags and counters
         retune = False
@@ -185,56 +318,66 @@ class BaseVMC:
 
         # Warm-up?
         if self._warm:
-            state = self.warmup_chain(state, alpha, seed, **kwargs)
+            state = self.warmup_chain(state,
+                                      alpha,
+                                      seed,
+                                      chain_id,
+                                      **kwargs
+                                      )
             actual_warm_iter += state.delta
             subtract_iter = actual_warm_iter
-
-            print("Warm done")
 
         # Tune?
         if self._tune:
-            state, kwargs = self.tune_selector(state, alpha, seed, **kwargs)
+            state, kwargs = self.tune_selector(state,
+                                               alpha,
+                                               seed,
+                                               chain_id,
+                                               **kwargs
+                                               )
             actual_tune_iter += state.delta - subtract_iter
             subtract_iter = actual_tune_iter + actual_warm_iter
 
-            print("Tune done")
-
+        '''
         if rewarm:
-            state = self.warmup_chain(state, alpha, seed, **kwargs)
+            state = self.warmup_chain(state, alpha, seed, chain_id, **kwargs)
             actual_warm_iter += state.delta
             subtract_iter = actual_warm_iter
-            print("Warm after tune done")
+        '''
 
         # Optimize?
         if self._optimize:
-            state, alpha = self.optimizer(state, alpha, eta, seed, **kwargs)
+            state, alpha = self.optimizer(state,
+                                          alpha,
+                                          eta,
+                                          seed,
+                                          chain_id,
+                                          **kwargs
+                                          )
             actual_optim_iter += state.delta - subtract_iter
             subtract_iter = actual_optim_iter + actual_tune_iter + actual_warm_iter
-            retune = True
-            """
-            ^ TURNED OFF FOR DEBUG
-            TURNED ON AGAIN
-            """
+            #retune = True
 
-            print(f"Optimize done, final alpha: {alpha}")
+        '''
         # Retune for good measure
         if retune:
             state, kwargs = self.tune_selector(state, alpha, seed, **kwargs)
             actual_tune_iter += state.delta - subtract_iter
-            print("Retune done")
+
 
         if rewarm:
             state = self.warmup_chain(state, alpha, seed, **kwargs)
             actual_warm_iter += state.delta
             subtract_iter = actual_warm_iter
-            print("Rewarming done")
 
-        print("Sampling energy")
+        '''
+
         # Sample energy
         state, energies = self.sample_energy(nsamples,
                                              state,
                                              alpha,
                                              seed,
+                                             chain_id,
                                              **kwargs
                                              )
 
@@ -246,6 +389,7 @@ class BaseVMC:
                                            actual_warm_iter,
                                            actual_tune_iter,
                                            actual_optim_iter,
+                                           chain_id,
                                            **kwargs
                                            )
 
@@ -261,6 +405,7 @@ class BaseVMC:
         warm_cycles,
         tune_cycles,
         optim_cycles,
+        chain_id,
         **kwargs
     ):
         """
@@ -272,23 +417,25 @@ class BaseVMC:
         total_moves = nsamples
         acc_rate = state.n_accepted / total_moves
         energy = np.mean(energies)
-        # blocking
         error = block(energies)
-        # effective samples?
-        if self._inference_scheme == "metropolis":
+        variance = np.mean(energies**2) - energy**2
+
+        if self._inference_scheme == "Random Walk Metropolis":
             scale_name = "scale"
             scale_val = kwargs[scale_name]
-        elif self._inference_scheme == "metropolis-hastings":
+        elif self._inference_scheme == "Langevin Metropolis-Hastings":
             scale_name = "dt"
             scale_val = kwargs[scale_name]
 
-        results = {"nparticles": N,
+        results = {"chain_id": chain_id + 1,
+                   "nparticles": N,
                    "dim": d,
                    scale_name: scale_val,
                    "eta": eta,
                    "alpha": alpha,
                    "energy": energy,
                    "standard_error": error,
+                   "variance": variance,
                    "accept_rate": acc_rate,
                    "nsamples": nsamples,
                    "total_cycles": state.delta,
@@ -307,7 +454,7 @@ class BaseVMC:
                       )
         return state
 
-    def warmup_chain(self, state, alpha, seed, **kwargs):
+    def warmup_chain(self, state, alpha, seed, chain_id, **kwargs):
         """Warm-up the chain for warmup_iter cycles.
 
         Arguments
@@ -326,28 +473,44 @@ class BaseVMC:
         State
             The state after warm-up
         """
-        for i in range(self._warmup_iter):
+
+        if self._log:
+            t_range = tqdm(range(self._warmup_iter),
+                           desc=f"[Warm-up progress] Chain {chain_id+1}",
+                           position=chain_id,
+                           leave=True,
+                           colour='green')
+        else:
+            t_range = range(self._warmup_iter)
+
+        for _ in t_range:
             state = self.step(state, alpha, seed, **kwargs)
+
+        if self._log:
+            t_range.close()
+
         return state
 
-    def tune_selector(self, state, alpha, seed, **kwargs):
+    def tune_selector(self, state, alpha, seed, chain_id, **kwargs):
         """Select appropriate tuning procedure"""
 
-        if self._inference_scheme == "metropolis":
+        if self._inference_scheme == "Random Walk Metropolis":
             scale = kwargs.pop("scale")
             state, new_scale = self.tune_scale(state,
                                                alpha,
                                                seed,
                                                scale,
+                                               chain_id,
                                                **kwargs)
             kwargs = dict(kwargs, scale=new_scale)
-        elif self._inference_scheme == "metropolis-hastings":
+        elif self._inference_scheme == "Langevin Metropolis-Hastings":
             dt = kwargs.pop("dt")
 
             state, new_dt = self.tune_dt(state,
                                          alpha,
                                          seed,
                                          dt,
+                                         chain_id,
                                          **kwargs)
             kwargs = dict(kwargs, dt=new_dt)
         else:
@@ -357,79 +520,110 @@ class BaseVMC:
 
         return state, kwargs
 
-    def tune_scale(self, state, alpha, seed, scale, **kwargs):
+    def tune_scale(self, state, alpha, seed, scale, chain_id, **kwargs):
         """For samplers with scale parameter."""
 
+        if self._log:
+            t_range = tqdm(range(self._tune_iter),
+                           desc=f"[Tuning progress] Chain {chain_id+1}",
+                           position=chain_id,
+                           leave=True,
+                           colour='green')
+        else:
+            t_range = range(self._tune_iter)
+
         steps_before_tune = self._tune_interval
+        early_stop_counter = 0
+
         # Reset n_accepted
         state = State(state.positions, state.logp, 0, state.delta)
-        total_moves = self._tune_interval
 
-        count = 0
-        for i in range(self._tune_iter):
+        for i in t_range:
             state = self.step(state, alpha, seed, scale=scale, **kwargs)
             steps_before_tune -= 1
 
             if steps_before_tune == 0:
                 old_scale = scale
-                accept_rate = state.n_accepted / total_moves
+                accept_rate = state.n_accepted / self._tune_interval
                 scale = tune_scale_table(old_scale, accept_rate)
-                if scale == old_scale:
-                    count += 1
-                else:
-                    count = 0
-                #print(f"Acceptance rate {accept_rate} and scale {scale}")
+
                 # Reset
                 steps_before_tune = self._tune_interval
                 state = State(state.positions, state.logp, 0, state.delta)
 
                 # Early stopping?
-                if count > 2:
-                    break
-                """
                 if self._early_stop:
                     if early_stopping(scale, old_scale, tolerance=self._tol_tune):
+                        early_stop_counter += 1
+                    else:
+                        early_stop_counter = 0
+
+                    if early_stop_counter > 2:
                         break
-                """
-        #print(f"Final acceptance rate {accept_rate} and scale {scale}")
+
+        if self._log:
+            t_range.close()
+
         return state, scale
 
-    def tune_dt(self, state, alpha, seed, dt, **kwargs):
+    def tune_dt(self, state, alpha, seed, dt, chain_id, **kwargs):
         """For samplers with dt parameter."""
 
+        if self._log:
+            t_range = tqdm(range(self._tune_iter),
+                           desc=f"[Tuning progress] Chain {chain_id+1}",
+                           position=chain_id,
+                           leave=True,
+                           colour='green')
+        else:
+            t_range = range(self._tune_iter)
+
         steps_before_tune = self._tune_interval
+        early_stop_counter = 0
+
         # Reset n_accepted
         state = State(state.positions, state.logp, 0, state.delta)
-        N, d = state.positions.shape
-        # total_moves = self._tune_interval * N * d
-        total_moves = self._tune_interval
-        # print("Tuning..")
-        for i in range(self._tune_iter):
+
+        for i in t_range:
             state = self.step(state, alpha, seed, dt=dt, **kwargs)
             steps_before_tune -= 1
 
             if steps_before_tune == 0:
                 old_dt = dt
-                accept_rate = state.n_accepted / total_moves
+                accept_rate = state.n_accepted / self._tune_interval
                 dt = tune_dt_table(old_dt, accept_rate)
-                # print(f'Accept rate: {accept_rate}, dt: {dt}')
 
                 # Reset
                 steps_before_tune = self._tune_interval
                 state = State(state.positions, state.logp, 0, state.delta)
 
                 # Early stopping?
-
                 if self._early_stop:
                     if early_stopping(dt, old_dt, tolerance=self._tol_tune):
+                        early_stop_counter += 1
+                    else:
+                        early_stop_counter = 0
+
+                    if early_stop_counter > 2:
                         break
 
-        #print(f"Final dt val: {dt}, with accept rate: {accept_rate}")
+        if self._log:
+            t_range.close()
+
         return state, dt
 
-    def optimizer(self, state, alpha, eta, seed, **kwargs):
+    def optimizer(self, state, alpha, eta, seed, chain_id, **kwargs):
         """Optimize alpha
         """
+
+        if self._log:
+            t_range = tqdm(range(self._max_iter),
+                           desc=f"[Optimization progress] Chain {chain_id+1}",
+                           position=chain_id,
+                           leave=True,
+                           colour='green')
+        else:
+            t_range = range(self._max_iter)
 
         # Set hyperparameters for Adam
         if self._gradient_method == "adam":
@@ -445,7 +639,7 @@ class BaseVMC:
         energies = []
         grad_alpha = []
 
-        for i in range(self._max_iter):
+        for i in t_range:
             state = self.step(state, alpha, seed, **kwargs)
             energies.append(self._locE_fn(state.positions, alpha))
             grad_alpha.append(self._grad_alpha_fn(state.positions, alpha))
@@ -482,18 +676,37 @@ class BaseVMC:
                 if self._early_stop:
                     if early_stopping(alpha, old_alpha, tolerance=self._tol_optim):
                         break
+        if self._log:
+            t_range.close()
 
         return state, alpha
 
-    def sample_energy(self, nsamples, state, alpha, seed, **kwargs):
+    def sample_energy(self, nsamples, state, alpha, seed, chain_id, **kwargs):
+
+        if self._log:
+            t_range = tqdm(range(nsamples),
+                           desc=f"[Sampling progress] Chain {chain_id+1}",
+                           position=chain_id,
+                           leave=True,
+                           colour='green')
+        else:
+            t_range = range(nsamples)
 
         # Reset n_accepted
         state = State(state.positions, state.logp, 0, state.delta)
         energies = np.zeros(nsamples)
-        for i in range(nsamples):
+
+        for i in t_range:
             state = self.step(state, alpha, seed, **kwargs)
             energies[i] = self._locE_fn(state.positions, alpha)
+
+        if self._log:
+            t_range.close()
+
         return state, energies
+
+    def to_csv(self, filename):
+        self.results_all.to_csv(filename, index=False)
 
     @property
     def results_all(self):
@@ -505,8 +718,13 @@ class BaseVMC:
 
     @property
     def results(self):
-        df = self.results_all[["nparticles", "dim", "alpha",
-                               "energy", "standard_error", "accept_rate"]]
+        df = self.results_all[["nparticles",
+                               "dim",
+                               "alpha",
+                               "energy",
+                               "standard_error",
+                               "variance",
+                               "accept_rate"]]
         return df
 
     @property
@@ -526,39 +744,16 @@ class BaseVMC:
             raise SamplingNotPerformed(msg)
 
     @property
-    def distance_samples(self):
-        try:
-            return self._distances
-        except AttributeError:
-            msg = "Unavailable, a call to sample must be made first"
-            raise SamplingNotPerformed(msg)
-
-    @property
-    def pdf_samples(self):
-        try:
-            """
-            pdfs = self._pdfs
-            num_mc_cycles, N = pdfs.shape
-            pdf_data = {}
-            for i in range(num_mc_cycles):
-                pdf_data[f"Cycle_{i+1}"] = []
-            for i in range(num_mc_cycles):
-                for particle in range(N):
-                    pdf_data[f"Cycle_{i+1}"].append(pdfs[i, particle])
-            """
-            return self._pdfs  # pd.DataFrame(pdf_data)
-
-        except AttributeError:
-            msg = "Unavailable, a call to sample must be made first"
-            raise SamplingNotPerformed(msg)
-
-    @property
     def alpha(self):
         return self.results["alpha"]
 
     @property
     def energy(self):
         return self.results["energy"]
+
+    @property
+    def variance(self):
+        return self.results["variance"]
 
     @property
     def standard_error(self):

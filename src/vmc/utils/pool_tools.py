@@ -5,50 +5,52 @@ import numpy as np
 import pathos as pa
 
 
-def check_and_set_jobs(n_jobs, logger=None):
+def check_and_set_nchains(nchains, logger=None):
     """Check and set passed number of jobs.
 
-    Checks whether passed `n_jobs` has correct type and value, raises if not.
+    Checks whether passed `nchains` has correct type and value, raises if not.
 
-    If n_jobs exceeds the number of available CPUs found by `Pathos` (this
-    might include hardware threads), `n_jobs` is set to the number found by
+    If nchains exceeds the number of available CPUs found by `Pathos` (this
+    might include hardware threads), `nchains` is set to the number found by
     `Pathos`.
 
-    If `n_jobs=-1`, then n_jobs is set to half of the CPUs found by `Pathos`
+    If `nchains=-1`, then nchains is set to half of the CPUs found by `Pathos`
     (we assume half of the CPUs are only hardware threads and ignore those).
 
     Parameters
     ----------
-    n_jobs : :obj:`int`
+    nchains : :obj:`int`
         Number of processes (workers) passed by user.
     logger : :obj:`logging.Logger`
         Logger object.
 
     Returns
     -------
-    n_jobs : :obj:`int`
+    nchains : :obj:`int`
         Possibly corrected number of processes (workers).
     """
-    if not isinstance(n_jobs, int):
-        msg = ("n_jobs must be passed as int.")
+    if not isinstance(nchains, int):
+        msg = ("nchains must be passed as int.")
         raise TypeError(msg)
 
-    if n_jobs < -1 or n_jobs == 0:
-        msg = ("With the exception of n_jobs=-1, negative n_jobs cannot be "
+    if nchains < -1 or nchains == 0:
+        msg = ("With the exception of nchains=-1, negative nchains cannot be "
                "passed.")
         raise ValueError(msg)
 
     n_cpus = pa.helpers.cpu_count()
 
-    if n_jobs > n_cpus:
+    if nchains > n_cpus:
         if logger is not None:
-            logger.warn("n_jobs exceeds the number of CPUs in the system.")
-            logger.warn("Reducing n_jobs to match number of CPUs in system.")
-        n_jobs = n_cpus
-    elif n_jobs == -1:
-        n_jobs = n_cpus // 2
+            logger.warn(
+                f"nchains={nchains} exceeds the found threads={n_cpus}")
+            logger.warn(
+                "Reducing nchains to match number of threads in system")
+        nchains = n_cpus
+    elif nchains == -1:
+        nchains = n_cpus // 2
 
-    return n_jobs
+    return nchains
 
 
 def generate_seed_sequence(user_seed=None, pool_size=None):

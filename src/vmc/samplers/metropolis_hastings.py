@@ -5,16 +5,16 @@ from abc import abstractmethod
 
 import numpy as np
 
+from ..utils import advance_PRNG_state
 from .base_sampler import BaseVMC
-from .pool_tools import advance_PRNG_state
 from .state import State
 
 
-class MetropolisHastings(BaseVMC):
+class LMH(BaseVMC):
 
     def __init__(self, wavefunction, rng=None):
         super().__init__(wavefunction,
-                         inference_scheme='metropolis-hastings',
+                         inference_scheme='Langevin Metropolis-Hastings',
                          rng=rng
                          )
 
