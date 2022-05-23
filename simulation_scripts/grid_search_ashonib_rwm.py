@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 # Import code from src
 sys.path.insert(0, '../src/')
-import vmc  # noqa
+import vmc # noqa
 
 """
 Grid search for optimal alpha with ASHONIB and RWM
@@ -34,47 +34,46 @@ def non_interact_initial_positions(wf, alpha, N, dim):
 
 
 # Config
-Ns = [1, 10, 100, 500]  # Number of particles
+Ns = [1, 500]  # Number of particles
 dim = 3                 # Dimensionality
-nsamples = 20000
+nsamples = 2**18
 nchains = 10
 
 # Set grid of alphas
-alphas = np.linspace(0.1, 1.0, nchains)
+alphas = np.linspace(0.1, 1.0, 10)
 
 for N in tqdm(Ns):
 
     # Instantiate wave function
     #wf = vmc.ASHONIB(N, dim)
     wf = vmc.SHONIB()
+    for i, alpha in enumerate(alphas):
+        # Set intial positions
+        initial_positions = non_interact_initial_positions(wf, alpha, N, dim)
 
-    # Set intial positions
-    initial_positions = [non_interact_initial_positions(wf, alpha, N, dim)
-                         for alpha in alphas]
+        #initial_positions = np.random.rand(N, dim)
 
-    #initial_positions = np.random.rand(N, dim)
-
-    # Instantiate sampler
-    sampler = vmc.RWM(wf)
-    _ = sampler.sample(nsamples,
+        # Instantiate sampler
+        sampler = vmc.RWM(wf)
+        _ = sampler.sample(nsamples,
                        initial_positions,
-                       alphas,
+                       alpha,
                        scale=1.0,
                        nchains=nchains,
                        seed=42,
                        warm=True,
                        warmup_iter=20000,
                        rewarm=True,
-                       rewarm_iter=5000,
+                       rewarm_iter=50000,
                        tune=True,
-                       tune_iter=10000,
-                       tune_interval=500,
+                       tune_iter=50000,
+                       tune_interval=2500,
                        tol_tune=1e-5,
                        optimize=False,
                        log=False
                        )
-    df = sampler.results_all
+        df = sampler.results_all
 
-    # Save results
-    df.to_csv(output_filename, mode='a', index=False,
-              header=not os.path.exists(output_filename))
+        # Save results
+        df.to_csv(output_filename, mode='a', index=False,
+                header=not os.path.exists(output_filename))
