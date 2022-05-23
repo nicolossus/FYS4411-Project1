@@ -138,6 +138,8 @@ class BaseVMC:
         seed=None,
         warm=True,
         warmup_iter=10000,
+        rewarm=True,
+        rewarm_iter=5000,
         tune=True,
         tune_iter=10000,
         tune_interval=500,
@@ -216,6 +218,8 @@ class BaseVMC:
         # Settings for warm-up
         self._warm = warm
         self._warmup_iter = warmup_iter
+        self._rewarm = rewarm
+        self._rewarm_iter = rewarm_iter
 
         # Settings for tuning
         self._tune = tune
@@ -338,12 +342,16 @@ class BaseVMC:
             actual_tune_iter += state.delta - subtract_iter
             subtract_iter = actual_tune_iter + actual_warm_iter
 
-        '''
-        if rewarm:
-            state = self.warmup_chain(state, alpha, seed, chain_id, **kwargs)
+        # Rewarm? (Only if both rewarm and tune are True)
+        if self._rewarm and self._tune:
+            state = self.rewarm_chain(state,
+                                      alpha,
+                                      seed,
+                                      chain_id,
+                                      **kwargs
+                                      )
             actual_warm_iter += state.delta
             subtract_iter = actual_warm_iter
-        '''
 
         # Optimize?
         if self._optimize:
@@ -359,7 +367,7 @@ class BaseVMC:
             #retune = True
 
         '''
-        # Retune for good measure
+        # Retune for good measure, only if optimize and retune are True
         if retune:
             state, kwargs = self.tune_selector(state, alpha, seed, **kwargs)
             actual_tune_iter += state.delta - subtract_iter
@@ -416,9 +424,19 @@ class BaseVMC:
 
         total_moves = nsamples
         acc_rate = state.n_accepted / total_moves
+
         energy = np.mean(energies)
         error = block(energies)
         variance = np.mean(energies**2) - energy**2
+
+        #scaled_energies = energies / N
+        #scaled_energy = np.mean(scaled_energies)
+        #scaled_error = block(scaled_energies)
+        #scaled_variance = np.mean(scaled_energies**2) - scaled_energy**2
+
+        scaled_energy = energy / N
+        scaled_error = error / N
+        scaled_variance = variance / N
 
         if self._inference_scheme == "Random Walk Metropolis":
             scale_name = "scale"
@@ -434,8 +452,11 @@ class BaseVMC:
                    "eta": eta,
                    "alpha": alpha,
                    "energy": energy,
-                   "standard_error": error,
+                   "std_error": error,
                    "variance": variance,
+                   "scaled_energy": scaled_energy,
+                   "scaled_std_error": error,
+                   "scaled_variance": variance,
                    "accept_rate": acc_rate,
                    "nsamples": nsamples,
                    "total_cycles": state.delta,
@@ -482,6 +503,41 @@ class BaseVMC:
                            colour='green')
         else:
             t_range = range(self._warmup_iter)
+
+        for _ in t_range:
+            state = self.step(state, alpha, seed, **kwargs)
+
+        if self._log:
+            t_range.close()
+
+        return state
+
+    def rewarm_chain(self, state, alpha, seed, chain_id, **kwargs):
+        """Rewarm the chain for after tuning for rewarm_iter cycles.
+
+        Arguments
+        ---------
+        State : vmc.State
+            Current state of the system
+        alpha : float
+            Variational parameter
+        **kwargs
+            Arbitrary keyword arguments are passed to the step method
+
+        Returns
+        -------
+        State
+            The state after warm-up
+        """
+
+        if self._log:
+            t_range = tqdm(range(self._rewarm_iter),
+                           desc=f"[Rewarm progress] Chain {chain_id+1}",
+                           position=chain_id,
+                           leave=True,
+                           colour='green')
+        else:
+            t_range = range(self._rewarm_iter)
 
         for _ in t_range:
             state = self.step(state, alpha, seed, **kwargs)
@@ -706,6 +762,13 @@ class BaseVMC:
         return state, energies
 
     def to_csv(self, filename):
+        """Write (full) results dataframe to csv.
+
+        Parameters
+        ----------
+        filename : str
+            Output filename
+        """
         self.results_all.to_csv(filename, index=False)
 
     @property
@@ -722,7 +785,7 @@ class BaseVMC:
                                "dim",
                                "alpha",
                                "energy",
-                               "standard_error",
+                               "std_error",
                                "variance",
                                "accept_rate"]]
         return df
@@ -756,8 +819,8 @@ class BaseVMC:
         return self.results["variance"]
 
     @property
-    def standard_error(self):
-        return self.results["standard_error"]
+    def std_error(self):
+        return self.results["std_error"]
 
     @property
     def accept_rate(self):
