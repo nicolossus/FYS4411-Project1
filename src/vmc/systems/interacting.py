@@ -12,7 +12,7 @@ from . import System, WaveFunction
 
 class SHOIB(System):
 
-    def __init__(self, omega, a=0.00433):
+    def __init__(self, omega=1., a=0.00433):
         super().__init__()
         self._omega2 = omega * omega
         self._a = a
@@ -75,7 +75,7 @@ class EHOIB(System):
 
 class ASHOIB(WaveFunction):
 
-    def __init__(self, N, dim, omega, a=0.00433):
+    def __init__(self, N, dim, omega=1., a=0.00433):
         super().__init__(N, dim)
         self._omega2 = omega * omega
         self._a = a
@@ -90,10 +90,10 @@ class ASHOIB(WaveFunction):
         return -alpha * np.sum(r * r)
 
     def _single_vectorized(self, r, alpha):
-        return -alpha *np.sum(r*r, axis=1)
+        return -alpha * np.sum(r * r, axis=1)
 
     def PDF_vectorized(self, r, alpha):
-        return np.exp(2*self.wf_vectorized(r, alpha))
+        return np.exp(2 * self.wf_vectorized(r, alpha))
 
     def _correlation(self, r):
         i, j = np.triu_indices(r.shape[0], 1)
@@ -116,7 +116,7 @@ class ASHOIB(WaveFunction):
         ii, jj = np.meshgrid(range(N), range(N), indexing='ij')
         i, j = (ii != jj).nonzero()
         #print("Jastrow indices: ", i)
-        #print(j)
+        # print(j)
         # Compute quantities
         rij = r[i] - r[j]
         dij = np.linalg.norm(rij, ord=2, axis=axis)
@@ -126,7 +126,7 @@ class ASHOIB(WaveFunction):
         # Sum contributions
         _, indices = np.unique(i, return_counts=True)
         row_summing = np.append([0], np.cumsum(indices))[:-1]
-        #print(row_summing)
+        # print(row_summing)
         grad_jastrow = np.add.reduceat(du_dij, row_summing, axis=0)
 
         return grad_jastrow
@@ -170,7 +170,7 @@ class ASHOIB(WaveFunction):
         grad2_jastrow = self._laplacian_jastrow(r, alpha)
         grad2 = np.sum(grad2_spf) + np.sum(grad2_jastrow)
         grad = self._gradient(r, alpha)
-        laplacian = grad2 + np.sum(grad*grad)
+        laplacian = grad2 + np.sum(grad * grad)
         return laplacian
 
     def _kinetic_energy(self, r, alpha):
@@ -192,22 +192,22 @@ class ASHOIB(WaveFunction):
 
         return -np.sum(r * r)
 
+
 class AEHOIB(WaveFunction):
 
-    def __init__(self, N, dim, omega, a=0.00433):
+    def __init__(self, N, dim, omega=1., a=0.00433):
         super().__init__(N, dim)
         self._beta = 2.82843
         self._gamma2 = self._beta * self._beta
-        self._omega2 = omega*omega
+        self._omega2 = omega * omega
         self._a = a
 
     def wf(self, r, alpha):
         return self._single(r, alpha) + self._correlation(r)
 
-
     def _single(self, r, alpha):
-        r2 = r*r
-        r2[:, 2] = r2[:, 2]*self._beta
+        r2 = r * r
+        r2[:, 2] = r2[:, 2] * self._beta
         return -alpha * np.sum(r2)
 
     def _correlation(self, r):
@@ -221,7 +221,7 @@ class AEHOIB(WaveFunction):
     def _gradient_spf(self, r, alpha):
         # Single particle gradient
         r_ = r.copy()
-        r_[:, 2] = r_[:, 2]*self._beta
+        r_[:, 2] = r_[:, 2] * self._beta
         return - 2 * alpha * r_
 
     def _gradient_jastrow(self, r, alpha):
@@ -233,7 +233,7 @@ class AEHOIB(WaveFunction):
         ii, jj = np.meshgrid(range(N), range(N), indexing='ij')
         i, j = (ii != jj).nonzero()
         #print("Jastrow indices: ", i)
-        #print(j)
+        # print(j)
         # Compute quantities
         rij = r[i] - r[j]
         dij = np.linalg.norm(rij, ord=2, axis=axis)
@@ -243,7 +243,7 @@ class AEHOIB(WaveFunction):
         # Sum contributions
         _, indices = np.unique(i, return_counts=True)
         row_summing = np.append([0], np.cumsum(indices))[:-1]
-        #print(row_summing)
+        # print(row_summing)
         grad_jastrow = np.add.reduceat(du_dij, row_summing, axis=0)
 
         return grad_jastrow
@@ -257,7 +257,7 @@ class AEHOIB(WaveFunction):
 
     def _laplacian_spf(self, r, alpha):
         N, d = r.shape
-        return -2 * (d-1+self._beta)* alpha * N
+        return -2 * (d - 1 + self._beta) * alpha * N
         # grad = -2a*(x + y + b*z)
         # lap = -2a(1 + 1 + b)
 
@@ -289,14 +289,14 @@ class AEHOIB(WaveFunction):
         grad2_jastrow = self._laplacian_jastrow(r, alpha)
         grad2 = np.sum(grad2_spf) + np.sum(grad2_jastrow)
         grad = self._gradient(r, alpha)
-        laplacian = grad2 + np.sum(grad*grad)
+        laplacian = grad2 + np.sum(grad * grad)
         return laplacian
 
     def _kinetic_energy(self, r, alpha):
         return -0.5 * self._laplacian(r, alpha)
 
     def _potential_energy(self, r):
-        r2 = r*r
+        r2 = r * r
         r2[:, 2] *= self._gamma2
         return 0.5 * self._omega2 * np.sum(r2)
 
@@ -311,9 +311,8 @@ class AEHOIB(WaveFunction):
     def grad_alpha(self, r, alpha):
         """Gradient of wave function w.r.t. variational parameter alpha"""
         r_ = r.copy()
-        r_[:, 2] = r_[:, 2]*self._beta
+        r_[:, 2] = r_[:, 2] * self._beta
         return -np.sum(r_ * r_)
-
 
 
 if __name__ == "__main__":
