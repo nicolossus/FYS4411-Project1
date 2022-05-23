@@ -26,7 +26,7 @@ class ASHONIB(WaveFunction):
         Harmonic oscillator frequency
     """
 
-    def __init__(self, N, dim, omega):
+    def __init__(self, N, dim, omega=1.):
         super().__init__(N, dim)
         self._omega = omega
 
@@ -41,11 +41,15 @@ class ASHONIB(WaveFunction):
 
     def wf_vectorized(self, r, alpha):
         """Vectorized evaluation of the trial wave function"""
-        return -alpha*np.sum(r*r, axis=1)
+        return -alpha * np.sum(r * r, axis=1)
 
     def PDF_vectorized(self, r, alpha):
         """Vectorized evaluation of the square of the wave function"""
+<<<<<<< HEAD
         return np.exp(2*self.wf_vectorized(r, alpha))
+=======
+        return np.exp(2 * self.wf_vectorized(r, alpha))
+>>>>>>> 2f1a96a58eb25ad5497b1e13030ab2ba8dbe18ee
 
     def local_energy(self, r, alpha):
         """Compute the local energy.
@@ -88,7 +92,7 @@ class SHONIB(System):
                 psi = -alpha * r**2
     """
 
-    def __init__(self, omega):
+    def __init__(self, omega=1.):
         super().__init__()
         self._omega2 = omega * omega
 
