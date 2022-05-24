@@ -69,26 +69,16 @@ def tune_scale_table(scale, acc_rate):
         return scale * 0.1
     elif acc_rate < 0.05:
         # reduce by 50 percent
-
-        scale *= 0.5  # original
+        scale *= 0.5
     elif acc_rate < 0.2:
         # reduce by ten percent
-        scale *= 0.9  # original
+        scale *= 0.9
     elif acc_rate > 0.45:
         # increase by ten percent
         scale *= 1.1
     elif acc_rate > 0.75:
         # increase by double
         scale *= 2.0
-<<<<<<< HEAD
-    # elif acc_rate > 0.8:
-        # increase by double
-    #    scale *= 1.5
-    elif acc_rate > 0.4:
-        # elif acc_rate > 0.7:
-        # increase by ten percent
-        return scale * 1.1
-=======
     elif acc_rate > 0.95:
         # increase by factor of ten
         scale *= 10.0
@@ -99,37 +89,6 @@ def tune_scale_table(scale, acc_rate):
 def tune_scale_table2(scale, acc_rate):
     """Proposal scale lookup table.
 
-    Aims to obtain an acceptance rate between 20-50%.
-
-    Retrieved from the source code of PyMC [1].
-
-    Tunes the scaling parameter for the proposal distribution
-    according to the acceptance rate over the last tune_interval:
-
-                    Rate    Variance adaptation
-                    ----    -------------------
-                    <0.001        x 0.1
-                    <0.05         x 0.5
-                    <0.2          x 0.9
-                    >0.5          x 1.1
-                    >0.75         x 2
-                    >0.95         x 10
-
-    References
-    ----------
-    [1] https://github.com/pymc-devs/pymc/blob/main/pymc/step_methods/metropolis.py#L263
-
-    Arguments
-    ---------
-    scale : float
-        Scale of the proposal distribution
-    acc_rate : float
-        Acceptance rate of the last tuning interval
-
-    Returns
-    -------
-    scale : float
-        Updated scale parameter
     """
     if acc_rate < 0.001:
         scale *= 0.1
@@ -145,9 +104,9 @@ def tune_scale_table2(scale, acc_rate):
         scale *= 1.5
     elif acc_rate > 0.7:
         scale *= 1.1
->>>>>>> 8773c5ae6826fbf721ec623bf4a6a15e3424874d
 
     return scale
+
 
 def tune_dt_table(dt, acc_rate):
     """Proposal dt (scale for importance sampler) lookup table.
@@ -190,7 +149,5 @@ def tune_dt_table(dt, acc_rate):
     elif acc_rate > 0.98:
         # increase by factor of 1000
         dt *= 1000.0
-    # elif acc_rate > 0.99:
-    #    dt *= 10000.0
 
     return dt

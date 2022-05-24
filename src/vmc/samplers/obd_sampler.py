@@ -10,8 +10,9 @@ import pandas as pd
 from numpy.random import default_rng
 from pathos.pools import ProcessPool
 
-from .pool_tools import check_and_set_jobs, generate_seed_sequence
-from .sampler_utils import tune_scale_table
+from ..utils import (block, check_and_set_nchains, early_stopping,
+                     generate_seed_sequence, setup_logger, tune_dt_table,
+                     tune_scale_table)
 from .state import State
 
 warnings.filterwarnings("ignore", message="divide by zero encountered")
@@ -87,7 +88,6 @@ class OBDVMC:
         self._tune = tune
         self._tune_iter = tune_iter
         self._tune_interval = tune_interval
-
 
         # Set and run chains
         nchains = check_and_set_jobs(nchains)
@@ -196,12 +196,10 @@ class OBDVMC:
 
         N, d = state.positions.shape
 
-
         total_moves = nsamples
 
         acc_rate = state.n_accepted / total_moves
         pdf = np.mean(pdfs)
-
 
         return pdf
 
@@ -236,7 +234,6 @@ class OBDVMC:
             state = self.step(particle, state, alpha, seed, scale=scale)
         return state
 
-
     def tune_scale(self, particle, state, alpha, seed, scale):
         """For samplers with scale parameter."""
 
@@ -264,7 +261,7 @@ class OBDVMC:
 
                 # Early stopping? If the same scale has appeared
                 # three times in a row, break.
-                if count>2:
+                if count > 2:
                     break
 
         return state, scale
@@ -276,11 +273,11 @@ class OBDVMC:
         pdfs = np.zeros(nsamples)
 
         for i in range(nsamples):
-            state = self.step(particle, state, alpha, seed, scale, normalize=normalize)
+            state = self.step(particle, state, alpha, seed,
+                              scale, normalize=normalize)
             pdfs[i] = self._pdf(state.positions, alpha)
 
         return state, pdfs
-
 
     @property
     def final_state(self):

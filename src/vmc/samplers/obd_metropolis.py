@@ -5,12 +5,12 @@ from abc import abstractmethod
 
 import numpy as np
 
+from ..utils import advance_PRNG_state
 from .obd_sampler import OBDVMC
-from .pool_tools import advance_PRNG_state
 from .state import State
 
 
-class OBDMetropolis(OBDVMC):
+class OBDRMW(OBDVMC):
 
     def __init__(self, wavefunction, rng=None):
         super().__init__(wavefunction, rng=rng)
@@ -39,7 +39,7 @@ class OBDMetropolis(OBDVMC):
             proposals[0, :] = particle
         # Sample log uniform rvs
         proposals[0, :] = particle
-        
+
         log_unif = np.log(rng.random())
         #log_unif = np.log(rng.random(size=state.positions.shape))
 
