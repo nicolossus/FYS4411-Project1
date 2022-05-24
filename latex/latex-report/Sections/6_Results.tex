@@ -10,7 +10,7 @@
 \subsubsection{Non-Interacting}
 %----------------------------------------------------------------
 
-\autoref{fig:gridsearch} shows a VMC computations for a grid of $\alpha$ values for a non-interacting system with spherical potential with $500$ particles for both the analytical and automatic differentiation approaches. Both approaches find the exact energy of the ground state when $\alpha=0.5$. 
+\autoref{fig:gridsearch} shows VMC computations for a grid of $\alpha$ values for a non-interacting system with spherical potential with $500$ particles for both the analytical and automatic differentiation approaches. Both approaches find the exact energy of the ground state when $\alpha=0.5$. 
 
 \begin{figure}[H]
 \centering
@@ -21,15 +21,13 @@
 \label{fig:gridsearch}
 \end{figure}
 
-
-
-Discussion
+The regularity of the curve indicates that the sampling is performed well. However, for large $\alpha$ values, the sampler seems to run into some minor issues, as the sampled energy does not behave as regularly as desired. When $\alpha$ increases, the Gaussian wave function becomes a sharper peak, and there may be a need for more tuning or warm-up cycles before sampling. 
 
 %----------------------------------------------------------------
 \subsubsection{Interacting}
 %----------------------------------------------------------------
 \autoref{tab:verification_energy} displays the calculated local energies using identical positions for two implementations of a system of interacting bosons in a spherical potential. One implementation calculates the energy performing the calculations in normal domain, while the other does the same calculations in logarithmic domain. The local energies matches for all calculations performed here, showing the equality between the implementations. They are equal, and may be used as an indication for the validity of the implementation regarding the interacting system with a spherical potential, since they are equal and calculated by different roads. 
-\begin{table}[]
+\begin{table}[H]
     \centering
 \begin{tabular}{c|c|c}
 \hline \hline
@@ -46,7 +44,7 @@ Discussion
                 1000 &     2,095.517 &                2,095.517 \\
 \hline \hline
 \end{tabular}
-    \caption{Comparison between the implementations of analytical interacting systems of bosons in spherical potentials, one performed in log domain, while the other is performed without altering the space in any way.}
+    \caption{Comparison between the implementations of analytical interacting systems of bosons in spherical potentials, one performed in log domain, while the other is performed in normal domain.}
     \label{tab:verification_energy}
 \end{table}
 
@@ -58,6 +56,8 @@ Discussion
 %----------------------------------------------------------------
 \subsubsection{Non-Interacting}
 %----------------------------------------------------------------
+
+\textbf{Spherical potential}
 
 Discussion
 
@@ -72,14 +72,22 @@ Discussion
 \subfloat[]{{\includegraphics[scale=0.5]{latex/figures/boxplot_numerical_metropolis.pdf}}}
 \qquad
 \subfloat[]{{\includegraphics[scale=0.5]{latex/figures/boxplot_numerical_metropolis_hastings.pdf}}}
-\caption{\textbf{(a)} Metropolis with analytical. \textbf{(b)} Metropolis-Hastings with analytical. \textbf{(c)} Metropolis with AD. \textbf{(d)} Metropolis-Hastings with AD.}
+\caption{\textbf{(a)} Random Walk Metropolis with analytical. \textbf{(b)} Langevin Metropolis-Hastings with analytical. \textbf{(c)} Random Walk Metropolis with AD. \textbf{(d)} Langevin Metropolis-Hastings with AD.}
 \label{fig:non-interact_boxplot}
 \end{figure}
+
+\textbf{Elliptical potential}
+The ground state energy of the non-interacting particles in the elliptical potential with $\beta=2.82843$ is $\frac{\expval{E}}{N}=2.414215\hbar\omega_0$, and the ground state $\alpha=0.5$, as in the spherical potential. \autoref{tab:jax_timing} displays the timing comparison between calculations performed with an analytical wave function solution for the interacting case with the Jastrow factor set to $0$ and the JAX implementation, which only takes in the trial wave function and potential of the system. 
+
+
 
 %----------------------------------------------------------------
 \subsubsection{Interacting}
 %----------------------------------------------------------------
-\autoref{fig:interactions_plot} shows 
+
+\textbf{Spherical potential}
+
+In \autoref{fig:interactions_plot} variational grid searches for the non-interacting case, and $10, 50, 100$ particles with interactions are shown. The $y$-axis displays the energy per particle. A $95$\% confidence interval is shaded in light blue. The minimal energy per particle values together with their standard error, $\sigma$, are tabulated in \autoref{tab:min_energies}. 
 \begin{figure}[!htb]
 \centering
 \subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_analytical_wo_interactions_N_50.pdf}}}
@@ -89,16 +97,35 @@ Discussion
 \subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_analytical_w_interactions_N_50.pdf}}}
 \qquad
 \subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_analytical_w_interactions_N_100.pdf}}}
-\caption{\textbf{(a)} Metropolis with 50 non-interacting particles. \textbf{(b)} Metropolis with ten interacting particles. \textbf{(c)} Metropolis with 50 interacting particles. \textbf{(d)} Metropolis with 100 interacting particles.}
+\caption{\textbf{(a)} Random Walk Metropolis with 50 non-interacting particles. \textbf{(b)} Random Walk Metropolis with ten interacting particles. \textbf{(c)} Random Walk Metropolis with 50 interacting particles. \textbf{(d)} Random Walk Metropolis with 100 interacting particles.}
 \label{fig:interactions_plot}
 \end{figure}
 
-\autoref{fig:comparisons_interactions_plot} shows 
+\begin{table}[H]
+    \centering
+    \begin{tabular}{ccccc}
+    \hline \hline
+        Number of particles & Interactions & $\frac{\expval{E}_{\mathrm{min}}}{N}$ & $\sigma$ & $\alpha^{\mathrm{opt}}$\\
+    \hline \hline
+        $50$ & Off & $1.500$ & $0\cdot10^{0}$ & $0.5$\\
+        $10$ & On & $1.51731$& $8\cdot10^{-5}$& $0.5$ \\
+        $50$ & On & $1.59490$& $3\cdot10^{-4}$ &$0.5$ \\
+        $100$ & On & $1.66912$ & $3\cdot10^{-4}$ & $0.5$ \\
+    \hline \hline
+    \end{tabular}
+    \caption{The minimal energies of the grid searches for $10, 50, 100$ particles, together with the standard error and the optimal $\alpha$ values. The interactions column displays whether or not the particles are interacting with one another.}
+    \label{tab:min_energies}
+\end{table}
+
+As you can see in \autoref{tab:min_energies}, the minimal energy per particle is increasing with the number of particles when they are interacting. The density of particles within the potential increases with the number of particles unleashed in the same potential. This leads to more interactions between the particles, and thus a higher energy. Another important quantity, the standard error, is represented with the $95$\% confidence interval $[\mu\pm1.96\sigma]$ by the shaded light blue in \autoref{fig:interactions_plot}. The standard error is relatively small, but it should be possible to see the convex nature of it. It is decreasing from $\alpha=0.1\to\alpha=0.5$, where it increases again. 
+
+
+\autoref{fig:comparisons_interactions_plot} displays the VMC calculations of the grid searches in \autoref{fig:interactions_plot} all together in one plot. This way it is easier to see the increase in energy per particle as a function of the number of interacting particles. 
 
 \begin{figure}[H]
-\begin{center}\includegraphics[scale=0.5]{latex/figures/grid_search_analytical_w_interactions_all_N.pdf}
+\begin{center}\includegraphics[scale=1.0]{latex/figures/grid_search_analytical_w_interactions_all_N.pdf}
 \end{center}
-\caption{Metropolis energy comparison between $N=10, 50, 100$ interacting particles, and $N=50$ non-interacting particles.}
+\caption{Random Walk Metropolis energy per particle comparison between $N=10, 50, 100$ interacting particles, and $N=50$ non-interacting particles.}
 \label{fig:comparisons_interactions_plot}
 \end{figure}
 
@@ -111,4 +138,33 @@ Discussion
 \subfloat[]{{\includegraphics[scale=0.5]{latex/figures/OBD_N100.pdf}}}
 \caption{\textbf{(a)} Comparison between the radial one body densities for $10$ particles with and without interactions (Jastrow factor $a=0.00433$) in $2$-dimensional space. \textbf{(b)} Comparison between the radial one body densities for $100$ particles with and without interactions (Jastrow factor $a=0.00433$) in $2$-dimensional space.}
 \label{fig:one_body_densities}
+\end{figure}
+
+\textbf{Elliptical potential}
+
+\autoref{fig:energy_elliptical} displays 16 independent energy sampling runs where $\alpha$ is optimized. 
+
+\begin{figure}[H]
+\begin{center}\includegraphics[scale=0.5]{figures/aehoib_bp.pdf}
+\end{center}
+\caption{Sampled energies, the standard errors and the optimized $\alpha$-values of $16$ independent sampling runs.}
+\label{fig:bp_aehoib}
+\end{figure}
+
+RWM vs LMH - standard error
+
+In \autoref{fig:comparison_se_RWMvLMH} the evolution of the standard error is plotted as a function of the logarithm with base $2$ of the number of samples, $\log_2{M}$. The numbers of samples used is from $2^{10}\to2^{20}$ where the number of samples increases by a factor of two in each step. \autoref{fig:comparison_time_RWMvLMH} displays the time spent sampling for each run. We have used the same number of warm-up cycles. The number of tuning cycles may differ, but it is of a relatively small order compared with warm-ups and sampling. 
+
+\begin{figure}[H]
+\begin{center}\includegraphics[scale=0.5]{Figures/filename}
+\end{center}
+\caption{The standard error as a functions of the base $2$ logarithm of the number of energy samples. The blue line represents the Random Walk Metropolis sampling algorithm, while the orange represents the Langevin Metropolis-Hastings sampling algorithm.}
+\label{fig:comparison_se_RWMvLMH}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}\includegraphics[scale=0.5]{Figures/filename}
+\end{center}
+\caption{Time spent running the sampling algorithm as a functions of the base $2$ logarithm of the number of energy samples. The blue line represents the Random Walk Metropolis sampling algorithm, while the orange represents the Langevin Metropolis-Hastings sampling algorithm.}
+\label{fig:comparison_time_RWMvLMH}
 \end{figure}
