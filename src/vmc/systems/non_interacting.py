@@ -45,7 +45,11 @@ class ASHONIB(WaveFunction):
 
     def PDF_vectorized(self, r, alpha):
         """Vectorized evaluation of the square of the wave function"""
+<<<<<<< HEAD
+        return np.exp(2*self.wf_vectorized(r, alpha))
+=======
         return np.exp(2 * self.wf_vectorized(r, alpha))
+>>>>>>> 2f1a96a58eb25ad5497b1e13030ab2ba8dbe18ee
 
     def local_energy(self, r, alpha):
         """Compute the local energy.
@@ -122,3 +126,60 @@ class EHONIB(System):
         r2 = jnp.square(r)
         r2 = r2.at[:, 2].multiply(self._gamma2)
         return 0.5 * jnp.sum(r2)
+
+class AEHONIB(WaveFunction):
+    """
+    Analytical Elliptical Harmonic Oscillator Non-Interacting Bosons (AEHONIB)
+    """
+    def __init__(self, N, dim, omega, beta=2.82843):
+        super().__init__(N, dim)
+        self._omega = omega
+        self._halfomega2 = 0.5*omega*omega
+        self._beta = beta
+        self._gamma2 = beta*beta
+
+    def wf(self, r, alpha):
+        return self._single(r, alpha)
+
+    def _single(self, r, alpha):
+        r2 = r*r
+        r2[:, 2] = r2[:, 2]*self._beta
+        return -alpha * np.sum(r2)
+
+    def _gradient(self, r, alpha):
+        # Single particle gradient
+        r_ = r.copy()
+        r_[:, 2] = r_[:, 2]*self._beta
+        return - 2 * alpha * r_
+
+    def _laplacian_spf(self, r, alpha):
+        N, d = r.shape
+        return -2 * (d-1+self._beta)* alpha * N
+
+    def _laplacian(self, r, alpha):
+        grad2 = np.sum(self._laplacian_spf(r, alpha))
+        grad = self._gradient(r, alpha)
+        laplacian = grad2 + np.sum(grad*grad)
+        return laplacian
+
+    def _kinetic_energy(self, r, alpha):
+        return -0.5 * self._laplacian(r, alpha)
+
+    def _potential_energy(self, r):
+        r2 = r*r
+        r2[:, 2] *= self._gamma2
+        return self._halfomega2 * np.sum(r2)
+
+    def grad_alpha(self, r, alpha):
+        """Gradient of wave function w.r.t. variational parameter alpha"""
+        r_ = r.copy()
+        r_[:, 2] = r_[:, 2]*self._beta
+        return -np.sum(r_ * r_)
+
+    def local_energy(self, r, alpha):
+        ke = self._kinetic_energy(r, alpha)
+        pe = self._potential_energy(r)
+        return ke + pe
+
+    def drift_force(self, r, alpha):
+        return 2 * self._gradient(r, alpha)

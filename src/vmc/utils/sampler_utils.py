@@ -66,9 +66,10 @@ def tune_scale_table(scale, acc_rate):
     """
     if acc_rate < 0.001:
         # reduce by 90 percent
-        scale *= 0.1
+        return scale * 0.1
     elif acc_rate < 0.05:
         # reduce by 50 percent
+
         scale *= 0.5  # original
     elif acc_rate < 0.2:
         # reduce by ten percent
@@ -79,6 +80,15 @@ def tune_scale_table(scale, acc_rate):
     elif acc_rate > 0.75:
         # increase by double
         scale *= 2.0
+<<<<<<< HEAD
+    # elif acc_rate > 0.8:
+        # increase by double
+    #    scale *= 1.5
+    elif acc_rate > 0.4:
+        # elif acc_rate > 0.7:
+        # increase by ten percent
+        return scale * 1.1
+=======
     elif acc_rate > 0.95:
         # increase by factor of ten
         scale *= 10.0
@@ -135,9 +145,9 @@ def tune_scale_table2(scale, acc_rate):
         scale *= 1.5
     elif acc_rate > 0.7:
         scale *= 1.1
+>>>>>>> 8773c5ae6826fbf721ec623bf4a6a15e3424874d
 
     return scale
-
 
 def tune_dt_table(dt, acc_rate):
     """Proposal dt (scale for importance sampler) lookup table.
@@ -172,7 +182,7 @@ def tune_dt_table(dt, acc_rate):
         # increase by ten percent
         dt *= 1.21
     elif acc_rate > 0.9:
-        # increase by factor of 25
+        # increase by factor of 5
         dt *= 25.0
     elif acc_rate > 0.95:
         # increase by factor of 100

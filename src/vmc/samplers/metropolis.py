@@ -40,7 +40,10 @@ class RWM(BaseVMC):
         # Advance RNG
         next_gen = advance_PRNG_state(seed, state.delta)
         rng = self._rng(next_gen)
+<<<<<<< HEAD
+=======
 
+>>>>>>> 275ff94435f066994bc075a08c7d61d02855d80e
         # Sample proposal positions, i.e., move walkers
         proposals = rng.normal(loc=state.positions, scale=scale)
 
@@ -53,11 +56,18 @@ class RWM(BaseVMC):
         # Metroplis acceptance criterion
         accept = log_unif < logp_proposal - state.logp
 
+<<<<<<< HEAD
+=======
         # If accept is True, yield proposal, otherwise keep old state
+>>>>>>> 275ff94435f066994bc075a08c7d61d02855d80e
         new_positions = proposals if accept else state.positions
 
         # Create new state
         new_logp = self._logp_fn(new_positions, alpha)
+<<<<<<< HEAD
+
+=======
+>>>>>>> 275ff94435f066994bc075a08c7d61d02855d80e
         new_n_accepted = state.n_accepted + accept
         new_delta = state.delta + 1
         new_state = State(new_positions, new_logp, new_n_accepted, new_delta)
