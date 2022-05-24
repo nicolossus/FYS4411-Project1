@@ -5,6 +5,7 @@ import warnings
 from abc import abstractmethod
 from functools import partial
 from multiprocessing import Lock, RLock
+from threading import RLock as TRLock
 
 import numpy as np
 import pandas as pd
@@ -139,9 +140,6 @@ class ChainEvolution:
         tune=True,
         tune_iter=10000,
         tune_interval=500,
-        retune=True,
-        retune_iter=5000,
-        retune_interval=250,
         tol_tune=1e-5,
         optimize=True,
         max_iter=50000,
@@ -215,17 +213,11 @@ class ChainEvolution:
         # Logger
         self._initialize_logger(log, logger_level, nchains)
 
-        self._reject_batch = False
-
         # Settings for tuning
         self._tune = tune
         self._tune_iter = tune_iter
         self._tune_interval = tune_interval
         self._tol_tune = tol_tune
-
-        self._retune = retune
-        self._retune_iter = retune_iter
-        self._retune_interval = retune_interval
 
         # Settings for optimize
         self._optimize = optimize
@@ -262,7 +254,8 @@ class ChainEvolution:
 
             if self._log:
                 # for managing output contention
-                initializer = tqdm.set_lock(Lock(),)
+                tqdm.set_lock(TRLock())
+                initializer = tqdm.set_lock
                 initargs = (tqdm.get_lock(),)
             else:
                 initializer = None
@@ -326,47 +319,17 @@ class ChainEvolution:
         # Set initial state
         state = self.initial_state(initial_positions, alpha)
 
-        '''
-        # Warm-up?
-        if self._warm:
-            state, energies = self.warmup_chain(state,
-                                                alpha,
-                                                seed,
-                                                chain_id,
-                                                **kwargs
-                                                )
-            actual_warm_iter += state.delta
-            subtract_iter = actual_warm_iter
-            energies_all.append(energies)
-        '''
-
         # Tune?
         if self._tune:
             state, energies, kwargs = self.tune_selector(state,
                                                          alpha,
                                                          seed,
-                                                         self._tune_iter,
-                                                         self._tune_interval,
                                                          chain_id,
                                                          **kwargs
                                                          )
-            actual_tune_iter += state.delta  # - subtract_iter
-            subtract_iter = actual_tune_iter  # + actual_warm_iter
+            actual_tune_iter += state.delta
+            subtract_iter = actual_tune_iter
             energies_all.append(energies)
-
-        '''
-        # Rewarm? (Only if both rewarm and tune are True)
-        if self._rewarm and self._tune:
-            state, energies = self.rewarm_chain(state,
-                                                alpha,
-                                                seed,
-                                                chain_id,
-                                                **kwargs
-                                                )
-            actual_warm_iter += state.delta
-            subtract_iter = actual_warm_iter
-            energies_all.append(energies)
-        '''
 
         # Optimize?
         if self._optimize:
@@ -380,21 +343,6 @@ class ChainEvolution:
             actual_optim_iter += state.delta - subtract_iter
             subtract_iter = actual_optim_iter + actual_tune_iter + actual_warm_iter
             energies_all.append(energies)
-            # retune = True
-
-        '''
-        # Retune for good measure, only if optimize and retune are True
-        if retune:
-            state, kwargs = self.tune_selector(state, alpha, seed, **kwargs)
-            actual_tune_iter += state.delta - subtract_iter
-
-
-        if rewarm:
-            state = self.warmup_chain(state, alpha, seed, **kwargs)
-            actual_warm_iter += state.delta
-            subtract_iter = actual_warm_iter
-
-        '''
 
         # Warm-up?
         if self._warm:
@@ -405,7 +353,6 @@ class ChainEvolution:
                                                 **kwargs
                                                 )
             actual_warm_iter += self._warmup_iter
-            #subtract_iter = actual_warm_iter
             energies_all.append(energies)
 
         # Sample energy
@@ -462,11 +409,6 @@ class ChainEvolution:
         error = block(energies)
         variance = np.mean(energies**2) - energy**2
 
-        # scaled_energies = energies / N
-        # scaled_energy = np.mean(scaled_energies)
-        # scaled_error = block(scaled_energies)
-        # scaled_variance = np.mean(scaled_energies**2) - scaled_energy**2
-
         scaled_energy = energy / N
         scaled_error = error / N
         scaled_variance = variance / N
@@ -493,9 +435,9 @@ class ChainEvolution:
                    "accept_rate": acc_rate,
                    "nsamples": nsamples,
                    "total_cycles": state.delta,
-                   "warmup_cycles": warm_cycles,
                    "tuning_cycles": tune_cycles,
-                   "optimize_cycles": optim_cycles
+                   "optimize_cycles": optim_cycles,
+                   "warmup_cycles": warm_cycles
                    }
 
         return results
@@ -532,7 +474,7 @@ class ChainEvolution:
             t_range = tqdm(range(self._warmup_iter),
                            desc=f"[Warm-up progress] Chain {chain_id+1}",
                            position=chain_id,
-                           leave=True,
+                           leave=False,
                            colour='green')
         else:
             t_range = range(self._warmup_iter)
@@ -544,49 +486,11 @@ class ChainEvolution:
             energies_tmp.append(self._locE_fn(state.positions, alpha))
 
         if self._log:
-            t_range.close()
+            t_range.clear()
 
         return state, np.array(energies_tmp)
 
-    def rewarm_chain(self, state, alpha, seed, chain_id, **kwargs):
-        """Rewarm the chain for after tuning for rewarm_iter cycles.
-
-        Arguments
-        ---------
-        State : vmc.State
-            Current state of the system
-        alpha : float
-            Variational parameter
-        **kwargs
-            Arbitrary keyword arguments are passed to the step method
-
-        Returns
-        -------
-        State
-            The state after warm-up
-        """
-
-        if self._log:
-            t_range = tqdm(range(self._rewarm_iter),
-                           desc=f"[Rewarm progress] Chain {chain_id+1}",
-                           position=chain_id,
-                           leave=True,
-                           colour='green')
-        else:
-            t_range = range(self._rewarm_iter)
-
-        energies_tmp = []
-
-        for _ in t_range:
-            state = self.step(state, alpha, seed, **kwargs)
-            energies_tmp.append(self._locE_fn(state.positions, alpha))
-
-        if self._log:
-            t_range.close()
-
-        return state, np.array(energies_tmp)
-
-    def tune_selector(self, state, alpha, seed, niter, interval, chain_id, retuning=False, **kwargs):
+    def tune_selector(self, state, alpha, seed, chain_id, **kwargs):
         """Select appropriate tuning procedure"""
 
         if self._inference_scheme == "Random Walk Metropolis":
@@ -595,10 +499,7 @@ class ChainEvolution:
                                                          alpha,
                                                          seed,
                                                          scale,
-                                                         niter,
-                                                         interval,
                                                          chain_id,
-                                                         retuning,
                                                          **kwargs)
             kwargs = dict(kwargs, scale=new_scale)
         elif self._inference_scheme == "Langevin Metropolis-Hastings":
@@ -608,10 +509,7 @@ class ChainEvolution:
                                                    alpha,
                                                    seed,
                                                    dt,
-                                                   niter,
-                                                   interval,
                                                    chain_id,
-                                                   retuning,
                                                    **kwargs)
             kwargs = dict(kwargs, dt=new_dt)
         else:
@@ -621,19 +519,19 @@ class ChainEvolution:
 
         return state, energies, kwargs
 
-    def tune_scale(self, state, alpha, seed, scale, niter, interval, chain_id, retuning, **kwargs):
+    def tune_scale(self, state, alpha, seed, scale, chain_id, **kwargs):
         """For samplers with scale parameter."""
 
-        if self._log and not retuning:
-            t_range = tqdm(range(niter),
+        if self._log:
+            t_range = tqdm(range(self._tune_iter),
                            desc=f"[Tuning progress] Chain {chain_id+1}",
                            position=chain_id,
-                           leave=True,
+                           leave=False,
                            colour='green')
         else:
-            t_range = range(niter)
+            t_range = range(self._tune_iter)
 
-        steps_before_tune = interval
+        steps_before_tune = self._tune_interval
         early_stop_counter = 0
 
         # Reset n_accepted
@@ -652,7 +550,7 @@ class ChainEvolution:
                 scale = tune_scale_table(old_scale, accept_rate)
 
                 # Reset
-                steps_before_tune = interval
+                steps_before_tune = self._tune_interval
                 state = State(state.positions, state.logp, 0, state.delta)
 
                 # Early stopping?
@@ -665,24 +563,24 @@ class ChainEvolution:
                     if early_stop_counter > 2:
                         break
 
-        if self._log and not retuning:
-            t_range.close()
+        if self._log:
+            t_range.clear()
 
         return state, np.array(energies_tmp), scale
 
-    def tune_dt(self, state, alpha, seed, dt, niter, interval, chain_id, retuning, **kwargs):
+    def tune_dt(self, state, alpha, seed, dt, chain_id, **kwargs):
         """For samplers with dt parameter."""
 
-        if self._log and not retuning:
-            t_range = tqdm(range(niter),
+        if self._log:
+            t_range = tqdm(range(self._tune_iter),
                            desc=f"[Tuning progress] Chain {chain_id+1}",
                            position=chain_id,
-                           leave=True,
+                           leave=False,
                            colour='green')
         else:
-            t_range = range(niter)
+            t_range = range(self._tune_iter)
 
-        steps_before_tune = interval
+        steps_before_tune = self._tune_interval
         early_stop_counter = 0
 
         # Reset n_accepted
@@ -701,7 +599,7 @@ class ChainEvolution:
                 dt = tune_dt_table(old_dt, accept_rate)
 
                 # Reset
-                steps_before_tune = interval
+                steps_before_tune = self._tune_interval
                 state = State(state.positions, state.logp, 0, state.delta)
 
                 # Early stopping?
@@ -714,8 +612,8 @@ class ChainEvolution:
                     if early_stop_counter > 2:
                         break
 
-        if self._log and not retuning:
-            t_range.close()
+        if self._log:
+            t_range.clear()
 
         return state, np.array(energies_tmp), dt
 
@@ -727,7 +625,7 @@ class ChainEvolution:
             t_range = tqdm(range(self._max_iter),
                            desc=f"[Optimization progress] Chain {chain_id+1}",
                            position=chain_id,
-                           leave=True,
+                           leave=False,
                            colour='green')
         else:
             t_range = range(self._max_iter)
@@ -789,24 +687,8 @@ class ChainEvolution:
                     if early_stopping(alpha, old_alpha, tolerance=self._tol_optim):
                         break
 
-                # Retune?
-                if self._retune:
-                    state, energies_tune, kwargs = self.tune_selector(state,
-                                                                      alpha,
-                                                                      seed,
-                                                                      self._retune_iter,
-                                                                      self._retune_interval,
-                                                                      chain_id,
-                                                                      retuning=True,
-                                                                      **kwargs
-                                                                      )
-                    print(energies_tune.shape)
-                    energies_tmp.append(energies_tune)
-
         if self._log:
-            t_range.close()
-
-        #energies_out = np.concatenate(energies_tmp).ravel()
+            t_range.clear()
 
         return state, np.array(energies_tmp), alpha
 
@@ -816,7 +698,7 @@ class ChainEvolution:
             t_range = tqdm(range(nsamples),
                            desc=f"[Sampling progress] Chain {chain_id+1}",
                            position=chain_id,
-                           leave=True,
+                           leave=False,
                            colour='green')
         else:
             t_range = range(nsamples)
@@ -830,7 +712,7 @@ class ChainEvolution:
             energies[i] = self._locE_fn(state.positions, alpha)
 
         if self._log:
-            t_range.close()
+            t_range.clear()
 
         return state, energies
 
