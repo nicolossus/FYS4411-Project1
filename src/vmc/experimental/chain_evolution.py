@@ -148,8 +148,8 @@ class ChainEvolution:
         eta=0.01,
         tol_optim=1e-5,
         early_stop=True,
-        warm=True,
-        warmup_iter=5000,
+        warm=False,        # Deprecate: Does not add any benefit to sampling
+        warmup_iter=5000,  # Deprecate
         log=True,
         logger_level="INFO",
         **kwargs
