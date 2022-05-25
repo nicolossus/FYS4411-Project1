@@ -5,6 +5,7 @@ import warnings
 from abc import abstractmethod
 from functools import partial
 from multiprocessing import Lock, RLock
+from threading import RLock as TRLock
 
 import numpy as np
 import pandas as pd
@@ -136,10 +137,6 @@ class BaseVMC:
         alpha,
         nchains=1,
         seed=None,
-        warm=True,
-        warmup_iter=10000,
-        rewarm=True,
-        rewarm_iter=5000,
         tune=True,
         tune_iter=10000,
         tune_interval=500,
@@ -151,6 +148,8 @@ class BaseVMC:
         eta=0.01,
         tol_optim=1e-5,
         early_stop=True,
+        warm=False,          # Deprecate: Does not add any benefit to sampling
+        warmup_iter=5000,    # Deprecate
         log=True,
         logger_level="INFO",
         **kwargs
@@ -214,13 +213,6 @@ class BaseVMC:
         # Logger
         self._initialize_logger(log, logger_level, nchains)
 
-        self._reject_batch = False
-        # Settings for warm-up
-        self._warm = warm
-        self._warmup_iter = warmup_iter
-        self._rewarm = rewarm
-        self._rewarm_iter = rewarm_iter
-
         # Settings for tuning
         self._tune = tune
         self._tune_iter = tune_iter
@@ -236,6 +228,10 @@ class BaseVMC:
 
         # Flag for early stopping
         self._early_stop = early_stop
+
+        # Settings for warm-up
+        self._warm = warm
+        self._warmup_iter = warmup_iter
 
         # Set and run chains
         nchains = check_and_set_nchains(nchains, self.logger)
@@ -258,7 +254,8 @@ class BaseVMC:
 
             if self._log:
                 # for managing output contention
-                initializer = tqdm.set_lock(Lock(),)
+                tqdm.set_lock(TRLock())
+                initializer = tqdm.set_lock
                 initargs = (tqdm.get_lock(),)
             else:
                 initializer = None
@@ -310,26 +307,13 @@ class BaseVMC:
             nsamples, initial_positions, alpha, eta, seed, chain_id = args
 
         # Set some flags and counters
-        retune = False
-        rewarm = True
-        actual_warm_iter = 0
         actual_tune_iter = 0
         actual_optim_iter = 0
+        actual_warm_iter = 0
         subtract_iter = 0
 
         # Set initial state
         state = self.initial_state(initial_positions, alpha)
-
-        # Warm-up?
-        if self._warm:
-            state = self.warmup_chain(state,
-                                      alpha,
-                                      seed,
-                                      chain_id,
-                                      **kwargs
-                                      )
-            actual_warm_iter += state.delta
-            subtract_iter = actual_warm_iter
 
         # Tune?
         if self._tune:
@@ -339,19 +323,8 @@ class BaseVMC:
                                                chain_id,
                                                **kwargs
                                                )
-            actual_tune_iter += state.delta - subtract_iter
-            subtract_iter = actual_tune_iter + actual_warm_iter
-
-        # Rewarm? (Only if both rewarm and tune are True)
-        if self._rewarm and self._tune:
-            state = self.rewarm_chain(state,
-                                      alpha,
-                                      seed,
-                                      chain_id,
-                                      **kwargs
-                                      )
-            actual_warm_iter += state.delta
-            subtract_iter = actual_warm_iter
+            actual_tune_iter += state.delta
+            subtract_iter = actual_tune_iter
 
         # Optimize?
         if self._optimize:
@@ -363,22 +336,16 @@ class BaseVMC:
                                           **kwargs
                                           )
             actual_optim_iter += state.delta - subtract_iter
-            subtract_iter = actual_optim_iter + actual_tune_iter + actual_warm_iter
-            #retune = True
 
-        '''
-        # Retune for good measure, only if optimize and retune are True
-        if retune:
-            state, kwargs = self.tune_selector(state, alpha, seed, **kwargs)
-            actual_tune_iter += state.delta - subtract_iter
-
-
-        if rewarm:
-            state = self.warmup_chain(state, alpha, seed, **kwargs)
-            actual_warm_iter += state.delta
-            subtract_iter = actual_warm_iter
-
-        '''
+        # Warm-up?
+        if self._warm:
+            state = self.warmup_chain(state,
+                                      alpha,
+                                      seed,
+                                      chain_id,
+                                      **kwargs
+                                      )
+            actual_warm_iter += self._warmup_iter
 
         # Sample energy
         state, energies = self.sample_energy(nsamples,
@@ -429,11 +396,6 @@ class BaseVMC:
         error = block(energies)
         variance = np.mean(energies**2) - energy**2
 
-        #scaled_energies = energies / N
-        #scaled_energy = np.mean(scaled_energies)
-        #scaled_error = block(scaled_energies)
-        #scaled_variance = np.mean(scaled_energies**2) - scaled_energy**2
-
         scaled_energy = energy / N
         scaled_error = error / N
         scaled_variance = variance / N
@@ -460,9 +422,9 @@ class BaseVMC:
                    "accept_rate": acc_rate,
                    "nsamples": nsamples,
                    "total_cycles": state.delta,
-                   "warmup_cycles": warm_cycles,
                    "tuning_cycles": tune_cycles,
-                   "optimize_cycles": optim_cycles
+                   "optimize_cycles": optim_cycles,
+                   "warmup_cycles": warm_cycles
                    }
 
         return results
@@ -499,7 +461,7 @@ class BaseVMC:
             t_range = tqdm(range(self._warmup_iter),
                            desc=f"[Warm-up progress] Chain {chain_id+1}",
                            position=chain_id,
-                           leave=True,
+                           leave=False,
                            colour='green')
         else:
             t_range = range(self._warmup_iter)
@@ -508,42 +470,7 @@ class BaseVMC:
             state = self.step(state, alpha, seed, **kwargs)
 
         if self._log:
-            t_range.close()
-
-        return state
-
-    def rewarm_chain(self, state, alpha, seed, chain_id, **kwargs):
-        """Rewarm the chain for after tuning for rewarm_iter cycles.
-
-        Arguments
-        ---------
-        State : vmc.State
-            Current state of the system
-        alpha : float
-            Variational parameter
-        **kwargs
-            Arbitrary keyword arguments are passed to the step method
-
-        Returns
-        -------
-        State
-            The state after warm-up
-        """
-
-        if self._log:
-            t_range = tqdm(range(self._rewarm_iter),
-                           desc=f"[Rewarm progress] Chain {chain_id+1}",
-                           position=chain_id,
-                           leave=True,
-                           colour='green')
-        else:
-            t_range = range(self._rewarm_iter)
-
-        for _ in t_range:
-            state = self.step(state, alpha, seed, **kwargs)
-
-        if self._log:
-            t_range.close()
+            t_range.clear()
 
         return state
 
@@ -583,7 +510,7 @@ class BaseVMC:
             t_range = tqdm(range(self._tune_iter),
                            desc=f"[Tuning progress] Chain {chain_id+1}",
                            position=chain_id,
-                           leave=True,
+                           leave=False,
                            colour='green')
         else:
             t_range = range(self._tune_iter)
@@ -618,7 +545,7 @@ class BaseVMC:
                         break
 
         if self._log:
-            t_range.close()
+            t_range.clear()
 
         return state, scale
 
@@ -629,7 +556,7 @@ class BaseVMC:
             t_range = tqdm(range(self._tune_iter),
                            desc=f"[Tuning progress] Chain {chain_id+1}",
                            position=chain_id,
-                           leave=True,
+                           leave=False,
                            colour='green')
         else:
             t_range = range(self._tune_iter)
@@ -664,7 +591,7 @@ class BaseVMC:
                         break
 
         if self._log:
-            t_range.close()
+            t_range.clear()
 
         return state, dt
 
@@ -676,7 +603,7 @@ class BaseVMC:
             t_range = tqdm(range(self._max_iter),
                            desc=f"[Optimization progress] Chain {chain_id+1}",
                            position=chain_id,
-                           leave=True,
+                           leave=False,
                            colour='green')
         else:
             t_range = range(self._max_iter)
@@ -733,7 +660,7 @@ class BaseVMC:
                     if early_stopping(alpha, old_alpha, tolerance=self._tol_optim):
                         break
         if self._log:
-            t_range.close()
+            t_range.clear()
 
         return state, alpha
 
@@ -743,7 +670,7 @@ class BaseVMC:
             t_range = tqdm(range(nsamples),
                            desc=f"[Sampling progress] Chain {chain_id+1}",
                            position=chain_id,
-                           leave=True,
+                           leave=False,
                            colour='green')
         else:
             t_range = range(nsamples)
@@ -757,7 +684,7 @@ class BaseVMC:
             energies[i] = self._locE_fn(state.positions, alpha)
 
         if self._log:
-            t_range.close()
+            t_range.clear()
 
         return state, energies
 

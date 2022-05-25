@@ -91,7 +91,7 @@ and the energy functional can be written as
 which, since $E_k\geq E_0 \forall k$, shows that the ground state energy is a lower bound of the energy functional. The variance
 
 %The integral which defines the expectation value of the $n$th moment of the Hamiltonian becomes
-% Blir ikke denne litt feil? 
+% Blir ikke denne litt feil? Tror den er riktig. 
 %\begin{equation*}
 %    \bra{\Psi_T} H \ket{\Psi_T} = \frac{\bra{\Psi_T} H^n \ket{\Psi_T}}{\braket{\Psi_T}} = E_0^n
 %\end{equation*} 
@@ -391,11 +391,10 @@ In the following, we derive closed-form expressions for a non-interacting system
     \ln \Psi_T \qty(\bm{r}; \alpha) =  -\alpha \sum_{i=1}^N \abs{\bm{r}_i}^2, 
 \end{equation*}
 
-where $\bm{r} \in \R^{N\times d}$. In spherical coordinates, the gradient of particle $i$ is given by 
+where $\bm{r} \in \R^{N\times d}$. In spherical coordinates, the gradient of the trial wave function for particle $i$ is given by the radial derivative
 
-
-% Vet ikke helt om dette stemmer. Mangler vi ikke to dimensjoner, eller må spesifisere symmetri? 
-
+% J: Vet ikke helt om dette stemmer. Mangler vi ikke to dimensjoner, eller må spesifisere symmetri? 
+% N: Skal være fikset nå
 
 \begin{equation*}
     \grad_i = \pdv{\bm{r}_i}
