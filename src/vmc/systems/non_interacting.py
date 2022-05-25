@@ -45,11 +45,9 @@ class ASHONIB(WaveFunction):
 
     def PDF_vectorized(self, r, alpha):
         """Vectorized evaluation of the square of the wave function"""
-<<<<<<< HEAD
-        return np.exp(2*self.wf_vectorized(r, alpha))
-=======
+
         return np.exp(2 * self.wf_vectorized(r, alpha))
->>>>>>> 2f1a96a58eb25ad5497b1e13030ab2ba8dbe18ee
+        
 
     def local_energy(self, r, alpha):
         """Compute the local energy.

@@ -80,15 +80,7 @@ def tune_scale_table(scale, acc_rate):
     elif acc_rate > 0.75:
         # increase by double
         scale *= 2.0
-<<<<<<< HEAD
-    # elif acc_rate > 0.8:
-        # increase by double
-    #    scale *= 1.5
-    elif acc_rate > 0.4:
-        # elif acc_rate > 0.7:
-        # increase by ten percent
-        return scale * 1.1
-=======
+        
     elif acc_rate > 0.95:
         # increase by factor of ten
         scale *= 10.0
@@ -145,7 +137,6 @@ def tune_scale_table2(scale, acc_rate):
         scale *= 1.5
     elif acc_rate > 0.7:
         scale *= 1.1
->>>>>>> 8773c5ae6826fbf721ec623bf4a6a15e3424874d
 
     return scale
 
