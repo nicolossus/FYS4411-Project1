@@ -481,7 +481,7 @@ Since we are only looking at a single variational parameter, $\alpha$, we could 
 %\end{equation}
 
 %----------------------------------------------------------------
-\subsubsection{ADAM}
+\subsubsection{ADAM}\label{sec:adam}
 %----------------------------------------------------------------
 
 The simple gradient descent method will converge under the right circumstances, but may not be the fastest and most efficient optimizing scheme. In a multidimensional variational parameter space, the negative of the gradient will typically not point directly to the minima, and typically we end up moving from one side of a `valley' in the cost function to the other. To make this scheme more efficient \textit{momentum} is added, which is a weighted addition of the previous gradients to the calculation. This way the gradient and the momentum will point more along the valley towards the minima, and less `across the valley'. Another implementation which improves the choice of step length in each dimension (specifically for non-convex functions), is the Root Mean Squared Propagation (RMSProp). A third improvement, mostly designed to escape local minima of the cost function, is a stochastic batching of the data, often referred to as Stochastic Gradient Descent. For more information on optimization algorithms, we refer you to chapter 8 of \citep{Goodfellow-et-al-2016}. 
@@ -539,11 +539,9 @@ In this project we limit ourselves to implement automatic differentiation for th
 \subsection{The Variational Monte Carlo Sampler}\label{seq:vmc_framework}
 %---------------------------------------------------------------- 
 
-The Variational Monte Carlo (VMC) sampler framework is built with a base sampler that needs a step forward algorithm (Langevin Metropolis-Hastings or Random Walk Metropolis) and a trial wave function class. The trial wave function classes are all based on a base wave function class that assures they have the needed implementations to perform the operations needed for the VMC sampling algorithm. There are analytical wave function classes for the interacting and non-interacting cases, and also a numerical wave function class for the non-interacting case. The base sampler class contains functionalities as tuning of scale parameters, warm-up of the chain, and an optimizer (ADAM) algorithm. The states in the chain make use of a State-class which inherits from a NamedTuple class. The implementation can be found in \url{https://github.com/nicolossus/FYS4411-Project1.git}. % her er det sikkert litt mangler, og dårlig med begrunnelser. 
+%The Variational Monte Carlo (VMC) sampler framework is built with a base sampler that needs a step forward algorithm (Langevin Metropolis-Hastings or Random Walk Metropolis) and a trial wave function class. The trial wave function classes are all based on a base wave function class that assures they have the needed implementations to perform the operations needed for the VMC sampling algorithm. There are analytical wave function classes for the interacting and non-interacting cases, and also a numerical wave function class for the non-interacting case. The base sampler class contains functionalities as tuning of scale parameters, warm-up of the chain, and an optimizer (ADAM) algorithm. The states in the chain make use of a State-class which inherits from a NamedTuple class. The implementation can be found in \url{https://github.com/nicolossus/FYS4411-Project1}. % her er det sikkert litt mangler, og dårlig med begrunnelser. 
 
-The Python code is written in a highly vectorized manner, primarily by using functionality offered by NumPy [cite] and the corresponding implementations in JAX.
-
-The listing below outlines the interface of our VMC framework with explanatory comments included. The \cw{sample} method, in particular, is designed to be flexible and let the user adjust the sampler's knobs. 
+Our VMC framework is implemented as a Python package and can be found here \url{https://github.com/nicolossus/FYS4411-Project1}. The Python code is written in a highly vectorized manner, primarily by using functionality offered by NumPy \citep{numpy} and JAX. The VMC framework has implementations of all the methods previously discussed. We have implemented a base class for a sampler with all methods except for the specific sampling step of an algorithm. Both the RWM and LMH sampler then inherits the base class and only needs to implement one step of the respective algorithm. Our VMC sampler have three phases; (i) tuning phase, (ii) optimization phase, and (iii) sampling phase. In the tuning phase, the sampler searches for the optimal scale parameter. Similarly, in the optimization phase, the sampler searches for the optimal variational parameter. Finally, in the sampling phase the sampler obtains energy samples used to compute the expectation value. The listing below outlines the interface of our VMC framework with explanatory comments included. The \cw{sample} method, in particular, is designed to be flexible and let the user adjust the sampler's knobs. 
 
 \begin{lstlisting}[language=python]
 import vmc
@@ -552,35 +550,36 @@ import vmc
 # harmonic oscillator with non-interacting bosons (SHONIB)
 system = vmc.SHONIB()
 
-# Set MCMC method; either RWM or LMH. Both take the system 
+# Set MCMC method; either RWM or LMH. Both take the system
 # object as constructor argument
 rwm = vmc.RWM(system)
 
-# Perform sampling 
-res = rwm.sample(nsamples,                # no. of energy samples to obtain
-                 initial_positions,       # initial spatial configuration
-                 alpha,                   # (initial) variational parameter
-                 nchains=1,               # no. of Markov chains
-                 seed=None,               # seed can be set for reproducibility
-                 warm=True,               # whether to run warm-up cycles
-                 warmup_iter=10000,       # no. of warm-up cycles
-                 tune=True,               # whether to tune scale parameters
-                 tune_iter=10000,         # maximum tuning cycles
-                 tune_interval=500,       # cycles between each tune update
-                 tol_tune=1e-5,           # tolerance level used to stop tune early 
-                 optimize=True,           # whether to optimize alpha 
-                 max_iter=50000,          # maximum optimize cycles 
-                 batch_size=500,          # cycles in a batch used in optimization
-                 gradient_method='adam',  # specify optimization method 
-                 eta=0.01,                # optimizer's learning rate
-                 tol_optim=1e-5,          # tolerance used to stop optimizer early 
-                 early_stop=True,         # whether to use early stopping or not 
-                 log=True,                # whether to show logger and progress bar
-                 logger_level="INFO",     # the level of logger 
-                 **kwargs                 # kwargs depends on the MCMC method; 
-                 )                        # set scale for RWM and dt for LMH 
+# Perform sampling
+res = rwm.sample(
+    nsamples,                # no. of energy samples to obtain
+    initial_positions,       # initial spatial configuration
+    alpha,                   # (initial) variational parameter
+    nchains=1,               # no. of Markov chains
+    seed=None,               # seed can be set for reproducibility
+    tune=True,               # whether to tune scale parameters
+    tune_iter=10000,         # maximum tuning cycles
+    tune_interval=500,       # cycles between each tune update
+    tol_tune=1e-5,           # tolerance level used to stop tune early
+    optimize=True,           # whether to optimize alpha
+    max_iter=50000,          # maximum optimize cycles
+    batch_size=500,          # cycles in a batch used in optimization
+    gradient_method='adam',  # specify optimization method
+    eta=0.01,                # optimizer's learning rate
+    tol_optim=1e-5,          # tolerance used to stop optimizer early
+    early_stop=True,         # whether to use early stopping or not
+    log=True,                # whether to show logger and progress bar
+    logger_level="INFO",     # the level of logger
+    **kwargs                 # kwargs depends on the MCMC method;
+)                            # set scale for RWM and dt for LMH
 
 # The results are returned in a pandas.DataFrame. They can
-# be saved directly by using the sampler's .to_csv method
-rwm.to_csv("filename.csv") 
+# be saved directly by using the sampler's `.to_csv` method
+rwm.to_csv("filename.csv")
+
 \end{lstlisting}
+
