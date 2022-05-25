@@ -3,14 +3,29 @@
 %================================================================
 
 %----------------------------------------------------------------
-\subsection{Verifying the Implementation}\label{sec:project results}
+\subsection{Verification of the Implementation}\label{sec:project results}
 %----------------------------------------------------------------
 
-Grid search plots
+\autoref{fig:grid_search} shows the VMC computations of the expected energy and the corresponding variance with both the analytical and automatic differentiation approaches for a system of $N=1, 10, 100, 500$ non-interacting bosons in a spherical harmonic oscillator. We here use a grid search for the optimal variational parameter which is computationally expensive and generally infeasible for a non-coarse grid. However, in this case where we know the exact values, a grid search with a grid containing the exact value can be used to validate the sampling approach and implementation. As can be seen in the figure, the exact energy $\expval{E}/N = 3/2 \, \hbar \omega_\mathrm{ho}$ with $\Var \qty(E) / N = 0$ at $\alpha=1/2$ are found by both approaches, which indicates that the sampling approach works well and the implementation of the system is correct. 
+
+%shows VMC computations for a grid of $\alpha$ values for a non-interacting system with spherical potential with $500$ particles for both the analytical and automatic differentiation approaches. Both approaches find the exact energy of the ground state when $\alpha=0.5$. The regularity of the curve indicates that the sampling is performed well. However, for large $\alpha$ values, the sampler seems to run into some minor issues, as the sampled energy does not behave as regularly as desired. When $\alpha$ increases, the Gaussian wave function becomes a sharper peak, and there may be a need for more tuning or warm-up cycles before sampling.
+
+\begin{figure}[!htb]
+\centering
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_ashonib_rwm_energy.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_ashonib_rwm_variance.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_shonib_rwm_energy.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_shonib_rwm_variance.pdf}}}
+\caption{The expected value of the energy, $\expval{E}$, and variance, $\Var \qty(E)$, scaled  by the number of bosons, $N$, in a grid search for the optimal variational parameter $\alpha$. The system is a spherical harmonic oscillator with non-interacting bosons and the grid of variational parameters $\alpha \in [0.1, 1.0]$ with step size $0.1$. In \textbf{(a)} and \textbf{(b)} the expectation values are computed with the closed-form expressions, whereas in \textbf{(c)} and \textbf{(d)} the computations are done with automatic differentiation through JAX. Each computed point in the grid is the average over 16 tuned Markov chains with $20,000$ energy samples used to calculate the expectation values in each.}
+\label{fig:grid_search}
+\end{figure}
 
 \autoref{fig:trace_phase} shows the three phases of the sampler for both the RWM and LMH algorithms used on a system of $N=100$ bosons in a spherical trap both with and without interactions. First, the sampler tunes the proposal scale parameter by increasing or decreasing it according to a look-up table (see \cw{vmc/utils/sampler_utils.py} in the source code) that tries to achieve a target acceptance rate. Then, the sampler search for the optimal variational parameter by employing gradient descent optimization, specifically, the ADAM optimizer discussed in \autoref{sec:adam}. The updates in the tuning and optimization phases are done after a set interval of MCMC steps. Both the tuning and optimization phase also employs early stopping, i.e., the phase will end if there is no change in values between consecutive tuning or optimization intervals. Finally, the energy is sampled in what is hopefully the stationary state of the Markov chain. As can be seen in the figure, the different Markov chains all seem to converge well towards a stationary state by the time the sampler reaches the sampling phase. 
 
-\begin{figure}[H]
+\begin{figure}[!htb]
 \centering
 \subfloat[]{{\includegraphics[scale=0.5]{latex/figures/trace_phase_rwm_ashonib.pdf}}}
 \qquad
@@ -24,38 +39,19 @@ Grid search plots
 \end{figure}
 
 
-tuning samples
+\autoref{tab:verification_energy} tabulates the computed expectation values of the energy using the same spatial configuration of interacting bosons in a spherical harmonic oscillator with two different implementations. One implementation is based on closed-form expressions in the linear domain whereas the other on closed-form expressions in the logarithmic domain. As can be seen in the table, the expected energy calculations are identical for a given system size. As the implemented closed-form expressions found by different routes are identical, this further indicates the validity of the implementation.
 
-Figure: trace plot that shows convergence of different initial alpha for both RWM and LMH
-
-
-%----------------------------------------------------------------
-\subsubsection{Non-Interacting}
-%----------------------------------------------------------------
-
-\autoref{fig:gridsearch} shows VMC computations for a grid of $\alpha$ values for a non-interacting system with spherical potential with $500$ particles for both the analytical and automatic differentiation approaches. Both approaches find the exact energy of the ground state when $\alpha=0.5$. 
-
-\begin{figure}[H]
+\begin{table}[!htb]
+\caption{Comparison between the implementation of analytical expressions for a system of interacting of bosons in a spherical harmonic oscillator. One is performed in the linear domain and the other in the log domain.}
 \centering
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_analytical.pdf}}}
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_numerical.pdf}}}
-\caption{Grid search $\alpha$, non-interacting system. \textbf{(a)} VMC computations with analytical expressions. \textbf{(b)} VMC computations with automatic differentiation.}
-\label{fig:gridsearch}
-\end{figure}
-
-The regularity of the curve indicates that the sampling is performed well. However, for large $\alpha$ values, the sampler seems to run into some minor issues, as the sampled energy does not behave as regularly as desired. When $\alpha$ increases, the Gaussian wave function becomes a sharper peak, and there may be a need for more tuning or warm-up cycles before sampling. 
-
-%----------------------------------------------------------------
-\subsubsection{Interacting}
-%----------------------------------------------------------------
-\autoref{tab:verification_energy} displays the calculated local energies using identical positions for two implementations of a system of interacting bosons in a spherical potential. One implementation calculates the energy performing the calculations in normal domain, while the other does the same calculations in logarithmic domain. The local energies matches for all calculations performed here, showing the equality between the implementations. They are equal, and may be used as an indication for the validity of the implementation regarding the interacting system with a spherical potential, since they are equal and calculated by different roads. 
-\begin{table}[H]
-    \centering
-\begin{tabular}{c|c|c}
-\hline \hline
- Number of particles &  Local energy &  Local energy (log domain) \\
-\hline \hline
+\rowcolors{2}{gray!25}{white}
+\begin{tabular}{ccc}
+\hline
+\hline 
+\# of bosons & $\expval{E}$ linear domain & $\expval{E}$ log domain
+\\
+\hline 
+\hline 
                    2 &         3.001 &                    3.001 \\
                    5 &         7.512 &                    7.512 \\
                   10 &        15.052 &                   15.052 \\
@@ -65,19 +61,47 @@ The regularity of the curve indicates that the sampling is performed well. Howev
                  200 &       324.771 &                  324.771 \\
                  500 &       897.372 &                  897.372 \\
                 1000 &     2,095.517 &                2,095.517 \\
-\hline \hline
+\hline
 \end{tabular}
-    \caption{Comparison between the implementations of analytical interacting systems of bosons in spherical potentials, one performed in log domain, while the other is performed in normal domain.}
-    \label{tab:verification_energy}
-\end{table} 
+\label{tab:verification_energy}
+\end{table}
+
+% Prevent floats going into the next (sub)section 
+\FloatBarrier
 
 
+%----------------------------------------------------------------
+\subsection{Comparisons}
+%----------------------------------------------------------------
 
+Figure: trace plot that shows convergence of different initial alpha for both RWM and LMH
 
+Figure: Compare which converges the fastest 
+
+Figure: Runtime RWM and LMH 
+
+Figure: Runtime Analytical vs JAX
 
 %----------------------------------------------------------------
 \subsection{Variational Energy}
 %----------------------------------------------------------------
+
+Figure : LMH Sherical non-interacting / interacting 
+
+Figure: LMH Elliptical non-interacting / interacting  
+
+%----------------------------------------------------------------
+\subsection{OBD}
+%----------------------------------------------------------------
+
+
+Move figures below here
+
+
+
+%%
+%%
+%%
 
 %----------------------------------------------------------------
 \subsubsection{Non-Interacting}
