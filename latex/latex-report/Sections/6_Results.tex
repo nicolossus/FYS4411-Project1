@@ -6,7 +6,9 @@
 \subsection{Verifying the Implementation}\label{sec:project results}
 %----------------------------------------------------------------
 
-\autoref{fig:trace_phase}
+Grid search plots
+
+\autoref{fig:trace_phase} shows the three phases of the sampler for both the RWM and LMH algorithms used on a system of $N=100$ bosons in a spherical trap both with and without interactions. First, the sampler tunes the proposal scale parameter by increasing or decreasing it according to a look-up table (see \cw{vmc/utils/sampler_utils.py} in the source code) that tries to achieve a target acceptance rate. Then, the sampler search for the optimal variational parameter by employing gradient descent optimization, specifically, the ADAM optimizer discussed in \autoref{sec:adam}. The updates in the tuning and optimization phases are done after a set interval of MCMC steps. Both the tuning and optimization phase also employs early stopping, i.e., the phase will end if there is no change in values between consecutive tuning or optimization intervals. Finally, the energy is sampled in what is hopefully the stationary state of the Markov chain. As can be seen in the figure, the different Markov chains all seem to converge well towards a stationary state by the time the sampler reaches the sampling phase. 
 
 \begin{figure}[H]
 \centering
@@ -17,11 +19,14 @@
 \subfloat[]{{\includegraphics[scale=0.5]{latex/figures/trace_phase_rwm_ashoib.pdf}}}
 \qquad
 \subfloat[]{{\includegraphics[scale=0.5]{latex/figures/trace_phase_lmh_ashoib.pdf}}}
-\caption{The time evolution of a Markov chain  figure text}
+\caption{The time evolution of a Markov chain in the three phases of the sampler; (i) tuning of the proposal scale parameter; (ii) gradient descent optimization of the variational parameter; and (iii) sampling of the variational energy. The updates in the tuning and optimization phase are done on a batch of samples, here 500 for tuning and 1000 for optimization. If the updated value remains the same between consecutive batches, the sampler will end the phase early. Here, the system consists of $N=100$ bosons in a spherical harmonic oscillator both with and without interactions. The initial variational parameter is set to $\alpha_0 = 0.4$. In \textbf{(a)} and \textbf{(b)} we see the RWM and LMH algorithm on a system of non-interacting bosons, respectively. In \textbf{(c)} and \textbf{(d)} we see the RWM and LMH algorithm on a system of interacting bosons, respectively.}
 \label{fig:trace_phase}
 \end{figure}
 
 
+tuning samples
+
+Figure: trace plot that shows convergence of different initial alpha for both RWM and LMH
 
 
 %----------------------------------------------------------------
