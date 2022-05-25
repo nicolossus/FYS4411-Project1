@@ -6,7 +6,7 @@
 \subsection{Verification of the Implementation}\label{sec:project results}
 %----------------------------------------------------------------
 
-\autoref{fig:grid_search} shows the VMC computations of the expected energy and the corresponding variance with both the analytical and automatic differentiation approaches for a system of $N=1, 10, 100, 500$ non-interacting bosons in a spherical harmonic oscillator. We here use a grid search for the optimal variational parameter which is computationally expensive and generally infeasible for a non-coarse grid. However, in this case where we know the exact values, a grid search with a grid containing the exact value can be used to validate the sampling approach and implementation. As can be seen in the figure, the exact energy $\expval{E}/N = 3/2 \, \hbar \omega_\mathrm{ho}$ with $\Var \qty(E) / N = 0$ at $\alpha=1/2$ are found by both approaches, which indicates that the sampling approach works well and the implementation of the system is correct. 
+\autoref{fig:grid_search} shows the VMC computations of the expected energy and the corresponding variance with both the analytical and automatic differentiation approaches for a system of $N=1, 10, 100, 500$ non-interacting bosons in a spherical harmonic oscillator. We here use a grid search for the optimal variational parameter which is computationally expensive and generally infeasible for a non-coarse grid. However, in this case where we know the exact values, a grid search with a grid containing the exact value can be used to validate the sampling approach and implementation. As can be seen in the figure, the exact energy $\expval{E}/N = 3/2 \, \hbar \omega_\mathrm{ho}$ with $\Var \qty(E) / N = 0$ at $\alpha=1/2$ are found by both approaches, which indicates that the sampler works well and the implementation of the system is correct. The figure also illustrates the convex nature of the variational parameter optimization problem. In this study we optimize the variational parameter with respect to the expectation value of the energy, as described in \autoref{sec:gradient_descent}. However, the figure indicates that the variance might be more optimal as the optimization target since it tends to yield rather large values for non-optimal variational parameter values. 
 
 %shows VMC computations for a grid of $\alpha$ values for a non-interacting system with spherical potential with $500$ particles for both the analytical and automatic differentiation approaches. Both approaches find the exact energy of the ground state when $\alpha=0.5$. The regularity of the curve indicates that the sampling is performed well. However, for large $\alpha$ values, the sampler seems to run into some minor issues, as the sampled energy does not behave as regularly as desired. When $\alpha$ increases, the Gaussian wave function becomes a sharper peak, and there may be a need for more tuning or warm-up cycles before sampling.
 
@@ -23,23 +23,7 @@
 \label{fig:grid_search}
 \end{figure}
 
-\autoref{fig:trace_phase} shows the three phases of the sampler for both the RWM and LMH algorithms used on a system of $N=100$ bosons in a spherical trap both with and without interactions. First, the sampler tunes the proposal scale parameter by increasing or decreasing it according to a look-up table (see \cw{vmc/utils/sampler_utils.py} in the source code) that tries to achieve a target acceptance rate. Then, the sampler search for the optimal variational parameter by employing gradient descent optimization, specifically, the ADAM optimizer discussed in \autoref{sec:adam}. The updates in the tuning and optimization phases are done after a set interval of MCMC steps. Both the tuning and optimization phase also employs early stopping, i.e., the phase will end if there is no change in values between consecutive tuning or optimization intervals. Finally, the energy is sampled in what is hopefully the stationary state of the Markov chain. As can be seen in the figure, the different Markov chains all seem to converge well towards a stationary state by the time the sampler reaches the sampling phase. 
-
-\begin{figure}[!htb]
-\centering
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/trace_phase_rwm_ashonib.pdf}}}
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/trace_phase_lmh_ashonib.pdf}}}
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/trace_phase_rwm_ashoib.pdf}}}
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/trace_phase_lmh_ashoib.pdf}}}
-\caption{The time evolution of a Markov chain in the three phases of the sampler; (i) tuning of the proposal scale parameter; (ii) gradient descent optimization of the variational parameter; and (iii) sampling of the variational energy. The updates in the tuning and optimization phase are done on a batch of samples, here 500 for tuning and 1000 for optimization. If the updated value remains the same between consecutive batches, the sampler will end the phase early. Here, the system consists of $N=100$ bosons in a spherical harmonic oscillator both with and without interactions. The initial variational parameter is set to $\alpha_0 = 0.4$. In \textbf{(a)} and \textbf{(b)} we see the RWM and LMH algorithm on a system of non-interacting bosons, respectively. In \textbf{(c)} and \textbf{(d)} we see the RWM and LMH algorithm on a system of interacting bosons, respectively.}
-\label{fig:trace_phase}
-\end{figure}
-
-
-\autoref{tab:verification_energy} tabulates the computed expectation values of the energy using the same spatial configuration of interacting bosons in a spherical harmonic oscillator with two different implementations. One implementation is based on closed-form expressions in the linear domain whereas the other on closed-form expressions in the logarithmic domain. As can be seen in the table, the expected energy calculations are identical for a given system size. As the implemented closed-form expressions found by different routes are identical, this further indicates the validity of the implementation.
+\autoref{tab:verification_energy} tabulates the computed expectation values of the energy using the same spatial configuration of interacting bosons in a spherical harmonic oscillator with two different implementations. One implementation is based on closed-form expressions in the linear domain whereas the other on closed-form expressions in the logarithmic domain (see \autoref{sec:analytical_interact}). As can be seen in the table, the expected energy calculations are identical for a given system size. As the implemented closed-form expressions found by different routes are identical, this further indicates the validity of the implementation.
 
 \begin{table}[!htb]
 \caption{Comparison between the implementation of analytical expressions for a system of interacting of bosons in a spherical harmonic oscillator. One is performed in the linear domain and the other in the log domain.}
@@ -66,6 +50,24 @@
 \label{tab:verification_energy}
 \end{table}
 
+\autoref{fig:trace_phase} shows the three phases of the sampler for both the RWM and LMH algorithms used on a system of $N=100$ bosons in a spherical trap both with and without interactions. First, the sampler tunes the proposal scale parameter by increasing or decreasing it according to a look-up table (see \cw{vmc/utils/sampler_utils.py} in the source code) that tries to achieve a target acceptance rate. Then, the sampler search for the optimal variational parameter by employing gradient descent optimization, specifically, the ADAM optimizer discussed in \autoref{sec:adam}. The updates in the tuning and optimization phases are done after a set interval of MCMC steps. Both the tuning and optimization phase also employs early stopping, i.e., the phase will end if there is no change in values between consecutive tuning or optimization intervals. Finally, the energy is sampled in what is hopefully the stationary state of the Markov chain. As can be seen in the figure, the different Markov chains all seem to converge well towards a stationary state by the time the sampler reaches the sampling phase. 
+
+\begin{figure}[!htb]
+\centering
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/trace_phase_rwm_ashonib.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/trace_phase_lmh_ashonib.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/trace_phase_rwm_ashoib.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/trace_phase_lmh_ashoib.pdf}}}
+\caption{The time evolution of a Markov chain in the three phases of the sampler; (i) tuning of the proposal scale parameter; (ii) gradient descent optimization of the variational parameter; and (iii) sampling of the variational energy. The updates in the tuning and optimization phase are done on a batch of samples, here 500 for tuning and 1000 for optimization. If the updated value remains the same between consecutive batches, the sampler will end the phase early. Here, the system consists of $N=100$ bosons in a spherical harmonic oscillator both with and without interactions. The initial variational parameter is set to $\alpha_0 = 0.4$. In \textbf{(a)} and \textbf{(b)} we see the RWM and LMH algorithm on a system of non-interacting bosons, respectively. In \textbf{(c)} and \textbf{(d)} we see the RWM and LMH algorithm on a system of interacting bosons, respectively.}
+\label{fig:trace_phase}
+\end{figure}
+
+
+
+
 % Prevent floats going into the next (sub)section 
 \FloatBarrier
 
@@ -74,21 +76,51 @@
 \subsection{Comparisons}
 %----------------------------------------------------------------
 
-Figure: trace plot that shows convergence of different initial alpha for both RWM and LMH
+\autoref{fig:alpha_epoch_rwm}
 
-Figure: Compare which converges the fastest 
+\begin{figure}[!htb]
+\centering
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_rwm_ashonib_eta001.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_rwm_ashonib_eta005.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_rwm_ashonib_eta01.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_rwm_ashonib_eta05.pdf}}}
+\caption{figure text}
+\label{fig:alpha_epoch_rwm}
+\end{figure}
 
-Figure: Runtime RWM and LMH 
+\autoref{fig:alpha_epoch_lmh}
 
-Figure: Runtime Analytical vs JAX
+\begin{figure}[!htb]
+\centering
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_lmh_ashonib_eta001.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_lmh_ashonib_eta005.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_lmh_ashonib_eta01.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_lmh_ashonib_eta05.pdf}}}
+\caption{figure text}
+\label{fig:alpha_epoch_lmh}
+\end{figure}
+
+Comparing \autoref{fig:alpha_epoch_rwm} and \autoref{fig:alpha_epoch_lmh} - see no faster convergence of the variational parameter for LMH
+
+ 
+
+Figure: Runtime RWM and LMH; Analytical vs JAX
+
+
 
 %----------------------------------------------------------------
 \subsection{Variational Energy}
 %----------------------------------------------------------------
 
-Figure : LMH Sherical non-interacting / interacting 
+Figure : RWM and LMH Spherical non-interacting / interacting 
 
-Figure: LMH Elliptical non-interacting / interacting  
+Figure: RWM LMH Elliptical non-interacting / interacting  
 
 %----------------------------------------------------------------
 \subsection{OBD}
@@ -127,7 +159,7 @@ Discussion
 \end{figure}
 
 \textbf{Elliptical potential}
-The ground state energy of the non-interacting particles in the elliptical potential with $\beta=2.82843$ is $\frac{\expval{E}}{N}=2.414215\hbar\omega_0$, and the ground state $\alpha=0.5$, as in the spherical potential. \autoref{tab:jax_timing} displays the timing comparison between calculations performed with an analytical wave function solution for the interacting case with the Jastrow factor set to $0$ and the JAX implementation, which only takes in the trial wave function and potential of the system. 
+The ground state energy of the non-interacting particles in the elliptical potential with $\beta=2.82843$ is $\frac{\expval{E}}{N}=2.414215\hbar\omega_0$, and the ground state $\alpha=0.5$, as in the spherical potential. 
 
 
 
