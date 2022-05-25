@@ -10,12 +10,12 @@ from .pool_tools import advance_PRNG_state
 from .state import State
 
 
-class OBDMetropolis(OBDVMC):
+class OBDRMW(OBDVMC):
 
     def __init__(self, wavefunction, rng=None):
         super().__init__(wavefunction, rng=rng)
 
-    def step(self, particle, state, alpha, seed, scale=1.0, normalize=False):
+    def step(self, state, alpha, seed, scale=1.0, normalize=False):
         """One step of the random walk Metropolis algorithm
 
         Parameters
@@ -33,15 +33,8 @@ class OBDMetropolis(OBDVMC):
         N, dim = state.positions.shape
         # Sample proposal positions, i.e., move walkers
         proposals = rng.normal(loc=state.positions, scale=scale)
-        if normalize:
-            pass
-        else:
-            proposals[0, :] = particle
-        # Sample log uniform rvs
-        proposals[0, :] = particle
-        
+
         log_unif = np.log(rng.random())
-        #log_unif = np.log(rng.random(size=state.positions.shape))
 
         # Compute proposal log density
         logp_proposal = self._logp_fn(proposals, alpha)

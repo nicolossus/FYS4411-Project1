@@ -64,7 +64,6 @@ class OBDVMC:
 
     def sample(
         self,
-        particle,
         nsamples,
         initial_positions,
         alpha,
@@ -94,14 +93,13 @@ class OBDVMC:
         seeds = generate_seed_sequence(seed, nchains)
 
         if nchains == 1:
-            state, pdf = self._sample(particle,
-                                      nsamples,
-                                      initial_positions,
-                                      alpha,
-                                      seeds[0],
-                                      scale,
-                                      normalize=normalize
-                                      )
+            state, positions = self._sample(nsamples,
+                                            initial_positions,
+                                            alpha,
+                                            seeds[0],
+                                            scale,
+                                            normalize=normalize
+                                            )
 
             #self._results_full = pd.DataFrame([results])
 
@@ -118,22 +116,21 @@ class OBDVMC:
 
             with ProcessPool(nchains) as pool:
                 # , self._distances
-                state, pdf = zip(*pool.map(self._sample,
-                                           particles,
-                                           nsamples,
-                                           initial_positions,
-                                           alpha,
-                                           seeds,
-                                           scale,
-                                           normalize=normalize
-                                           ))
+                state, positions = zip(*pool.map(self._sample,
+                                                 nsamples,
+                                                 initial_positions,
+                                                 alpha,
+                                                 seeds,
+                                                 scale,
+                                                 normalize=normalize
+                                                 ))
 
                 #self._results_full = pd.DataFrame(results)
 
         #print("Shape of pdfs within sample: ", self._pdfs.shape)
-        return state, pdf
+        return state, positions
 
-    def _sample(self, particle, nsamples, initial_positions, alpha, seed, scale, normalize=False):
+    def _sample(self, nsamples, initial_positions, alpha, seed, scale, normalize=False):
         """To be called by process"""
 
         # Set some flags and counters
@@ -148,45 +145,43 @@ class OBDVMC:
 
         # Warm-up?
         if self._warm:
-            state = self.warmup_chain(particle, state, alpha, seed, scale)
+            state = self.warmup_chain(state, alpha, seed, scale)
             actual_warm_iter += state.delta
             subtract_iter = actual_warm_iter
 
         # Tune?
         if self._tune:
-            state, scale = self.tune_scale(particle, state, alpha, seed, scale)
+            state, scale = self.tune_scale(state, alpha, seed, scale)
             actual_tune_iter += state.delta - subtract_iter
             subtract_iter = actual_tune_iter + actual_warm_iter
 
         if rewarm:
-            state = self.warmup_chain(particle, state, alpha, seed, scale)
+            state = self.warmup_chain(state, alpha, seed, scale)
             actual_warm_iter += state.delta
             subtract_iter = actual_warm_iter
 
         # Sample pdfs given one particle position
-        state, pdfs = self.sample_pdf(particle,
-                                      nsamples,
-                                      state,
-                                      alpha,
-                                      seed,
-                                      scale,
-                                      normalize=normalize
-                                      )
+        state, positions = self.sample_positions(nsamples,
+                                                 state,
+                                                 alpha,
+                                                 seed,
+                                                 scale,
+                                                 normalize=normalize
+                                                 )
 
-        pdf = self._accumulate_results(particle,
-                                       state,
-                                       pdfs,
-                                       nsamples,
-                                       alpha
-                                       )
-        #print("Shape pdfs within _sample: ", pdfs.shape)
-        return state, pdf
+        mean_avg_distance, acc_rate = self._accumulate_results(state,
+                                                       positions,
+                                                       nsamples,
+                                                       alpha
+                                                       )
+        print(f"Acceptance rate={acc_rate}")
+        print(f"Avg radial distance={mean_avg_distance}")
+        return state, positions
 
     def _accumulate_results(
         self,
-        particle,
         state,
-        pdfs,
+        positions,
         nsamples,
         alpha,
     ):
@@ -194,16 +189,14 @@ class OBDVMC:
         Gather results
         """
 
-        N, d = state.positions.shape
-
-
         total_moves = nsamples
 
         acc_rate = state.n_accepted / total_moves
-        pdf = np.mean(pdfs)
+        radial_distances = np.linalg.norm(positions, axis=2)
+        mean_radial_distances = np.mean(radial_distances, axis=1)
+        average_radial_distance = np.mean(mean_radial_distances)
 
-
-        return pdf
+        return average_radial_distance, acc_rate
 
     def initial_state(self, initial_positions, alpha):
         state = State(initial_positions,
@@ -213,7 +206,7 @@ class OBDVMC:
                       )
         return state
 
-    def warmup_chain(self, particle, state, alpha, seed, scale):
+    def warmup_chain(self, state, alpha, seed, scale):
         """Warm-up the chain for warmup_iter cycles.
 
         Arguments
@@ -233,11 +226,11 @@ class OBDVMC:
             The state after warm-up
         """
         for i in range(self._warmup_iter):
-            state = self.step(particle, state, alpha, seed, scale=scale)
+            state = self.step(state, alpha, seed, scale=scale)
         return state
 
 
-    def tune_scale(self, particle, state, alpha, seed, scale):
+    def tune_scale(self, state, alpha, seed, scale):
         """For samplers with scale parameter."""
 
         steps_before_tune = self._tune_interval
@@ -246,7 +239,7 @@ class OBDVMC:
         total_moves = self._tune_interval
         count = 0
         for i in range(self._tune_iter):
-            state = self.step(particle, state, alpha, seed, scale=scale)
+            state = self.step(state, alpha, seed, scale=scale)
             steps_before_tune -= 1
 
             if steps_before_tune == 0:
@@ -269,17 +262,18 @@ class OBDVMC:
 
         return state, scale
 
-    def sample_pdf(self, particle, nsamples, state, alpha, seed, scale, normalize=False):
+    def sample_positions(self, nsamples, state, alpha, seed, scale, normalize=False):
 
         # Reset n_accepted
         state = State(state.positions, state.logp, 0, state.delta)
-        pdfs = np.zeros(nsamples)
+        N, d = state.positions.shape
+        positions_array = np.zeros((nsamples, N, d))
 
         for i in range(nsamples):
-            state = self.step(particle, state, alpha, seed, scale, normalize=normalize)
-            pdfs[i] = self._pdf(state.positions, alpha)
+            state = self.step(state, alpha, seed, scale, normalize=normalize)
+            positions_array[i, :, :] = state.positions
 
-        return state, pdfs
+        return state, positions_array
 
 
     @property
