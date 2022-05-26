@@ -71,12 +71,15 @@
 \subsection{Comparisons}
 %----------------------------------------------------------------
 
-\autoref{fig:rwm_vs_lmh} info: ASHONIB, $N=100$ particles, $10,000$ tuning cycles, $50,000$ optimization cycles, no early stopping, sampling cycles $M$, 16 chains, same $\alpha_0 = 0.4.$. Solid line is average over the 16 chains, shaded region the standard deviation of the mean (SEM). Statistical error estimated via blocking denoted $\sigma_B$. Used both RMW and LMH.
+\autoref{fig:rwm_vs_lmh} 
+% shows the average energies, average statistical error and the variance in the energy, against the number of samples, $M, for the RWM and LMH sampling algorithms on a spherically symmetric harmonic oscillator system of $100$ particles. The average energy per particle over $16$ chains is close to the exact energy for both the RWM and LMH samplers. The statistical error per particle shows that there are larger fluctuations in the RWM MCMC chain than in the LMH MCMC chain, which is affirmed in the variance in the energy per particle plot. The 
+
+info: ASHONIB, $N=100$ particles, $10,000$ tuning cycles, $50,000$ optimization cycles, no early stopping, sampling cycles $M$, 16 chains, same $\alpha_0 = 0.4.$. Solid line is average over the 16 chains, shaded region the standard deviation of the mean (SEM). Statistical error estimated via blocking denoted $\sigma_B$. Used both RMW and LMH.
 
 \begin{figure}[!htb]
 \begin{center}\includegraphics[width=\textwidth]{latex/figures/ashonib_N100_rwm_vs_lmh.pdf}
 \end{center}
-\caption{figure text}
+\caption{The sampled expected energy per particle ($\expval{E}/N$), the standard error ($\sigma_B/N$) and the variance ($\mathrm{Var}\qty(E)/N$) against the number of samples, $M$. The system is a spherical harmonic oscillator, with an initial $\alpha$-value of $0.4$. For every MCMC-chain run ($16$ per $M$-value), there were $10,000$ tuning cycles, and $\alpha$ was optimized over $50,000$ cycles. The solid lines indicates the average expected value over the $16$ chains, while the shaded region denotes the standard error of the mean. The blue lines and regions displays the results from the RWM algorithm, while the orange lines shows the corresponding results from the LMH algorithm.}
 \label{fig:rwm_vs_lmh}
 \end{figure}
 
@@ -100,19 +103,44 @@ The non-interacting system performs simple calculations in a highly efficient ma
 Figure : RWM and LMH Spherical non-interacting / interacting (will go into appendix)
 
 Figure: RWM LMH Elliptical non-interacting / interacting  
+The elliptical potential described in \autoref{eq:Vtrap} yields a ground state energy per particle of $E_0/N = 2.414215 \hbar\omega_0$ for non-interacting particles. \autoref{fig:elliptical_energies} displays the mean energies and mean standard error (points), together with their spread (one standard error of the mean confidence interval)  of $16$ threads of sampling for each sampling algorithm. The parameters for the sampling runs were all set to a maximum of $20,000$ tuning cycles, with a tuning interval of $1000$. The initial alpha value was set to $0.5$ and the threads had all a maximum of $50,000$ optimization cycles, with an update at every $1,000$th cycle. The number of samples collected were $2^{15}$. 
 
 \begin{figure}[!htb]
 \centering
-\subfloat[]{{\includegraphics[scale=0.5]{Figures/filename1}}}
+\subfloat[]{{\includegraphics[scale=0.8]{latex/figures/non_interacting_elliptical_energies.pdf}}}
 \qquad
-\subfloat[]{{\includegraphics[scale=0.5]{Figures/filename2}}}
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{Figures/filename3}}}
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{Figures/filename4}}}
-\caption{figure text}
-\label{fig:fig1}
+\subfloat[]{{\includegraphics[scale=0.8]{latex/figures/interacting_elliptical_energies.pdf}}}
+\caption{Sampled expected energies of the elliptical trap where the particles are non-interacting (\textbf{a}) and interacting (\textbf{b}). The sampled average energy per particle over $16$ chains against the number of particles are plotted to the left, and in the right windows the average statistical error per particle given by the blocking method is plotted. The stretch in the points shows spread in value by one standard error of the mean. The sample size is $M=2^{15}$, and there were a maximum of $20,000$ tuning cycles and $50,000$ optimization cycles, which could be less would the early stopping criterion be met.}
+\label{fig:elliptical_energies}
 \end{figure}
+
+When the particles are interacting, the energy increases as a function of particle density in the trap. The collected mean energies together with the mean statistical error is tabulated in \autoref{tab:elliptical_energies}. The interacting bosons in the trap have a higher ground state than the non-interacting particles, and it increases with the number of particles. When the number of bosons in the trap increases, the density does too, meaning that the average distances to the nearest bosons decrease. Thus, we expect (and have seen in \citep{DuBois2001}) that the energy will continue to rise if we further increase the density. There is also the question of the quite large gap in average expected energies between the interacting systems when $N=100$ between the RWM and LMH sampling algorithms. This may have to do with the low number of samples produced by the chains, and the LMH algorithm 
+
+
+\begin{table}[h]
+\caption{Tabulated sampling results of $16$ sampling runs for each system and algorithm. The number of samples was $2^{15}$, with a maximum of $50,000$ optimization cycles and a maximum of $20,000$ tuning cycles. The system was a harmonic oscillator with an elliptical potential described by \autoref{eq:Vtrap}, with varying number of bosons. The hard-sphere diameter, $a$, is set to $0$ if there are no interactions between the bosons, while $a=a_{\mathrm{Rb}}=0.00433$ if the particles are interacting.}
+\centering
+\begin{tabular}{ccccc}
+\hline\hline
+Measurement & LMH ($a=0$) & RWM ($a=0$) & LMH ($a=a_{Rb}$) & RWM ($a=a_{Rb}$)
+\\
+\hline \hline
+$\expval{E}/(N=10)$[$\hbar\omega_0$] & 2.41421 & 2.41421 & 2.4459 & 2.4446  
+\\
+$\expval{E}/(N=50)$[$\hbar\omega_0$] & $2.4142$ & $2.4142$ & $2.5609$ & $2.5661$ 
+\\
+$\expval{E}/(N=100)$[$\hbar\omega_0$] & $2.4142$ & $2.4141$ & $2.6750$ & $2.6950$ 
+\\
+$\sigma_{\mathrm{B}}\qty(N=10)$[$\hbar\omega_0$] & $2\cdot10^{-7}$ & $3\cdot10^{-7}$ & $1\cdot10^{-3}$ & $3\cdot10^{-3}$ 
+\\
+$\sigma_{\mathrm{B}}\qty(N=50)$[$\hbar\omega_0$] & $5\cdot10^{-4}$ & $2\cdot10^{-5}$ & $0.02$ & $0.05$
+\\
+$\sigma_{\mathrm{B}}\qty(N=100)$[$\hbar\omega_0$] & $2\cdot10^{-3}$ & $0.02$ & $0.06$ & $0.1$
+\\
+\hline\hline
+\end{tabular}
+\label{tab:elliptical_energies}
+\end{table}
 
 %----------------------------------------------------------------
 \subsection{OBD}
