@@ -3,39 +3,50 @@
 %================================================================
 
 %----------------------------------------------------------------
-\subsection{Mathematical foundation of random variables}\label{app:stochastic_maths}
+\subsection{Additional Results}\label{app:additional_results}
 %---------------------------------------------------------------- 
-Fix a set of $\Omega$, the set of outcomes or seeds. We call this set for the sample space, or the set of all possible outcomes. A random variable is a function $X:\Omega \to\R$ (or $X:\Omega\to\R^d$). If another function $F: \R\to\R$, then $F(X)$ is a new random variable. The expectation is a function $\mathbb{E}$ such that, when $X, Y$ are random variables
-\begin{enumerate}
-    \item $\mathbb{E}[\alpha X + \beta Y] = \alpha\mathbb{E}[X]+\beta\mathbb{E}[Y] \quad \forall \alpha, \beta \in\R$.
-    \item $\mathbb{E}[X]=\alpha \text{ if } X(\omega) = \alpha\quad \forall\omega\in\Omega. $
-\end{enumerate}
 
-\textbf{Independent random variables.}
+\autoref{fig:alpha_epoch_rwm}
 
-Two random variables $X, Y: \Omega\to\R$ are independent if 
-\begin{equation*}
-    \mathbb{E}[f(X)g(Y)] = \mathbb{E}[f(X)]\mathbb{E}[g(Y)], 
-\end{equation*}
-for any continuous $f, g: \R\to\R$. 
+\begin{figure}[!htb]
+\centering
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_rwm_ashonib_eta001.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_rwm_ashonib_eta005.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_rwm_ashonib_eta01.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_rwm_ashonib_eta05.pdf}}}
+\caption{figure text}
+\label{fig:alpha_epoch_rwm}
+\end{figure}
 
-\textbf{Identically distributed random variables.}
+\autoref{fig:alpha_epoch_lmh}
 
-Two random variables $X,Y:\Omega\to\R$ are identically distributed if $\mathbb{E}[f(X)] = \mathbb{E}[f(Y)]$ for any continuous $f:\R\to\R$. 
+\begin{figure}[!htb]
+\centering
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_lmh_ashonib_eta001.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_lmh_ashonib_eta005.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_lmh_ashonib_eta01.pdf}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_lmh_ashonib_eta05.pdf}}}
+\caption{figure text}
+\label{fig:alpha_epoch_lmh}
+\end{figure}
 
-\textbf{Uniformly distributed random variables.}
+Comparing \autoref{fig:alpha_epoch_rwm} and \autoref{fig:alpha_epoch_lmh} - see no faster convergence of the variational parameter for LMH
 
-A random variable $X:\Omega\to\R$ is uniformly distributed in $[a,b]$ if 
-\begin{equation*}
-    \begin{split}
-        \mathbb{E}[f(X)] &= \frac{1}{b-a}\int_a^bf(y)dy \\ 
-        &\Leftrightarrow \int_a^b f(y)dy = (b-a)\mathbb{E}[f(X)], 
-    \end{split}
-\end{equation*}
-for any continuous $f:\R\to\R$.
+
+\FloatBarrier
 
 %----------------------------------------------------------------
-\subsection{Error in standard Monte Carlo approximation}\label{app:MC_error}
+\subsection{Additional Derivations}\label{app:additional_derivations}
+%---------------------------------------------------------------
+
+%----------------------------------------------------------------
+\subsubsection*{Error in standard Monte Carlo approximation}
 %---------------------------------------------------------------- 
 The mean square error $\epsilon_M$ of the Monte Carlo approximation can be written as 
 \begin{equation}
@@ -65,125 +76,11 @@ which leads to
 \begin{equation*}
     \mathcal{E}_M = \frac{\sqrt{\text{Var}[f(X)]}}{\sqrt{M}}.
 \end{equation*}
-%------------------------------------------------------------------
-\subsection{Derivation of characteristic length of spherical trap.}
-%------------------------------------------------------------------
-A single-dimensional harmonic oscillator potential has the Hamiltonian,
-\begin{equation*}
-    H_{1D-ho} = -\frac{\hbar^2}{2m}\dv[2]{x} + \frac{m\omega^2_{ho}x^2}{2}, 
-\end{equation*}
-where $x$ is the position in 1D-space, $m$ is the weight of the particle in the potential, $\hbar$ is the reduced Planck's constant and $\omega_{ho}$ is the angular frequency of the oscillator potential. The ground state energy of this single-dimensional particle in this harmonic potential is $E_0=\frac{\hbar\omega_{ho}}{2}$. Thus the analytical expectation value of 
 
-
-
-\subsection{Calculations regarding derivatives of the wave function}
-In this section we swap the notation for expectation value $\mathbb{E}[f]\to\expval{f}$. 
-We have a trial wave function, $\Psi_T(\mathbf{R}; \mathbf{\alpha})$, and we want to solve the optimization problem 
-\begin{equation*}
-    \frac{d\expval{E_L(\mathbf{R}; \mathbf{\alpha})}}{d\mathbf{\alpha}} = 0. 
-\end{equation*}
-In quantum mechanics, given a wave function, $\Psi(\mathbf{R})$, the expectation value of a general operator $\hat{Q}$ is defined as 
-\begin{equation*}
-    \expval{Q} = \frac{\int_{\mathbf{R}\in\mathbb{D}}\Psi^*(\mathbf{R})\hat{Q}\Psi(\mathbf{R})d\mathbf{R}}{\int_{\mathbf{R}\in\mathbb{D}}\Psi^*\Psi d\mathbf{R}}, 
-\end{equation*}
-in the case where the general wave function $\Psi$ does not have to be normalized. 
-This is more readable using Dirac notation, where the equation above is rewritten as 
-\begin{equation*}
-    \expval{Q} = \frac{\bra{\Psi(\mathbf{R}; \mathbf{\alpha})}\hat{Q}\ket{\Psi(\mathbf{R};\mathbf{\alpha})}}{\braket{\Psi_T(\mathbf{R}; \mathbf{\alpha})}{\Psi_T(\mathbf{R}; \mathbf{\alpha})}}, 
-\end{equation*}
-which we will simplify further by $\Psi_T(\mathbf{R}; \mathbf{\alpha})\to\Psi$ 
-\begin{equation}\label{eq:expectation_value}
-    \expval{Q} = \frac{\bra{\Psi}\hat{Q}\ket{\Psi}}{\braket{\Psi}}.
-\end{equation}
-Now, the local energy, $E_L$ is defined as 
-\begin{equation*}
-    E_L(\mathbf{R}; \mathbf{\alpha}) = \frac{1}{\Psi_T(\mathbf{R}; \mathbf{\alpha})}\hat{H}\Psi_T(\mathbf{R}; \mathbf{\alpha}),  
-\end{equation*}
-and inserting this in \ref{eq:expectation_value}, we get
-\begin{equation*}
-    \expval{E_L} = \frac{\bra{\Psi}\frac{1}{\Psi}\hat{H}\Psi\ket{\Psi}}{\braket{\Psi}}=\frac{\bra{\Psi}\hat{H}\ket{\Psi}}{\braket{\Psi}}.  
-\end{equation*}
-We want to evaluate the $\frac{d\expval{E_L}}{d\mathbf{\alpha}}$, and we get 
-\begin{equation*}
-    \begin{split}
-        \frac{d\expval{E_L}}{d\alpha} =& \frac{\braket{\Psi}(\bra{\frac{d\Psi}{d\mathbf{\alpha}}}\hat{H}\ket{\Psi}+\bra{\Psi}\frac{d\hat{H}}{d\mathbf{\alpha}}\ket{\Psi}+\bra{\Psi}\hat{H}\ket{\frac{d\Psi}{d\mathbf{\alpha}}})}{\braket{\Psi}^2}\\
-        &-\frac{\bra{\Psi}\hat{H}\ket{\Psi}(\bra{\frac{d\Psi}{d\mathbf{\alpha}}}\ket{\Psi}+\bra{\Psi}\ket{\frac{d\Psi}{d\mathbf{\alpha}}})}{\braket{\Psi}^2}
-    \end{split}
-\end{equation*}
-
-\begin{equation*}
-    \begin{split}
-        \frac{d\expval{E_L}}{d\alpha} =& \frac{\bra{\frac{d\Psi}{d\alpha}}\hat{H}\ket{\Psi} + \bra{\Psi}\hat{H}\ket{\frac{d\Psi}{d\alpha}}}{\braket{\Psi}}  \\
-        &- \frac{\bra{\Psi}\hat{H}\ket{\Psi}(\bra{\frac{d\Psi}{d\alpha}}\ket{\Psi}+\bra{\Psi}\ket{\frac{d\Psi}{d\alpha}}}{\braket{\Psi}^2} \\
-        =& \frac{\bra{\frac{d\Psi}{d\alpha}}\hat{H}\ket{\Psi} + \bra{\Psi}\hat{H}\ket{\frac{d\Psi}{d\alpha}}}{\braket{\Psi}} \\
-        &- \expval{E_L}\frac{\bra{\frac{d\Psi}{d\alpha}}\ket{\Psi}+\bra{\Psi}\ket{\frac{d\Psi}{d\alpha}}}{\braket{\Psi}}
-    \end{split}
-\end{equation*}
-assuming hermiticity in the Hamiltonian, we can make further simplifications 
-\begin{equation}\label{eq:possible_solution}
-    \begin{split}
-        \frac{d\expval{E_L}}{d\alpha} = 2\expval{E_L\frac{d}{d\alpha}}-2\expval{E_L}\expval{\frac{d}{d\alpha}}
-    \end{split}
-\end{equation}
-
-
-
-Second way: 
-\begin{equation*}
-    \expval{E_L} = \int_{\mathbf{R}\in\mathbb{D}}\frac{1}{\Psi[\alpha]}\hat{H}\Psi[\alpha]d\mathbf{R}. 
-\end{equation*}
-% forsøk på utledning. 
-\begin{equation*}
-    \begin{split}
-        \frac{d\expval{E_L[\alpha]}}{d\alpha} =& \int d\mathbf{R}(\frac{d}{d\alpha}\frac{1}{\Psi[\alpha]})\hat{H}\Psi[\alpha] \\
-        &+ \int d\mathbf{R}\frac{1}{\Psi[\alpha]}\frac{d\hat{H}}{d\alpha}\Psi[\alpha] \\
-        &+ \int d\mathbf{R}\frac{1}{\Psi[\alpha]}\hat{H}\frac{d\Psi[\alpha]}{d\alpha} \\
-        =& \int d\mathbf{R}\frac{\frac{d(\hat{H}\Psi[\alpha])}{d\alpha}-\frac{d\Psi[\alpha]}{d\alpha}\hat{H}\Psi[\alpha]}{\Psi[\alpha]^2} \\
-        =& \int d\mathbf{R}\frac{\hat{H}\frac{d\Psi[\alpha]}{d\alpha}}{\Psi[\alpha]^2} - \expval{E_L}\int d\mathbf{R}\frac{\frac{d\Psi[\alpha]}{d\alpha}}{\Psi[\alpha]} \\
-        =& \frac{d}{d\alpha}\bra{\frac{1}{\Psi[\alpha]}}\hat{H}\ket{\Psi[\alpha]} \\
-        =& \bra{\frac{d}{d\alpha}\frac{1}{\Psi}}\hat{H}\ket{\Psi} + \bra{\frac{1}{\Psi}}\frac{d\hat{H}}{d\alpha}\ket{\Psi} + \bra{\frac{1}{\Psi}}\hat{H}\ket{\frac{d\Psi}{d\alpha}} \\
-        =& -\bra{\frac{d\Psi}{d\alpha}\frac{1}{\Psi^2}}\hat{H}\ket{\Psi} + \bra{\frac{1}{\Psi}}\hat{H}\ket{\frac{d\Psi}{d\alpha}} \\
-        =& -\expval{E_L}\expval{\frac{dln\Psi}{d\alpha}} + \expval{E_L\frac{dln\Psi}{d\alpha}} \\
-        =& -\bra{\frac{1}{\Psi}}\hat{H}\ket{\Psi}\expval{\frac{\frac{d\Psi}{d\alpha}}{\Psi}}
-    \end{split}
-\end{equation*}
-
-% forsøk 3
-Third way: 
-\begin{equation*}
-    \begin{split}
-        \expval{E_L} =& \int_{\mathbf{R}\in\mathbb{D}}d\mathbf{R}\Psi^*\frac{1}{\Psi}\hat{H}\Psi\Psi \\
-        =& \bra{\frac{\Psi}{\Psi^*}}\hat{H}\ket{\Psi^2} 
-    \end{split}
-\end{equation*}
-
-\begin{equation*}
-    \expval{E_L} = \int d\mathbf{R}\frac{\Psi^*}{\Psi}\hat{H}\Psi^2
-\end{equation*}
-
-\begin{equation*}
-    \begin{split}
-        \frac{d\expval{E_L}}{d\alpha} =& \int \frac{d\frac{\Psi^*}{\Psi}}{d\alpha}\hat{H}\Psi^2 \\
-        &+\int \frac{\Psi^*}{\Psi}\hat{H}\frac{d\Psi^2}{d\alpha} \\
-        =& \int \frac{\frac{d\Psi^*}{d\alpha}\Psi - \Psi^*\frac{d\Psi}{d\alpha}}{\Psi^2}\hat{H}\Psi^2  \\
-        &+ 2\int \frac{\Psi^*}{\Psi}\hat{H}\Psi\frac{d\Psi}{d\alpha} \\
-        =& \int \frac{d\Psi^*}{\Psi d\alpha}\hat{H}\Psi^2 \\
-        &- \int \frac{\Psi^*\frac{d\Psi}{d\alpha}}{\Psi^2}\hat{H}\Psi^2 \\
-        &+ 2\int \frac{\Psi^*}{\Psi}\hat{H}\Psi\frac{d\Psi}{d\alpha} \\
-    \end{split}
-\end{equation*}
-
-\begin{equation*}
-    \begin{split}
-        \frac{d\expval{E_L}}{d\alpha} =& \bra{\frac{d\Psi^*}{d\alpha}\frac{1}{\Psi}}\hat{H}\ket{\Psi^2} \\
-        &- \bra{\frac{\Psi^*}{\Psi}}\hat{H}\ket{\Psi^2}\bra{\frac{\Psi^*}{\Psi}}\frac{\frac{d\Psi}{d\alpha}}{\Psi}\ket{\Psi^2} \\
-        &+ 2\bra{\frac{\Psi^*}{\Psi}}\hat{H}\ket{\Psi^2}\expval{\frac{d\Psi}{d\alpha}\frac{1}{\Psi}}
-    \end{split}
-\end{equation*}
 
 
 %------------------------------------------------------------------
-\subsection{Derivation of the gradient of the local energy with respect to the variational parameters.}\label{sec:gradient_local_energy}
+\subsubsection*{Derivation of the gradient of the local energy with respect to the variational parameters.}
 %------------------------------------------------------------------
 
 The expected value of the energy is 
