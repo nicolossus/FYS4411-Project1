@@ -12,13 +12,13 @@
 
 \begin{figure}[!htb]
 \centering
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_ashonib_rwm_energy.pdf}}}
+\subfloat[]{{\includegraphics[width=0.47\textwidth]{latex/figures/grid_search_ashonib_rwm_energy.pdf}}}
 \qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_ashonib_rwm_variance.pdf}}}
+\subfloat[]{{\includegraphics[width=0.47\textwidth]{latex/figures/grid_search_ashonib_rwm_variance.pdf}}}
 \qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_shonib_rwm_energy.pdf}}}
+\subfloat[]{{\includegraphics[width=0.47\textwidth]{latex/figures/grid_search_shonib_rwm_energy.pdf}}}
 \qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_shonib_rwm_variance.pdf}}}
+\subfloat[]{{\includegraphics[width=0.47\textwidth]{latex/figures/grid_search_shonib_rwm_variance.pdf}}}
 \caption{The expected value of the energy, $\expval{E}$, and variance, $\Var \qty(E)$, scaled  by the number of bosons, $N$, in a grid search for the optimal variational parameter $\alpha$. The system is a spherical harmonic oscillator with non-interacting bosons and the grid of variational parameters $\alpha \in [0.1, 1.0]$ with step size $0.1$. In \textbf{(a)} and \textbf{(b)} the expectation values are computed with the closed-form expressions, whereas in \textbf{(c)} and \textbf{(d)} the computations are done with automatic differentiation through JAX. Each computed point in the grid is the average over 16 tuned Markov chains with $20,000$ energy samples used to calculate the expectation values in each.}
 \label{fig:grid_search}
 \end{figure}
@@ -50,69 +50,36 @@
 \label{tab:verification_energy}
 \end{table}
 
-\autoref{fig:trace_phase} shows the three phases of the sampler for both the RWM and LMH algorithms used on a system of $N=100$ bosons in a spherical trap both with and without interactions. First, the sampler tunes the proposal scale parameter by increasing or decreasing it according to a look-up table (see \cw{vmc/utils/sampler_utils.py} in the source code) that tries to achieve a target acceptance rate. Then, the sampler search for the optimal variational parameter by employing gradient descent optimization, specifically, the ADAM optimizer discussed in \autoref{sec:adam}. The updates in the tuning and optimization phases are done after a set interval of MCMC steps. Both the tuning and optimization phase also employs early stopping, i.e., the phase will end if there is no change in values between consecutive tuning or optimization intervals. Finally, the energy is sampled in what is hopefully the stationary state of the Markov chain. As can be seen in the figure, the different Markov chains all seem to converge well towards a stationary state by the time the sampler reaches the sampling phase. 
+\autoref{fig:trace_phase} shows the three phases of the sampler for both the RWM and LMH algorithms used on a system of $N=100$ bosons in a spherical trap both with and without interactions. First, the sampler tunes the proposal scale parameter by increasing or decreasing it according to a look-up table (see \cw{vmc/utils/sampler_utils.py} in the source code) that tries to achieve a target acceptance rate. Then, the sampler search for the optimal variational parameter by employing gradient descent optimization, specifically, the ADAM optimizer discussed in \autoref{sec:adam}. The updates in the tuning and optimization phases are done after a set interval of MCMC steps. Both the tuning and optimization phase also employs early stopping, i.e., the phase will end if there is no change in values within a specified tolerance level between consecutive tuning or optimization intervals. Finally, the energy is sampled in what is hopefully the stationary state of the Markov chain. As can be seen in the figure, the different Markov chains all seem to converge well towards a stationary state by the time the sampler reaches the sampling phase. 
 
 \begin{figure}[!htb]
 \centering
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/trace_phase_rwm_ashonib.pdf}}}
+\subfloat[]{{\includegraphics[width=0.47\textwidth]{latex/figures/trace_phase_rwm_ashonib.pdf}}}
 \qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/trace_phase_lmh_ashonib.pdf}}}
+\subfloat[]{{\includegraphics[width=0.47\textwidth]{latex/figures/trace_phase_lmh_ashonib.pdf}}}
 \qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/trace_phase_rwm_ashoib.pdf}}}
+\subfloat[]{{\includegraphics[width=0.47\textwidth]{latex/figures/trace_phase_rwm_ashoib.pdf}}}
 \qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/trace_phase_lmh_ashoib.pdf}}}
+\subfloat[]{{\includegraphics[width=0.47\textwidth]{latex/figures/trace_phase_lmh_ashoib.pdf}}}
 \caption{The time evolution of a Markov chain in the three phases of the sampler; (i) tuning of the proposal scale parameter; (ii) gradient descent optimization of the variational parameter; and (iii) sampling of the variational energy. The updates in the tuning and optimization phase are done on a batch of samples, here 500 for tuning and 1000 for optimization. If the updated value remains the same between consecutive batches, the sampler will end the phase early. Here, the system consists of $N=100$ bosons in a spherical harmonic oscillator both with and without interactions. The initial variational parameter is set to $\alpha_0 = 0.4$. In \textbf{(a)} and \textbf{(b)} we see the RWM and LMH algorithm on a system of non-interacting bosons, respectively. In \textbf{(c)} and \textbf{(d)} we see the RWM and LMH algorithm on a system of interacting bosons, respectively.}
 \label{fig:trace_phase}
 \end{figure}
 
-
-
-
-% Prevent floats going into the next (sub)section 
 \FloatBarrier
-
 
 %----------------------------------------------------------------
 \subsection{Comparisons}
 %----------------------------------------------------------------
 
-\autoref{fig:alpha_epoch_rwm}
+
+The non-interacting system performs simple calculations in a highly efficient manner as it is easy to vectorise the calculations. \autoref{fig:runtime_comparison} shows run times for $20000$ tune cycles, $50000$ optimization cycles and $2^{15}$ sampling cycles for the Random Walk Metropolis and Langevin Metropolis-Hastings sampling algorithms, and using the analytical and numerical wave functions. There were $10$ runs for every $N\in[1, 10, 50, 100, 500]$ for every different sampler, and the error bars display the standard deviation of the $10$ samples. Adding more particles to the system only slightly increases the sampling time. The RWM algorithm is faster than the LMH algorithm, and the numerical implementation is slower than the analytical wave function. 
 
 \begin{figure}[!htb]
-\centering
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_rwm_ashonib_eta001.pdf}}}
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_rwm_ashonib_eta005.pdf}}}
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_rwm_ashonib_eta01.pdf}}}
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_rwm_ashonib_eta05.pdf}}}
-\caption{figure text}
-\label{fig:alpha_epoch_rwm}
+\begin{center}\includegraphics[width=\textwidth]{latex/figures/runtime_comparisons.pdf}
+\end{center}
+\caption{Runtimes for Random Walk metropolis and Langevin Metropolis-Hastings algorithms on spherical non-interacting systems with an analytical and numerical wave function (JAX). The error bars extend one standard deviation from the mean.}
+\label{fig:runtime_comparison}
 \end{figure}
-
-\autoref{fig:alpha_epoch_lmh}
-
-\begin{figure}[!htb]
-\centering
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_lmh_ashonib_eta001.pdf}}}
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_lmh_ashonib_eta005.pdf}}}
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_lmh_ashonib_eta01.pdf}}}
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/alpha_epoch_lmh_ashonib_eta05.pdf}}}
-\caption{figure text}
-\label{fig:alpha_epoch_lmh}
-\end{figure}
-
-Comparing \autoref{fig:alpha_epoch_rwm} and \autoref{fig:alpha_epoch_lmh} - see no faster convergence of the variational parameter for LMH
-
- 
-
-Figure: Runtime RWM and LMH; Analytical vs JAX
-
-
 
 %----------------------------------------------------------------
 \subsection{Variational Energy}
@@ -126,8 +93,15 @@ Figure: RWM LMH Elliptical non-interacting / interacting
 \subsection{OBD}
 %----------------------------------------------------------------
 
-
-Move figures below here
+\autoref{fig:one_body_densities} shows the sampled one-body densities for $10$ and $100$ particles with interactions turned on and off. As the number of particles increases, the density of particles increases, and the interactions between the particles become a larger factor. For $10$ particles, the one body densities with and without interactions are almost identical. This means that for $10$ particles, the interactions do not have a large impact on the system. For $100$ particles, the radial one body densities for the interacting and non-interacting cases differ more. The particles in the interacting case are more spread out in the $2$-dimensional space than the non-interacting case. 
+\begin{figure}[H]
+\centering
+\subfloat[]{{\includegraphics[width=0.47\textwidth]{latex/figures/OBD_N10.pdf}}} 
+\qquad
+\subfloat[]{{\includegraphics[width=0.47\textwidth]{latex/figures/OBD_N100.pdf}}}
+\caption{\textbf{(a)} Comparison between the radial one body densities for $10$ particles with and without interactions (Jastrow factor $a=0.00433$) in $2$-dimensional space. \textbf{(b)} Comparison between the radial one body densities for $100$ particles with and without interactions (Jastrow factor $a=0.00433$) in $2$-dimensional space.}
+\label{fig:one_body_densities}
+\end{figure}
 
 
 
@@ -141,22 +115,6 @@ Move figures below here
 
 \textbf{Spherical potential}
 
-Discussion
-
-\autoref{fig:non-interact_boxplot} shows 
-
-\begin{figure}[!htb]
-\centering
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/boxplot_analytical_metropolis.pdf}}}
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/boxplot_analytical_metropolis_hastings.pdf}}}
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/boxplot_numerical_metropolis.pdf}}}
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/boxplot_numerical_metropolis_hastings.pdf}}}
-\caption{\textbf{(a)} Random Walk Metropolis with analytical. \textbf{(b)} Langevin Metropolis-Hastings with analytical. \textbf{(c)} Random Walk Metropolis with AD. \textbf{(d)} Langevin Metropolis-Hastings with AD.}
-\label{fig:non-interact_boxplot}
-\end{figure}
 
 \textbf{Elliptical potential}
 The ground state energy of the non-interacting particles in the elliptical potential with $\beta=2.82843$ is $\frac{\expval{E}}{N}=2.414215\hbar\omega_0$, and the ground state $\alpha=0.5$, as in the spherical potential. 
@@ -212,22 +170,13 @@ As you can see in \autoref{tab:min_energies}, the minimal energy per particle is
 \end{figure}
 
 \subsubsection{One-body densities}
-\autoref{fig:one_body_densities} shows the sampled one body densities for $10$ and $100$ particles with interactions turned on and off. As the number of particles increases, the density of particles increases, and the interactions between the particles becomes a larger factor. For $10$ particles, the one body densities with and without interactions are almost identical. This means that for $10$ particles, the interactions do not have a large impact on the system. For $100$ particles, the radial one body densities for the interacting and non-interacting cases differ more. The particles in the interacting case are more spread out in the $2$-dimensional space than the non-interacting case. The interactions makes quite a difference when there are $100$ particles. 
-\begin{figure}[H]
-\centering
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/OBD_N10.pdf}}} 
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/OBD_N100.pdf}}}
-\caption{\textbf{(a)} Comparison between the radial one body densities for $10$ particles with and without interactions (Jastrow factor $a=0.00433$) in $2$-dimensional space. \textbf{(b)} Comparison between the radial one body densities for $100$ particles with and without interactions (Jastrow factor $a=0.00433$) in $2$-dimensional space.}
-\label{fig:one_body_densities}
-\end{figure}
 
 \textbf{Elliptical potential}
 
 \autoref{fig:energy_elliptical} displays 16 independent energy sampling runs where $\alpha$ is optimized. 
 
 \begin{figure}[H]
-\begin{center}\includegraphics[scale=0.5]{figures/aehoib_bp.pdf}
+\begin{center}\includegraphics[scale=0.5]{latex/figures/aehoib_bp.pdf}
 \end{center}
 \caption{Sampled energies, the standard errors and the optimized $\alpha$-values of $16$ independent sampling runs.}
 \label{fig:bp_aehoib}
@@ -238,14 +187,16 @@ RWM vs LMH - standard error
 In \autoref{fig:comparison_se_RWMvLMH} the evolution of the standard error is plotted as a function of the logarithm with base $2$ of the number of samples, $\log_2{M}$. The numbers of samples used is from $2^{10}\to2^{20}$ where the number of samples increases by a factor of two in each step. \autoref{fig:comparison_time_RWMvLMH} displays the time spent sampling for each run. We have used the same number of warm-up cycles. The number of tuning cycles may differ, but it is of a relatively small order compared with warm-ups and sampling. 
 
 \begin{figure}[H]
-\begin{center}\includegraphics[scale=0.5]{Figures/filename}
+%\begin{center}\includegraphics[scale=0.5]{Figures/filename}
+\begin{center}\includegraphics[width=\textwidth]{example-image-a}
 \end{center}
 \caption{The standard error as a functions of the base $2$ logarithm of the number of energy samples. The blue line represents the Random Walk Metropolis sampling algorithm, while the orange represents the Langevin Metropolis-Hastings sampling algorithm.}
 \label{fig:comparison_se_RWMvLMH}
 \end{figure}
 
 \begin{figure}[H]
-\begin{center}\includegraphics[scale=0.5]{Figures/filename}
+%\begin{center}\includegraphics[scale=0.5]{Figures/filename}
+\begin{center}\includegraphics[width=\textwidth]{example-image-a}
 \end{center}
 \caption{Time spent running the sampling algorithm as a functions of the base $2$ logarithm of the number of energy samples. The blue line represents the Random Walk Metropolis sampling algorithm, while the orange represents the Langevin Metropolis-Hastings sampling algorithm.}
 \label{fig:comparison_time_RWMvLMH}
