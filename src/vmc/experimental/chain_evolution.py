@@ -289,7 +289,7 @@ class ChainEvolution:
                                   initargs=initargs
                                   ))
 
-            self._final_state, results, self._energies = r
+            self._final_state, results, self._energies, self._alpha_all = r
             self._results_full = pd.DataFrame(results)
 
         if self._log:
@@ -333,18 +333,19 @@ class ChainEvolution:
 
         # Optimize?
         if self._optimize:
-            state, energies, alpha = self.optimizer(state,
-                                                    alpha,
-                                                    eta,
-                                                    seed,
-                                                    chain_id,
-                                                    **kwargs
-                                                    )
+            state, energies, alpha, alpha_all = self.optimizer(state,
+                                                               alpha,
+                                                               eta,
+                                                               seed,
+                                                               chain_id,
+                                                               **kwargs
+                                                               )
             actual_optim_iter += state.delta - subtract_iter
             subtract_iter = actual_optim_iter + actual_tune_iter + actual_warm_iter
             energies_all.append(energies)
 
         # Warm-up?
+        # Deprecate
         if self._warm:
             state, energies = self.warmup_chain(state,
                                                 alpha,
@@ -381,7 +382,7 @@ class ChainEvolution:
                                            **kwargs
                                            )
 
-        return state, results, energies_all
+        return state, results, energies_all, alpha_all
 
     def _accumulate_results(
         self,
@@ -646,6 +647,8 @@ class ChainEvolution:
 
         # Used for storing all energy samples
         energies_tmp = []
+        # Used for storing all alpha values
+        alpha_tmp = []
 
         for i in t_range:
             state = self.step(state, alpha, seed, **kwargs)
@@ -657,6 +660,7 @@ class ChainEvolution:
 
             if steps_before_optimize == 0:
                 old_alpha = alpha
+                alpha_tmp.append(old_alpha)
 
                 # Expectation values
                 energies = np.array(energies)
@@ -690,7 +694,7 @@ class ChainEvolution:
         if self._log:
             t_range.clear()
 
-        return state, np.array(energies_tmp), alpha
+        return state, np.array(energies_tmp), alpha, alpha_tmp,
 
     def sample_energy(self, nsamples, state, alpha, seed, chain_id, **kwargs):
 
@@ -749,6 +753,14 @@ class ChainEvolution:
     def energy_samples(self):
         try:
             return self._energies
+        except AttributeError:
+            msg = "Unavailable, a call to sample must be made first"
+            raise SamplingNotPerformed(msg)
+
+    @property
+    def alpha_updates(self):
+        try:
+            return self._alpha_all
         except AttributeError:
             msg = "Unavailable, a call to sample must be made first"
             raise SamplingNotPerformed(msg)

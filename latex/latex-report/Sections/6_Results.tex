@@ -71,6 +71,17 @@
 \subsection{Comparisons}
 %----------------------------------------------------------------
 
+\autoref{fig:rwm_vs_lmh} info: ASHONIB, $N=100$ particles, $10,000$ tuning cycles, $50,000$ optimization cycles, no early stopping, sampling cycles $M$, 16 chains, same $\alpha_0 = 0.4.$. Solid line is average over the 16 chains, shaded region the standard deviation of the mean (SEM). Statistical error estimated via blocking denoted $\sigma_B$. Used both RMW and LMH.
+
+\begin{figure}[!htb]
+\begin{center}\includegraphics[width=\textwidth]{latex/figures/ashonib_N100_rwm_vs_lmh.pdf}
+\end{center}
+\caption{figure text}
+\label{fig:rwm_vs_lmh}
+\end{figure}
+
+
+% N: savner enhet på y-aksen i runtime plott, burde stå: Runtime [s] 
 
 The non-interacting system performs simple calculations in a highly efficient manner as it is easy to vectorise the calculations. \autoref{fig:runtime_comparison} shows run times for $20000$ tune cycles, $50000$ optimization cycles and $2^{15}$ sampling cycles for the Random Walk Metropolis and Langevin Metropolis-Hastings sampling algorithms, and using the analytical and numerical wave functions. There were $10$ runs for every $N\in[1, 10, 50, 100, 500]$ for every different sampler, and the error bars display the standard deviation of the $10$ samples. Adding more particles to the system only slightly increases the sampling time. The RWM algorithm is faster than the LMH algorithm, and the numerical implementation is slower than the analytical wave function. 
 
@@ -85,7 +96,7 @@ The non-interacting system performs simple calculations in a highly efficient ma
 \subsection{Variational Energy}
 %----------------------------------------------------------------
 
-Figure : RWM and LMH Spherical non-interacting / interacting 
+Figure : RWM and LMH Spherical non-interacting / interacting (will go into appendix)
 
 Figure: RWM LMH Elliptical non-interacting / interacting  
 
@@ -106,8 +117,8 @@ Figure: RWM LMH Elliptical non-interacting / interacting
 
 
 %%
-%%
-%%
+%% N: Trenger vi noen av figurene under? Ekstra figurer kan gå i appendiks
+%% J: Tror ikke det. Under variational energy, så har du kanskje kjørt optimize? 
 
 %----------------------------------------------------------------
 \subsubsection{Non-Interacting}
