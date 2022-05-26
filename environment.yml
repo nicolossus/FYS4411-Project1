@@ -25,6 +25,8 @@ dependencies:
   - yapf
   - scikit-learn
   - pip:
+    - colorlog
+    - tqdm
     - pathos
     - "jax[cpu]"
     #- "jax[cuda]"
