@@ -82,8 +82,9 @@
 
 
 % N: savner enhet på y-aksen i runtime plott, burde stå: Runtime [s] 
+% J: Fiksa. Legend var bedre på siden, selv om det ikke er samme stil som over. 
 
-The non-interacting system performs simple calculations in a highly efficient manner as it is easy to vectorise the calculations. \autoref{fig:runtime_comparison} shows run times for $20000$ tune cycles, $50000$ optimization cycles and $2^{15}$ sampling cycles for the Random Walk Metropolis and Langevin Metropolis-Hastings sampling algorithms, and using the analytical and numerical wave functions. There were $10$ runs for every $N\in[1, 10, 50, 100, 500]$ for every different sampler, and the error bars display the standard deviation of the $10$ samples. Adding more particles to the system only slightly increases the sampling time. The RWM algorithm is faster than the LMH algorithm, and the numerical implementation is slower than the analytical wave function. 
+The non-interacting system performs simple calculations in a highly efficient manner as it is easy to vectorise the calculations. \autoref{fig:runtime_comparison} shows run times for $20000$ tune cycles, $50000$ optimization cycles and $2^{15}$ sampling cycles for the Random Walk Metropolis and Langevin Metropolis-Hastings sampling algorithms, and using the analytical and numerical wave functions. There were $10$ runs for every $N\in[1, 10, 50, 100, 500]$ for every different sampler, and the error bars display the standard deviation of the $10$ samples. Adding more particles to the system only slightly increases the sampling time. The RWM algorithm is faster than the LMH algorithm, and the numerical implementation is slower than the analytical wave function.  
 
 \begin{figure}[!htb]
 \begin{center}\includegraphics[width=\textwidth]{latex/figures/runtime_comparisons.pdf}
@@ -99,6 +100,19 @@ The non-interacting system performs simple calculations in a highly efficient ma
 Figure : RWM and LMH Spherical non-interacting / interacting (will go into appendix)
 
 Figure: RWM LMH Elliptical non-interacting / interacting  
+
+\begin{figure}[!htb]
+\centering
+\subfloat[]{{\includegraphics[scale=0.5]{Figures/filename1}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{Figures/filename2}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{Figures/filename3}}}
+\qquad
+\subfloat[]{{\includegraphics[scale=0.5]{Figures/filename4}}}
+\caption{figure text}
+\label{fig:fig1}
+\end{figure}
 
 %----------------------------------------------------------------
 \subsection{OBD}
