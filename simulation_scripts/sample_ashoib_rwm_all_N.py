@@ -16,10 +16,10 @@ sys.path.insert(0, '../src/')
 import vmc  # noqa
 
 """
-Sampling with LMH and ASHONIB
+Sampling with RWM and ASHONIB, all system sizes
 """
 
-output_filename = "../data/sample_ashonib_lmh.csv"
+output_filename = "../data/sample_ashoib_rwm_all_N.csv"
 
 # Remove file if it exists
 if os.path.exists(output_filename):
@@ -38,30 +38,31 @@ def non_interact_initial_positions(wf, alpha, N, dim):
 
 
 # Config
-N = 100  # Number of particles
+Ns = [1, 10, 100, 500]  # Number of particles
 dim = 3  # Dimensionality
-nsamples_all = np.logspace(12, 17, 6, base=2, dtype=int)
+nsamples = 2**16
 nchains = 16
 
 # Set initial alpha
 alpha0 = 0.4
 
-# Instantiate wave function
-wf = vmc.ASHONIB(N, dim)
 
-# Instantiate sampler
-sampler = vmc.LMH(wf)
+for N in tqdm(Ns):
 
-# Set intial positions
-initial_positions = [non_interact_initial_positions(wf, alpha0, N, dim)
-                     for chain in range(nchains)]
+    # Instantiate wave function
+    wf = vmc.ASHOIB(N, dim)
 
-for nsamples in tqdm(nsamples_all):
+    # Instantiate sampler
+    sampler = vmc.RWM(wf)
+
+    # Set intial positions
+    initial_positions = [non_interact_initial_positions(wf, alpha0, N, dim)
+                         for chain in range(nchains)]
 
     _ = sampler.sample(int(nsamples),
                        initial_positions,
                        alpha0,
-                       dt=0.5,
+                       scale=1.0,
                        nchains=nchains,
                        seed=None,
                        tune=True,
@@ -74,7 +75,7 @@ for nsamples in tqdm(nsamples_all):
                        gradient_method='adam',
                        eta=0.01,
                        tol_optim=1e-5,
-                       early_stop=False,
+                       early_stop=True,
                        log=False,
                        logger_level="INFO",
                        )
