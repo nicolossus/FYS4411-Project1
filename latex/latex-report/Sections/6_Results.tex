@@ -73,11 +73,7 @@
 \subsection{Comparing the RWM and LMH algorithms}
 %----------------------------------------------------------------
 
-\autoref{fig:rwm_vs_lmh} shows the average energies, average statistical error and the variance in the energy, against the number of samples, $M$, for the RWM and LMH sampling algorithms on a spherically symmetric harmonic oscillator system of $100$ particles. The average energy per particle over $16$ chains is close to the exact energy for both the RWM and LMH samplers. The statistical error per particle in the RWM chains are almost a factor of $10$ larger than for the LMH chains, and the variance in the energy per particle shows that there are much larger fluctuations in the energy using the RWM than the LMH. 
-
-This indicates that guiding the proposals according to the gradient flow of the probability density of the trial wave function, in fact does increase the sampling quality by a factor. 
-
-
+\autoref{fig:rwm_vs_lmh} shows the average energies, average statistical error and the variance in the energy, against the number of samples, $M$, for the RWM and LMH sampling algorithms on a spherically symmetric harmonic oscillator system of $100$ particles. The average energy per particle over $16$ chains is close to the exact energy for both the RWM and LMH samplers. The statistical error per particle in the RWM chains are almost a factor of $10$ larger than for the LMH chains, and the variance in the energy per particle shows that there are much larger fluctuations in the energy using the RWM algorithm than the LMH. This indicates that guiding the proposals according to the gradient flow of the probability density of the trial wave function, in fact does increase the sampling quality by a factor. 
 
 %info: ASHONIB, $N=100$ particles, $10,000$ tuning cycles, $50,000$ optimization cycles, no early stopping, sampling cycles $M$, 16 chains, same $\alpha_0 = 0.4.$. Solid line is average over the 16 chains, shaded region the standard deviation of the mean (SEM). Statistical error estimated via blocking denoted $\sigma_B$. Used both RMW and LMH.
 
@@ -88,13 +84,19 @@ This indicates that guiding the proposals according to the gradient flow of the 
 \label{fig:rwm_vs_lmh}
 \end{figure}
 
+\autoref{fig:alpha_epoch_both} shows the evolution of variational parameter during the optimization phase. Here, the learning rate is $\eta=0.05$ (see \autoref{fig:alpha_epoch_rwm} and \autoref{fig:alpha_epoch_lmh} in \cref{app:additional_results} for a justification) and all 16 Markov chain are given the same initial $\alpha_0 = 0.4$. The blue and orange transparent lines show the evolution for each chain whereas the opaque blue and solid lines show the average across the chains for the RWM and LMH algorithms, respectively. As can be seen in the figure, the optimization phase is not directly affected by which algorithm is used. As long as both algorithms have found an optimal scale for its proposal distribution, the number of optimization epochs needed to converge close to the optimal variational parameter is effectively the same. 
+
+\begin{figure}[!htb]
+\begin{center}\includegraphics[width=\textwidth]{latex/figures/alpha_epoch_rwm_lmh.pdf}
+\end{center}
+\caption{Evolution of the variational parameter during the optimization. The transparent lines show the evolution for each chain and the solid line the average. The blue lines show the evolution with the RWM algorithm and the orange the LMH algorithm.}
+\label{fig:alpha_epoch_both}
+\end{figure}
 
 % N: savner enhet på y-aksen i runtime plott, burde stå: Runtime [s] 
 % J: Fiksa. Legend var bedre på siden, selv om det ikke er samme stil som over. 
 
 The non-interacting system performs simple calculations in a highly efficient manner as it is easy to vectorise the calculations. \autoref{fig:runtime_comparison} shows run times for $20000$ tune cycles, $50000$ optimization cycles and $2^{15}$ sampling cycles for the Random Walk Metropolis and Langevin Metropolis-Hastings sampling algorithms, and using the analytical and numerical wave functions. There were $10$ runs for every $N\in[1, 10, 50, 100, 500]$ for every different sampler, and the error bars display the standard deviation of the $10$ samples. Adding more particles to the system only slightly increases the sampling time. The RWM algorithm is faster than the LMH algorithm, and the numerical implementation is slower than the analytical wave function. It seems that for the analytical samplers the LMH seems to take a rough factor of 4 more time than its RWM counterpart, but for the numerical computations (which needs to numerically calculate the Green's function for every step) it was a factor between 6-8 longer run time for the LMH sampler. 
-
-The two comparisons in \autoref{fig:rwm_vs_lmh} and \autoref{fig:runtime_comparison} show that the number of samples to achieve the same quality sampling is quite different between the two approaches, and the LMH sampling algorithm seems to be more effective, even with the compuational costs taken into account. 
 
 \begin{figure}[!htb]
 \begin{center}\includegraphics[width=\textwidth]{latex/figures/runtime_comparisons.pdf}
@@ -103,13 +105,19 @@ The two comparisons in \autoref{fig:rwm_vs_lmh} and \autoref{fig:runtime_compari
 \label{fig:runtime_comparison}
 \end{figure}
 
+
+The two comparisons in \autoref{fig:rwm_vs_lmh} and \autoref{fig:runtime_comparison} show that the number of samples to achieve the same quality sampling is quite different between the two approaches, and the LMH sampling algorithm seems to be more effective, even with the compuational costs taken into account. 
+
+
+\FloatBarrier
+
 %----------------------------------------------------------------
 \subsection{Estimations of the Ground State Energy}
 %----------------------------------------------------------------
 
-Figure : RWM and LMH Spherical non-interacting / interacting (will go into appendix)
+%Figure : RWM and LMH Spherical non-interacting / interacting (will go into appendix)
 
-Figure: RWM LMH Elliptical non-interacting / interacting  
+%Figure: RWM LMH Elliptical non-interacting / interacting  
 The elliptical potential described in \autoref{eq:Vtrap} yields a ground state energy per particle of $E_0/N = 2.414215 \hbar\omega_0$ for non-interacting particles. \autoref{fig:elliptical_energies} displays the mean energies and mean standard error (points), together with their spread (one standard error of the mean confidence interval)  of $16$ threads of sampling for each sampling algorithm. The parameters for the sampling runs were all set to a maximum of $20,000$ tuning cycles, with a tuning interval of $1000$. The initial alpha value was set to $0.5$ and the threads had all a maximum of $50,000$ optimization cycles, with an update at every $1,000$th cycle. The number of samples collected were $2^{15}$. 
 
 \begin{figure}[!htb]
@@ -150,6 +158,8 @@ $\sigma_{\mathrm{B}}\qty(N=100)$[$\hbar\omega_0$] & $2\cdot10^{-3}$ & $2\cdot10^
 \label{tab:elliptical_energies}
 \end{table}
 
+\FloatBarrier
+
 %----------------------------------------------------------------
 \subsection{One-Body Densities}
 %----------------------------------------------------------------
@@ -185,3 +195,4 @@ $\sigma_{\mathrm{B}}\qty(N=100)$[$\hbar\omega_0$] & $2\cdot10^{-3}$ & $2\cdot10^
 %\label{fig:bp_aehoib}
 %\end{figure}
 
+\FloatBarrier
