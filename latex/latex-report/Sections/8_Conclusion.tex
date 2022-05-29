@@ -2,4 +2,28 @@
 \section{Conclusion}\label{sec:Conclusion}
 %================================================================
 
-Comparing RWM and LMH: The RWM are slower in terms of the total number of MC cycles, but each step is fast as it does not require gradients of the density. LMH on the other hand is faster in terms of the total number of MC cycles, but each step is slow as it uses gradients of the density at each step. 
+Concluding, we observe that the statistical error using the RWM is larger than for LMH when there is an equal number of samples. In fact, we see that the statistical error in the sampling is very much lower. However, our implementation also depends on the convergence to the right $\alpha$, and the standard error of the mean of the energy samples in \autoref{fig:rwm_vs_lmh}
+RWM is slow in terms of the total number of MC cycles, but each step is fast as it does not require gradients of the density. LMH on the other hand is faster in terms of the total number of MC cycles, but each step is slow as it uses gradients of the density at each step. Even taking the slowness of each step of LMH, it outperforms RWM. To achieve the same level of statistical error, the number of samples needed for the RWM would have to be much higher than the LMH. 
+We found the analytical ground state of the non-interacting boson system to be $\frac{3}{2}\hbar\omega_0$ for the sperical trap, and $2.414215\hbar\omega_0$ for the elliptical trap. When the interactions simulated by the Jastrow correlation factor were included, we found an increase in the energy per particle proportional to the particle density. 
+
+The one-body densities reveal that, when the bosons are interacting, the state of the system is dependent on the density of bosons in the trap. \autoref{fig:one_body_densities} shows that when the density is low, the interactions have a minor influence on the state of the system. One should think that when the interacting particles are close to one another, they interact with more frequency and strength, thus having a larger impact on the system state. If the interactions between the bosons are attractive, we therefore expect to observe a narrowing of the one-body density, and a spreading if the interactions were repulsive. We observe that the one-body density is more spread out in configuration space, which corresponds to a repellent potential, and an increase in the spread as a function of the density. 
+
+Dette burde også med på en eller annen måte: The one-body densities reveal ...
+
+
+(ref figure) demonstrates that LMH asymptotically mix considerably faster than RWM -> skal bety at den i prinsippet trenger færre MC cycles (men så er den dyrere i bruk da). 
+
+\autoref{fig:rwm_vs_lmh} demonstrates that LMH asmptotically mix on
+% Kan vi si noe om korrelasjon mellom samples LMH vs RWM? Blocking burde gi en pekepinn
+% Hmm, sier du at korrelasjonen mellom dem går ned eller opp? Den skal vel i prinsippet gå opp i LMH, siden den ikke bare tar utgangspunkt i posisjonen ved forrige tidssteg, men også F(r), i kontrast til RWM som bare tar utgangspunkt i posisjonene ved forrige tidssteg? 
+
+% Man vil helst ha ukorrelerte samples, og selvom LMH har flere deler som avhenger av forrige state er det ikke nødvendigvis slik at den genererer mer korrelerte samples. Men tror egentlig vi ikke har noen figur eller måling som viser dette tydelig, så det kan kanskje være noe å nevne for fremtidig research
+% Okay, acceptance rate er mye høyere for LMH, så samples vil være mer ukorrelerte på grunn av det også. Et problem er at første figuren i appendiks viser egentlig at LMH er dårligere enn RWM til å estimere gradienten. Eller kanskje ikke dårligere, kanskje bare gradienten egentlig er så stor for alpha<0.5. 
+
+% Et litt subtilt poeng som ikke kommer frem av den figuren er jo at den kun viser en statisisk trial. Kjører man den på nytt kunne figurene fort blitt reversert. Poenget med den er nok snarere at når det gjelder optimize har det ikke noe å si om man bruker RWM eller LMH, som også gir mening så lenge begge har optimal scale som leder den mot stationary state effektivt 
+
+% Ah, ja, det er et godt poeng. Så det er 1 thread, ikke 16 per alpha. Okay. ja. Kom ikke så langt at jeg fikk skrevet det, men tolkningen av de er altså 1 stokastisk forsøk, men de viser jo en trend 
+
+% Kunne evt laget en figur som viser hvordan det blir når alle starter på samme alpha
+
+% På ett vis viser vi jo konvergens mot rette alpha? Ut fra figuren tror jeg nok at du har rett i at sammenlignen mellom RWM og LMH viser at når den stasjonære tilstanden er funnet, så er det hipp som happ hvilken vi velger? Jeg kan sette i gang en kjøring med 4 threads per alpha og plotte RWM mot LMH i samme plott, hvis du tenker det er lurt? Kan gjøre det med 16 nå. har skriptet mer eller mindre klart. Okay, jeg tenkte litt med hensyn på første linje i konklusjonen over her: Den erroren vi får er en større error i konvergens mot rett alpha enn det er i statistical error. Blir det feil? Skal se på det snart

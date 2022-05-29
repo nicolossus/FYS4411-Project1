@@ -112,7 +112,7 @@ As we perform computations with the trial wave function in the log domain, the a
     \EndIf
     \State Sample the local energy $E_L^t$ given by \autoref{eq:local_energy}
     \State $\mathrm{t}\gets\mathrm{t}+1$
-\Until{$t=N$}
+\Until{$t=M-1$}
 \State Compute the expectation value of the energy $\expval{E} = \frac{1}{M} \sum_t E_L^t$
 \end{algorithmic}
 \end{algorithm}
@@ -220,112 +220,101 @@ By considering a system of $N$ Brownian particles subject to a force $\bm{F}\qty
     \pdv{p \qty(\bm{r}, t)}{t} = \sum_{i=1}^N D \grad_i \cdot \qty(\grad_i - \bm{F}\qty(\bm{r}_i)) p \qty(\bm{r}, t),
 \end{equation}
 
-where $p \qty(\bm{r}, t)$ denotes the time-dependent probability density and $D$ is the diffusion coefficient. For simplicity, we will in the following denote $p \qty(\bm{r}, t) \to p$ and $\bm{F}\qty(\bm{r}_i) \to \bm{F}_i$. To find the stationary state of the probability density, we set $\pdv{p}{t} = 0$ which yields
+where $p \qty(\bm{r}, t)$ denotes the time-dependent probability density, $D$ is the diffusion coefficient and $\bm{F} \qty(\bm{r}_i)$ is interpreted as the $i$th component of a drift term (drift velocity) caused by an external potential. For simplicity, we will in the following denote $p \qty(\bm{r}, t) \to p$ and $\bm{F}\qty(\bm{r}_i) \to \bm{F}_i$. To find the stationary state of the probability density, we set $\pdv{p}{t} = 0$ which yields
 
 \begin{equation*}
     \grad_i^2 p = p \grad_i \bm{F}_i + \bm{F}_i \grad_i p. 
 \end{equation*}
 
-For this equation to be independent of the configuration $\bm{r}$ and yield zero for all particles $i$, we set $\bm{F}_i = g\grad_{\mathrm{i}}p$ such that 
+For the above equation to be independent of the configuration $\bm{r}$ and yield zero for all particles $i$, the drift vector should be of the form  $\bm{F}_i = g\grad_{\mathrm{i}}p$ such that 
 
-\begin{align*}
-    \grad_i^2 p &= p \grad_i \cdot\qty[g\grad_i p] + g\grad_i p\cdot \grad_i p,
-    \\
-    &= p \grad_{i} g \qty[\grad_i p]^2 + p g \grad_i^2 p + g \qty[\grad_i p]^2, 
-\end{align*} 
+\begin{equation*}
+    \grad_i^2 p = p \grad_{i} g \qty(\grad_i p)^2 + p g \grad_i^2 p + g \qty(\grad_i p)^2,
+\end{equation*}
 
-which results in $g=\frac{1}{p}$. This defines the gradient flow of the probability density of the trial wave function, which is the drift force $\bm{F}$ defined by \autoref{eq:log_drift_force}. 
+which results in $g=\frac{1}{p}$. This defines the gradient flow of the probability density of the trial wave function as $\bm{F} = 2 \Psi_T^{-1} \grad \Psi_T$, which is the drift force defined by \autoref{eq:log_drift_force}. 
 
-The proposed new state $\bm{r'}$ comes from the solution of the Langevin equation 
+The motion in configuration space of the Brownian particles governed by the Fokker-Planck equation is given by the Langevin equation. In MCMC calculations, the proposed new state $\bm{r'}$ comes from the solution of the Langevin equation 
 
 \begin{equation}\label{eq:langevin}
-    \pdv{\bm{r}}{t} = \mathrm{D}\bm{F}\qty[\bm{r}(t)] + \eta, 
+    \pdv{\bm{r}}{t} = \mathrm{D}\bm{F}\qty(\bm{r}(t)) + \eta, 
 \end{equation}
 
-where $\eta$ is a random variable. The solution we use is found using Euler's method, and is 
+where $\eta$ is a stochastic force distributed with mean zero and variance $2D$, where the diffusion coefficient $D = \frac{1}{2}$ (in natural units) which follows from the Schrödinger equation. The solution of the Langevin equation can be obtained by using Euler's method, which gives
 
-\begin{equation}
+\begin{equation}\label{eq:langevin_solution}
     \bm{r'} = \bm{r} + \mathrm{D}\bm{F}\qty(\bm{r})\Delta t + \bm{\xi}\sqrt{\Delta t},
 \end{equation}
 
-where $\bm{\xi}$ is a multidimensional Gaussian random variable, yields the proposed state $\bm{r'}$. Notice that the time-step $\Delta t$ becomes a scale parameter that we need to tune to fit our desired acceptance ratio (see \autoref{sec:tuning}). The solution to the Fokker-Planck equation yields a proposal distribution ($q\qty(\bm{r}\mid\bm{r'})$) given by the Green's function,  
 
-% A good choice for Pprop(Rf|Ri) is the Green function of the Fokker-Planck equation in the short- time approximation, ref intro to VMC and DMC
 
-\begin{equation}
-    G\qty(\bm{r'}, \bm{r}, \Delta t) = \frac{1}{\qty(4\pi\mathrm{D}\Delta t)^{\frac{3N}{2}}}\exp[-\frac{\qty(\bm{r'}-\bm{r}-\mathrm{D}\Delta t\bm{F}\qty(\bm{r}))^2}{4\mathrm{D}\Delta t}].
+where $\Delta t$ is the time step and $\bm{\xi}$ here is a multivariate standard normal random variable. Usually, $\bm{\xi}$ is defined as a multivariate normal random variable with mean $\bm{0}$ and common variance $2 D \Delta t$ which becomes only $\Delta t$ since $D=\frac{1}{2}$. In \autoref{eq:langevin_solution}, however, the spread of the distribution is defined by the scale parameter $\sqrt{\Delta t}$, which will have to be tuned in order to obtain the desired acceptance rate of the LMH algorithm (see \autoref{sec:tuning}). A good choice for the proposal distribution, $q\qty(\bm{r}' \mid \bm{r})$, is the Green's function of the Fokker-Planck equation in the short-time approximation:
+
+\begin{equation}\label{eq:greens}
+    G\qty(\bm{r'}, \bm{r}, \Delta t) = \frac{1}{\qty(4\pi\mathrm{D}\Delta t)^{\frac{dN}{2}}}\exp[-\frac{\qty(\bm{r'}-\bm{r}-\mathrm{D}\Delta t\bm{F}\qty(\bm{r}))^2}{4\mathrm{D}\Delta t}],
 \end{equation}
 
-% From here we can reduce the text by referencing eqs from the previous section
-We insert the proposal distribution into the detailed balance equation and get 
-
-\begin{align*}
-    a\qty(\bm{r'}\mid\bm{r})&= \frac{p\qty({\bm{r'}})q\qty(\bm{r'}\mid\bm{r})}{p\qty({\bm{r}})q\qty(\bm{r}\mid\bm{r'})}
-    \\
-    &= \frac{p\qty({\bm{r'}})G\qty(\bm{r}, \bm{r'}, \Delta t)}{p\qty({\bm{r'}})G\qty(\bm{r'}, \bm{r}, \Delta t)}.
-\end{align*}
-
-Now we do the same trick, set either $a\qty(\bm{r}\mid\bm{r'})$ or $a\qty({\bm{r'}\mid\bm{r}})$ equal to $1$ and define the acceptance probability as 
+where $d$ is the dimensionality. As the proposal distribution in \autoref{eq:greens} is non-symmetric, the Metropolis criterion is given by \autoref{eq:metropolis-hastings}, that is
 
 \begin{equation}
     a\qty(\bm{r'}\mid\bm{r}) = \mathrm{min}\qty(1, \frac{p\qty({\bm{r'}})G\qty(\bm{r}, \bm{r'}, \Delta t)}{p\qty({\bm{r}})G\qty(\bm{r'}, \bm{r}, \Delta t)}).
 \end{equation}
 
-Our implementation of the Langevin Metropolis-Hastings is performed in logarithmic domain,  
+Our implementation of the LMH algorithm will be in the logarithmic domain, such that
 
-\begin{equation}
-    \ln{\qty(a\qty(\bm{r'}\mid\bm{r}))} = \mathrm{min}\qty(0, \ln{\qty(p\qty(\bm{r'}))} + \ln{\qty(G'\qty(\bm{r}, \bm{r'}, \Delta t))} - \ln{\qty(p\qty(\bm{r}))}-\ln{\qty(G'\qty(\bm{r'}, \bm{r}, \Delta t))})
+\begin{equation}\label{eq:log_lmh}
+    \ln{\qty(a\qty(\bm{r'}\mid\bm{r}))} = \mathrm{min}\qty(0, \ln{\qty(p\qty(\bm{r'}))} + \ln{\qty(G'\qty(\bm{r}, \bm{r'}, \Delta t))} - \ln{\qty(p\qty(\bm{r}))}-\ln{\qty(G'\qty(\bm{r'}, \bm{r}, \Delta t))}),
 \end{equation}
 
-where $G'$ denotes Green's function without the normalization constant, will reflect what is compared to the logarithm of a randomly sampled number from the uniform distribution $\textit{U}\qty(0, 1)$. 
+where $G'$ denotes the Green's function without the normalization constant.
 
-A simple overview of the Langevin Metropolis-Hastings sampling algorithm is listed in \autoref{algo:lmh}, where, for simplicity and generality, also here only the general idea is encapsulated by the algorithm. 
+An overview of the Langevin Metropolis-Hastings sampling algorithm is listed in \autoref{algo:lmh}, where, for simplicity and generality, also here only the general idea is encapsulated by the algorithm. 
 
 \begin{algorithm}
-\caption{Langevin Metropolis-Hastings MCMC}\label{algo:lmh}
-\hspace*{\algorithmicindent} \textbf{Inputs: }\text{Initial positions, $\bm{r}$, and number of cycles, $\mathrm{N}$}
+\caption{Langevin Metropolis-Hastings}\label{algo:lmh}
+\hspace*{\algorithmicindent} \textbf{Inputs:} \\
+\hspace*{\algorithmicindent} Initial configuration $\bm{r}_0$ \\
+\hspace*{\algorithmicindent} Variational parameter $\alpha$ \\
+\hspace*{\algorithmicindent} Number of Monte Carlo cycles $\mathrm{M}$
 \begin{algorithmic}[1]
-\State $\mathrm{t}=0$
-\State $\ln{\qty(P)}\gets 2\log{\qty(\abs{\Psi_{\mathrm{T}}(\bm{r};\bm{\alpha})})}$ \Comment{Calculate the log density of initial state.}
+\State $t=0$
 \Repeat 
-    \State Calculate drift force from current state $\bm{F}(\bm{r})$ given by \autoref{eq:drift_force}
-    \State Generate proposals $\bm{r'}\sim\bm{r}+\mathrm{D}\bm{F}(\bm{r})\Delta t + \mathcal{N}\qty(\bm{r},\Delta t)$
-    \State Generate random number $\mathrm{u}\sim\ln{\qty(\textit{U}(0, 1))}$
-    \State Calculate drift force from proposed state $\bm{F}(\bm{r'})$ also by \autoref{eq:drift_force}
-    \State Calculate acceptance criterion
-    \State $a\qty(\bm{r'}\mid\bm{r})\gets\mathrm{min}\qty(0, \ln{\qty(p\qty(\bm{r'}))} + \ln{\qty(G'\qty(\bm{r}, \bm{r'}, \Delta t))} - \ln{\qty(p\qty(\bm{r'}))}-\ln{\qty(G'\qty(\bm{r'}, \bm{r}, \Delta t))})$
-    \If{\mathrm{u}<\mathrm{A}}
-        \State Accept proposal $\bm{r}\gets\bm{r'}$
+    \State Compute drift force $\bm{F} \qty(\bm{r}_t, \alpha)$ (\autoref{eq:log_drift_force})
+    \State Sample proposals $\bm{r'} \sim \bm{r}_t + D \bm{F} \qty(\bm{r}_t, \alpha) \Delta t + \mathrm{N}\qty(\bm{0}, \sqrt{\Delta t})$, cf. \autoref{eq:langevin_solution}
+    \State Compute drift force $\bm{F} \qty(\bm{r}', \alpha)$ (\autoref{eq:log_drift_force})
+    \State Calculate the Metropolis criterion, $a$, given by \autoref{eq:log_lmh} 
+    \State Sample $u \sim \ln{\qty(\mathrm{U}(0, 1))}$
+    \If{u \leq a}
+        \State Accept proposal $\bm{r}_{t+1} \gets \bm{r'}$
     \Else
-        \State Reject proposal $\bm{r}\gets\bm{r}$
+        \State Reject proposal $\bm{r}_{t+1} \gets\bm{r}_t$
     \EndIf
-    \State Sample the local energy $E^t_L$ given by \autoref{eq:local_energy}
+    \State Sample the local energy $E_L^t$ given by \autoref{eq:local_energy}
     \State $\mathrm{t}\gets\mathrm{t}+1$
-\Until{\mathrm{t}=M-1}
-\State Compute the expectation value of the energy $\expval{E}=\frac{1}{M}\sum_t E^t_L$
+\Until{$t=M-1$}
+    \State Compute the expectation value of the energy $\expval{E} = \frac{1}{M} \sum_t E_L^t$
 \end{algorithmic}
 \end{algorithm}
+
 
 %----------------------------------------------------------------
 \subsubsection{Optimal Scale Parameter}\label{sec:tuning}
 %----------------------------------------------------------------
 
+In applying the RWM and LMH algorithms discussed above, it is necessary to choose a proposal distribution $q \qty(\bm{r}' \mid \bm{r})$. Typically, $q$ is chosen among a set of well-known and tractable distributions, with the purpose of making random generation and evaluations of probabilities straightforward. Many distributions are specified by a scale parameter, $\sigma$, and the scale parameter thus becomes a tuning parameter which determines the jumps of an algorithm in the phase space. For small $\sigma$, the algorithm will propose small jumps. Consequently, almost all proposed states will be accepted but the algorithm will explore the phase space slowly and thus may take a long time to converge to the stationary distribution. On the other hand, if $\sigma$ is large, the algorithm will propose large jumps. In this case, the jumps will likely end in regions where the probability density is small and most proposed states will be rejected. However, it is reasonable to assume there exist values of $\sigma$ in between these extremes where the algorithm performs optimally. \citep{optimal_scale} characterize optimal values of $\sigma$ for several MCMC algorithms in terms of the optimal acceptance rate of a particular algorithm. In our VMC framework, we will implement an adaptive procedure for tuning the scale parameters based on a desired acceptance rate. For RWM algorithm, we tune the scale parameter such that the algorithm has an acceptance rate between 20-50\%, which is the convention in many other MCMC frameworks such as \cw{PyMC} \citep{pymc}. The Metropolis-adjusted Langevin algorithm (MALA) \citep{MALA} has a larger optimal acceptance rate than RWM. Due to the LMH algorithm's resemblance to MALA, we use the convention for the latter also for LMH and set the desired acceptance rate between 40-80\%.
+
+Implementation-wise, we have to record the acceptance rate over a given interval of MC cycles. If the acceptance rate is too high, we increase the scale by a factor. Conversely, if the acceptance rate is too low, we decrease the scale by a factor. This is reiterated until the acceptance rate is within the desired range or if a set maximum number of MC cycles is exceeded. In the adaptive tuning of the scale parameter, the properties of the algorithm is altered. As it most likely will not converge to the stationary distribution during tuning, we do not use recorded quantities in this phase for the final sampling results, such as the expectation value of the energy. 
+
 % As with the Metropolis algorithm in general, these tuning parameters can be set ahead of time, or they can be altered completely at random (a strategy which can sometimes be helpful in keeping an algorithm from getting stuck), but one has to take care when altering them given information from previous iterations. Except in some special cases, adaptive updating of the tuning parameters alters the algorithm so that it no longer converges to the target distribution. So when we set the tuning parameters, we do so during the warm-up period: that is, we start with some initial settings, then run HMC for a while, then reset the tuning parameters based on the iterations so far, then discard the early iterations that were used for warm-up. This procedure can be repeated if necessary, as long as the saved iterations use only simulations after the last setting of the tuning parameters. [BDA]
 
-The scale parameters, the scale of the normal distribution of the proposed states for the Random Walk Metropolis, and for the Langevin Metropolis-Hastings, the time step, $\Delta t$, decides how large leaps the system will take each step in the algorithm. A suitable step-length can be tough to estimate, given that we initialize different systems with different number of particles and properties (interactions, i.e.). For the Random Walk Metropolis, sampling a single particle in a single dimension would have an optimal acceptance rate of $0.44$, almost half the proposed states are accepted by the sampler. However, in multidimensional space, the optimal acceptance rate is lowered to $0.23$, which means a bit fewer than a quarter of the proposed states are accepted. We decided to record the acceptance rate, and tune the scale parameter to suit our desired acceptance rate. However, an adaptive tuning of the scale parameter alters the algorithm so that it may no longer converge to the desired distribution. Therefore the tuning has to be done before sampling, and we do this by running iterations of the MCMC in a warm-up period. During the warm-up we record the acceptance rate over a given interval of cycles, and multiply the scale with a suitable scalar. If the acceptance rate is too high, we increase the scale by a factor, and vice versa. This is reiterated until the acceptance rate is within a desired range. We have set our desired acceptance rate for the Random Walk Metropolis to be between 20-50\%. For the Langevin Metropolis-Hastings we hope to increase the number of relevant samples as the drift force guides the direction of the next step, and the desired range is set to 40-80\%.
+%The scale parameters, the scale of the normal distribution of the proposed states for the Random Walk Metropolis, and for the Langevin Metropolis-Hastings, the time step, $\Delta t$, decides how large leaps the system will take each step in the algorithm. A suitable step-length can be tough to estimate, given that we initialize different systems with different number of particles and properties (interactions, i.e.). For the Random Walk Metropolis, sampling a single particle in a single dimension would have an optimal acceptance rate of $0.44$, almost half the proposed states are accepted by the sampler. However, in multidimensional space, the optimal acceptance rate is lowered to $0.23$, which means a bit fewer than a quarter of the proposed states are accepted. We decided to record the acceptance rate, and tune the scale parameter to suit our desired acceptance rate. However, an adaptive tuning of the scale parameter alters the algorithm so that it may no longer converge to the desired distribution. Therefore the tuning has to be done before sampling, and we do this by running iterations of the MCMC in a warm-up period. During the warm-up we record the acceptance rate over a given interval of cycles, and multiply the scale with a suitable scalar. If the acceptance rate is too high, we increase the scale by a factor, and vice versa. This is reiterated until the acceptance rate is within a desired range. We have set our desired acceptance rate for the Random Walk Metropolis to be between 20-50\%. For the Langevin Metropolis-Hastings we hope to increase the number of relevant samples as the drift force guides the direction of the next step, and the desired range is set to 40-80\%.
 
 
 %----------------------------------------------------------------
 \subsection{Blocking}\label{sec:blocking}
 %---------------------------------------------------------------- 
 
-Unlike conventional Monte Carlo integration where the random samples are statistically independent, those in MCMC are autocorrelated. Consequently, the autocorrelation should be taken into account in the calculation of statistical errors of the estimated statistics. Here, we discuss the \textit{blocking} method \citep{doi:10.1063/1.457480} which can be used to address the autocorrelation of a Markov chain.   
-
-In the statistical theory of the design of experiments, blocking is the arranging of experimental units in groups (blocks) that are similar to one another. Typically, a blocking factor is a source of variability that is not of primary interest to the experimenter. An example of a blocking factor might be the sex of a patient; by blocking on sex, this source of variability is controlled for, thus leading to greater accuracy.
-
-In Probability Theory the blocks method consists of splitting a sample into blocks (groups) separated by smaller subblocks so that the blocks can be considered almost independent. The blocks method helps proving limit theorems in the case of dependent random variables. 
-
-The blocking method does something similar, although instead of separating the samples with subblocks, it merges subsequent samples in the time series by taking the average. It provides an alternative method for estimating the variance $\text{Var}(\hat{\theta})$ for the estimator $\hat{\theta} = \overline{X}$, where $\overline{X}$ denotes the mean of the dataset $X$. It can be compared to dependent bootstrapping but with a much lower computational complexity of $\mathcal{O}(M)$. This allows for speedups compared to other methods with a big-O of $\mathcal{O}(M^2)$ or $\mathcal{O}(M \log M)$. Further advantages includes effective scaling for large number of observations,  $M$. Whereas for large $M$, dependent bootstrapping scales poorly, blocking does not, in fact it becomes more accurate for larger $M$.  
+Unlike conventional Monte Carlo integration where the random samples are statistically independent, those in MCMC are autocorrelated. Consequently, the autocorrelation should be taken into account in the calculation of statistical errors of the estimated statistics. Here, we discuss the \textit{blocking} method \citep{doi:10.1063/1.457480} which can be used to address the autocorrelation of a Markov chain. In the statistical theory of the design of experiments, \textit{blocking} is the arranging of experimental units in groups (blocks) that are similar to one another. Typically, a blocking factor is a source of variability that is not of primary interest to the experimenter. An example of a blocking factor might be the sex of a patient; by blocking on sex, this source of variability is controlled for, thus leading to greater accuracy. In probability theory the blocks method consists of splitting a sample into blocks (groups) separated by smaller subblocks so that the blocks can be considered almost independent. The blocks method helps proving limit theorems in the case of dependent random variables. The blocking method does something similar, although instead of separating the samples with subblocks, it merges subsequent samples in the time series by taking the average. It provides an alternative method for estimating the variance $\text{Var}(\hat{\theta})$ for the estimator $\hat{\theta} = \overline{X}$, where $\overline{X}$ denotes the mean of the dataset $X$. It can be compared to dependent bootstrapping but with a much lower computational complexity of $\mathcal{O}(M)$. This allows for speedups compared to other methods with a big-O of $\mathcal{O}(M^2)$ or $\mathcal{O}(M \log M)$. Further advantages includes effective scaling for large number of observations,  $M$. Whereas for large $M$, dependent bootstrapping scales poorly, blocking does not, in fact it becomes more accurate for larger $M$.  
 
 Assume that we have a sample size of $M = 2^d$ for any $d \in \mathbb{N}$ and an $M$-tuple $X = (X_1, X_2, \dots, X_M)$ of stationary time series which we assume are \textit{asymptotically uncorrelated}, which means that the correlation between two samples rapidly decays as the number of time steps between them increases. This now let us define the $\textit{blocking transformation}$. The idea here is to take the mean of a subsequent pair of elements from $X$ and form a new sample $X_1$. This process is repeated $d$ times, which is why $M=2^d$ is required, yielding $X_0, \dots, X_{d-1}$ containing the subsequent averages of observations. This gives for each iteration a dataset of size $M_k = 2^{d-k}$, with the number of observations with each iteration. We can recursively define $X_k$ as
 
@@ -509,6 +498,7 @@ Parallelizing a single Markov chain is not a straightforward task. However, MCMC
 %---------------------------------------------------------------- 
 
 Automatic differentiation is a tool which uses numerical methods to accurately calculate the derivatives of functions, with many applications, maybe most notably in the backpropagation algorithm in machine learning. A derivative of a function can be determined by finding the derivative of every operation in the function and we can use the chain rule to calculate the derivative. In backpropagation the deivative is calculated by reversing all the operations, but it can just as easily be calculated from input to output.
+
 We decided to use JAX \citep{jax2018github}, a machine learning framework developed by Google Research teams, for automatically calculating the needed gradients. Our ambition is to make a Variational Monte Carlo method which can take an arbitrary trial wave function, and automatically carry out the computations needed to find a good approximation to its ground state energy. Due to the inner workings of JAX, our formulation of the trial wave function in the interacting case is not straightforward to automatically differentiate. 
 In this project we limit ourselves to implement automatic differentiation for the non-interacting case to investigate its viability. 
 
@@ -516,11 +506,12 @@ In this project we limit ourselves to implement automatic differentiation for th
 \subsection{The Variational Monte Carlo Sampler}\label{seq:vmc_framework}
 %---------------------------------------------------------------- 
 
-%The Variational Monte Carlo (VMC) sampler framework is built with a base sampler that needs a step forward algorithm (Langevin Metropolis-Hastings or Random Walk Metropolis) and a trial wave function class. The trial wave function classes are all based on a base wave function class that assures they have the needed implementations to perform the operations needed for the VMC sampling algorithm. There are analytical wave function classes for the interacting and non-interacting cases, and also a numerical wave function class for the non-interacting case. The base sampler class contains functionalities as tuning of scale parameters, warm-up of the chain, and an optimizer (ADAM) algorithm. The states in the chain make use of a State-class which inherits from a NamedTuple class. The implementation can be found in \url{https://github.com/nicolossus/FYS4411-Project1}. % her er det sikkert litt mangler, og dårlig med begrunnelser. 
 
-Our VMC framework is implemented as a Python package and can be found here \url{https://github.com/nicolossus/FYS4411-Project1}. The Python code is written in a highly vectorized manner, primarily by using functionality offered by NumPy \citep{numpy} and JAX. The VMC framework has implementations of all the methods previously discussed. We have implemented a base class for a sampler with all methods except for the specific sampling step of an algorithm. Both the RWM and LMH sampler then inherits the base class and only needs to implement one step of the respective algorithm. Our VMC sampler have three phases; (i) tuning phase, (ii) optimization phase, and (iii) sampling phase. In the tuning phase, the sampler searches for the optimal scale parameter. Similarly, in the optimization phase, the sampler searches for the optimal variational parameter. Finally, in the sampling phase the sampler obtains energy samples used to compute the expectation value. The listing below outlines the interface of our VMC framework with explanatory comments included. The \cw{sample} method, in particular, is designed to be flexible and let the user adjust the sampler's knobs. 
 
-\begin{lstlisting}[language=python]
+Our VMC framework is implemented as a Python package and can be found here \url{https://github.com/nicolossus/FYS4411-Project1}. The Python code is written in a highly vectorized manner, primarily by using functionality offered by NumPy \citep{numpy} and JAX. The VMC framework has implementations of all the methods previously discussed. We have implemented a base class for a sampler with all methods except for the specific sampling step of an algorithm. Both the RWM and LMH sampler then inherits the base class and only needs to implement one step of the respective algorithm. Our VMC sampler have three phases; (i) tuning phase, (ii) optimization phase, and (iii) sampling phase. In the tuning phase, the sampler searches for the optimal scale parameter. Similarly, in the optimization phase, the sampler searches for the optimal variational parameter. Finally, in the sampling phase the sampler obtains energy samples used to compute the expectation value. \cref{lst:vmc} outlines the interface of our VMC framework with explanatory comments included. The \cw{sample} method, in particular, is designed to be flexible and let the user adjust the sampler's knobs. 
+
+\newpage
+\begin{lstlisting}[language=python, label={lst:vmc}, caption={Example usage of the VMC framework.}]
 import vmc
 
 # Initialize a system; here we use the class for a spherical
