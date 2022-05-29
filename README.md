@@ -8,6 +8,8 @@ In this project, we build a variational Monte Carlo method to estimate the groun
 
 ## Contents
 
+The [data directory](https://github.com/nicolossus/FYS4411-Project1/tree/main/notebooks) contains raw data from simulations.
+
 The [latex directory](https://github.com/nicolossus/FYS4411-Project1/tree/main/latex) contains the LaTeX source for building the report, as well as [figures](https://github.com/nicolossus/FYS4411-Project1/tree/main/latex/figures) and [tables](https://github.com/nicolossus/FYS4411-Project1/tree/main/tables) generated in the analyses.
 
 The [notebooks directory](https://github.com/nicolossus/FYS4411-Project1/tree/main/notebooks) contains Jupyter Notebooks used in the analyses.
@@ -15,6 +17,8 @@ The [notebooks directory](https://github.com/nicolossus/FYS4411-Project1/tree/ma
 The [report directory](https://github.com/nicolossus/FYS4411-Project1/tree/main/report) contains the report rendered to PDF from the LaTeX source.
 
 The [resources directory](https://github.com/nicolossus/FYS4411-Project1/tree/main/resources) contains project resources such as literature.
+
+The [simulation_scripts directory](https://github.com/nicolossus/FYS4411-Project1/tree/main/simulation_scripts) contains programs that run particular simulations and store the results for further analyses.
 
 The [src directory](https://github.com/nicolossus/FYS4411-Project1/tree/main/src) contains the source code of the `vmc` package.
 
