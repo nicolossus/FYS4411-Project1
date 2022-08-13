@@ -16,7 +16,7 @@ sys.path.insert(0, '../src/')
 import vmc  # noqa
 
 """
-Sampling with RWM and ASHONIB
+Sampling with LMH and ASHONIB
 """
 
 output_filename = "../data/sample_ashonib_lmh.csv"

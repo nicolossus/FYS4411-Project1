@@ -1,14 +1,13 @@
+\newpage
 %================================================================
 \section{Results and Discussion}\label{sec:Results}
 %================================================================
 
 %----------------------------------------------------------------
-\subsection{Verification of the Implementation}\label{sec:project results}
+\subsection{Validating the VMC Framework}\label{sec:project results}
 %----------------------------------------------------------------
 
 \autoref{fig:grid_search} shows the VMC computations of the expected energy and the corresponding variance with both the analytical and automatic differentiation approaches for a system of $N=1, 10, 100, 500$ non-interacting bosons in a spherical harmonic oscillator. We here use a grid search for the optimal variational parameter which is computationally expensive and generally infeasible for a non-coarse grid. However, in this case where we know the exact values, a grid search with a grid containing the exact value can be used to validate the sampling approach and implementation. As can be seen in the figure, the exact energy $\expval{E}/N = 3/2 \, \hbar \omega_\mathrm{ho}$ with $\Var \qty(E) / N = 0$ at $\alpha=1/2$ are found by both approaches, which indicates that the sampler works well and the implementation of the system is correct. The figure also illustrates the convex nature of the variational parameter optimization problem. In this study we optimize the variational parameter with respect to the expectation value of the energy, as described in \autoref{sec:gradient_descent}. However, the figure indicates that the variance might be more optimal as the optimization target since it tends to yield rather large values for non-optimal variational parameter values. 
-
-%shows VMC computations for a grid of $\alpha$ values for a non-interacting system with spherical potential with $500$ particles for both the analytical and automatic differentiation approaches. Both approaches find the exact energy of the ground state when $\alpha=0.5$. The regularity of the curve indicates that the sampling is performed well. However, for large $\alpha$ values, the sampler seems to run into some minor issues, as the sampled energy does not behave as regularly as desired. When $\alpha$ increases, the Gaussian wave function becomes a sharper peak, and there may be a need for more tuning or warm-up cycles before sampling.
 
 \begin{figure}[!htb]
 \centering
@@ -22,6 +21,9 @@
 \caption{The expected value of the energy, $\expval{E}$, and variance, $\Var \qty(E)$, scaled  by the number of bosons, $N$, in a grid search for the optimal variational parameter $\alpha$. The system is a spherical harmonic oscillator with non-interacting bosons and the grid of variational parameters $\alpha \in [0.1, 1.0]$ with step size $0.1$. In \textbf{(a)} and \textbf{(b)} the expectation values are computed with the closed-form expressions, whereas in \textbf{(c)} and \textbf{(d)} the computations are done with automatic differentiation through JAX. Each computed point in the grid is the average over 16 tuned Markov chains with $20,000$ energy samples used to calculate the expectation values in each.}
 \label{fig:grid_search}
 \end{figure}
+
+
+
 
 \autoref{tab:verification_energy} tabulates the computed expectation values of the energy using the same spatial configuration of interacting bosons in a spherical harmonic oscillator with two different implementations. One implementation is based on closed-form expressions in the linear domain whereas the other on closed-form expressions in the logarithmic domain (see \autoref{sec:analytical_interact}). As can be seen in the table, the expected energy calculations are identical for a given system size. As the implemented closed-form expressions found by different routes are identical, this further indicates the validity of the implementation.
 
@@ -68,23 +70,33 @@
 \FloatBarrier
 
 %----------------------------------------------------------------
-\subsection{Comparisons}
+\subsection{Comparing the RWM and LMH algorithms}
 %----------------------------------------------------------------
 
-\autoref{fig:rwm_vs_lmh} info: ASHONIB, $N=100$ particles, $10,000$ tuning cycles, $50,000$ optimization cycles, no early stopping, sampling cycles $M$, 16 chains, same $\alpha_0 = 0.4.$. Solid line is average over the 16 chains, shaded region the standard deviation of the mean (SEM). Statistical error estimated via blocking denoted $\sigma_B$. Used both RMW and LMH.
+\autoref{fig:rwm_vs_lmh} shows the average energies, average statistical error and the variance in the energy, against the number of samples, $M$, for the RWM and LMH sampling algorithms on a spherically symmetric harmonic oscillator system of $100$ particles. The average energy per particle over $16$ chains is close to the exact energy for both the RWM and LMH samplers. The statistical error per particle in the RWM chains are almost a factor of $10$ larger than for the LMH chains, and the variance in the energy per particle shows that there are much larger fluctuations in the energy using the RWM algorithm than the LMH. This indicates that guiding the proposals according to the gradient flow of the probability density of the trial wave function, in fact does increase the sampling quality by a factor. 
+
+%info: ASHONIB, $N=100$ particles, $10,000$ tuning cycles, $50,000$ optimization cycles, no early stopping, sampling cycles $M$, 16 chains, same $\alpha_0 = 0.4.$. Solid line is average over the 16 chains, shaded region the standard deviation of the mean (SEM). Statistical error estimated via blocking denoted $\sigma_B$. Used both RMW and LMH.
 
 \begin{figure}[!htb]
 \begin{center}\includegraphics[width=\textwidth]{latex/figures/ashonib_N100_rwm_vs_lmh.pdf}
 \end{center}
-\caption{figure text}
+\caption{The sampled expected energy per particle ($\expval{E}/N$), the standard error ($\sigma_B/N$) and the variance ($\mathrm{Var}\qty(E)/N$) against the number of samples, $M$. The system is a spherical harmonic oscillator, with an initial $\alpha$-value of $0.4$. For every MCMC-chain run ($16$ per $M$-value), there were $10,000$ tuning cycles, and $\alpha$ was optimized over $50,000$ cycles. The solid lines indicates the average expected value over the $16$ chains, while the shaded region denotes the standard error of the mean. The blue lines and regions displays the results from the RWM algorithm, while the orange lines shows the corresponding results from the LMH algorithm.}
 \label{fig:rwm_vs_lmh}
 \end{figure}
 
+\autoref{fig:alpha_epoch_both} shows the evolution of variational parameter during the optimization phase. Here, the learning rate is $\eta=0.05$ (see \autoref{fig:alpha_epoch_rwm} and \autoref{fig:alpha_epoch_lmh} in \cref{app:additional_results} for a justification) and all 16 Markov chain are given the same initial $\alpha_0 = 0.4$. The blue and orange transparent lines show the evolution for each chain whereas the opaque blue and solid lines show the average across the chains for the RWM and LMH algorithms, respectively. As can be seen in the figure, the optimization phase is not directly affected by which algorithm is used. As long as both algorithms have found an optimal scale for its proposal distribution, the number of optimization epochs needed to converge close to the optimal variational parameter is effectively the same. 
+
+\begin{figure}[!htb]
+\begin{center}\includegraphics[width=\textwidth]{latex/figures/alpha_epoch_rwm_lmh.pdf}
+\end{center}
+\caption{Evolution of the variational parameter during the optimization. The transparent lines show the evolution for each chain and the solid line the average. The blue lines show the evolution with the RWM algorithm and the orange the LMH algorithm.}
+\label{fig:alpha_epoch_both}
+\end{figure}
 
 % N: savner enhet på y-aksen i runtime plott, burde stå: Runtime [s] 
 % J: Fiksa. Legend var bedre på siden, selv om det ikke er samme stil som over. 
 
-The non-interacting system performs simple calculations in a highly efficient manner as it is easy to vectorise the calculations. \autoref{fig:runtime_comparison} shows run times for $20000$ tune cycles, $50000$ optimization cycles and $2^{15}$ sampling cycles for the Random Walk Metropolis and Langevin Metropolis-Hastings sampling algorithms, and using the analytical and numerical wave functions. There were $10$ runs for every $N\in[1, 10, 50, 100, 500]$ for every different sampler, and the error bars display the standard deviation of the $10$ samples. Adding more particles to the system only slightly increases the sampling time. The RWM algorithm is faster than the LMH algorithm, and the numerical implementation is slower than the analytical wave function.  
+The non-interacting system performs simple calculations in a highly efficient manner as it is easy to vectorise the calculations. \autoref{fig:runtime_comparison} shows run times for $20000$ tune cycles, $50000$ optimization cycles and $2^{15}$ sampling cycles for the Random Walk Metropolis and Langevin Metropolis-Hastings sampling algorithms, and using the analytical and numerical wave functions. There were $10$ runs for every $N\in[1, 10, 50, 100, 500]$ for every different sampler, and the error bars display the standard deviation of the $10$ samples. Adding more particles to the system only slightly increases the sampling time. The RWM algorithm is faster than the LMH algorithm, and the numerical implementation is slower than the analytical wave function. It seems that for the analytical samplers the LMH seems to take a rough factor of 4 more time than its RWM counterpart, but for the numerical computations (which needs to numerically calculate the Green's function for every step) it was a factor between 6-8 longer run time for the LMH sampler. 
 
 \begin{figure}[!htb]
 \begin{center}\includegraphics[width=\textwidth]{latex/figures/runtime_comparisons.pdf}
@@ -93,32 +105,66 @@ The non-interacting system performs simple calculations in a highly efficient ma
 \label{fig:runtime_comparison}
 \end{figure}
 
+
+The two comparisons in \autoref{fig:rwm_vs_lmh} and \autoref{fig:runtime_comparison} show that the number of samples to achieve the same quality sampling is quite different between the two approaches, and the LMH sampling algorithm seems to be more effective, even with the compuational costs taken into account. 
+
+
+\FloatBarrier
+
 %----------------------------------------------------------------
-\subsection{Variational Energy}
+\subsection{Estimations of the Ground State Energy}
 %----------------------------------------------------------------
 
-Figure : RWM and LMH Spherical non-interacting / interacting (will go into appendix)
+%Figure : RWM and LMH Spherical non-interacting / interacting (will go into appendix)
 
-Figure: RWM LMH Elliptical non-interacting / interacting  
+%Figure: RWM LMH Elliptical non-interacting / interacting  
+The elliptical potential described in \autoref{eq:Vtrap} yields a ground state energy per particle of $E_0/N = 2.414215 \hbar\omega_0$ for non-interacting particles. \autoref{fig:elliptical_energies} displays the mean energies and mean standard error (points), together with their spread (one standard error of the mean confidence interval)  of $16$ threads of sampling for each sampling algorithm. The parameters for the sampling runs were all set to a maximum of $20,000$ tuning cycles, with a tuning interval of $1000$. The initial alpha value was set to $0.5$ and the threads had all a maximum of $50,000$ optimization cycles, with an update at every $1,000$th cycle. The number of samples collected were $2^{15}$. 
 
 \begin{figure}[!htb]
 \centering
-\subfloat[]{{\includegraphics[scale=0.5]{Figures/filename1}}}
+\subfloat[]{{\includegraphics[scale=0.8]{latex/figures/non_interacting_elliptical_energies.pdf}}}
 \qquad
-\subfloat[]{{\includegraphics[scale=0.5]{Figures/filename2}}}
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{Figures/filename3}}}
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{Figures/filename4}}}
-\caption{figure text}
-\label{fig:fig1}
+\subfloat[]{{\includegraphics[scale=0.8]{latex/figures/interacting_elliptical_energies.pdf}}}
+\caption{Sampled expected energies of the elliptical trap where the particles are non-interacting (\textbf{a}) and interacting (\textbf{b}). The sampled average energy per particle over $16$ chains against the number of particles are plotted to the left, and in the right windows the average statistical error per particle given by the blocking method is plotted. The stretch in the points shows spread in value by one standard error of the mean. The sample size is $M=2^{15}$, and there were a maximum of $20,000$ tuning cycles and $50,000$ optimization cycles, which could be less would the early stopping criterion be met.}
+\label{fig:elliptical_energies}
 \end{figure}
 
+When the particles are interacting, the energy increases as a function of particle density in the trap. The collected mean energies together with the mean statistical error is tabulated in \autoref{tab:elliptical_energies}. The interacting bosons in the trap have a higher ground state than the non-interacting particles, and it increases with the number of particles. When the number of bosons in the trap increases, the density does too, meaning that the average distances to the nearest bosons decrease. Thus, we expect (and have seen in \citep{DuBois2001}) that the energy will continue to rise if we further increase the density. There is also the question of the quite large gap in average expected energies between the interacting systems when $N=100$ between the RWM and LMH sampling algorithms. This may have to do with the low number of samples produced by the chains, and the LMH algorithm has proven more effective in its choice of proposals. However, both values are well within one statistical error of each other, and may simply be due to the stochasticity of the procedures. 
+
+
+\begin{table}[h]
+\caption{Tabulated sampling results of $16$ sampling runs for each system and algorithm. The number of samples was $2^{15}$, with a maximum of $50,000$ optimization cycles and a maximum of $20,000$ tuning cycles. The system was a harmonic oscillator with an elliptical potential described by \autoref{eq:Vtrap}, with varying number of bosons. The hard-sphere diameter, $a$, is set to $0$ if there are no interactions between the bosons, while $a=a_{\mathrm{Rb}}=0.00433$ if the particles are interacting.}
+\centering
+\rowcolors{2}{gray!25}{white}
+\begin{tabular}{ccccc}
+\hline\hline
+Measurement & LMH ($a=0$) & RWM ($a=0$) & LMH ($a=a_{Rb}$) & RWM ($a=a_{Rb}$)
+\\
+\hline \hline
+$\expval{E}/(N=10)$[$\hbar\omega_0$] & 2.41421 & 2.41421 & 2.4459 & 2.4446  
+\\
+$\expval{E}/(N=50)$[$\hbar\omega_0$] & $2.4142$ & $2.4142$ & $2.5609$ & $2.5661$ 
+\\
+$\expval{E}/(N=100)$[$\hbar\omega_0$] & $2.4142$ & $2.4141$ & $2.6750$ & $2.6950$ 
+\\
+$\sigma_{\mathrm{B}}\qty(N=10)$[$\hbar\omega_0$] & $2\cdot10^{-7}$ & $3\cdot10^{-7}$ & $1\cdot10^{-3}$ & $3\cdot10^{-3}$ 
+\\
+$\sigma_{\mathrm{B}}\qty(N=50)$[$\hbar\omega_0$] & $5\cdot10^{-4}$ & $2\cdot10^{-5}$ & $2\cdot10^{-2}$ & $5\cdot10^{-2}$
+\\
+$\sigma_{\mathrm{B}}\qty(N=100)$[$\hbar\omega_0$] & $2\cdot10^{-3}$ & $2\cdot10^{-2}$ & $6\cdot10^{-2}$ & $1\cdot10^{-1}$
+\\
+\hline\hline
+\end{tabular}
+\label{tab:elliptical_energies}
+\end{table}
+
+\FloatBarrier
+
 %----------------------------------------------------------------
-\subsection{OBD}
+\subsection{One-Body Densities}
 %----------------------------------------------------------------
 
-\autoref{fig:one_body_densities} shows the sampled one-body densities for $10$ and $100$ particles with interactions turned on and off. As the number of particles increases, the density of particles increases, and the interactions between the particles become a larger factor. For $10$ particles, the one body densities with and without interactions are almost identical. This means that for $10$ particles, the interactions do not have a large impact on the system. For $100$ particles, the radial one body densities for the interacting and non-interacting cases differ more. The particles in the interacting case are more spread out in the $2$-dimensional space than the non-interacting case. 
+\autoref{fig:one_body_densities} shows the sampled one-body densities for $10$ and $100$ particles in a spherical harmonic oscillator with the interactions turned on and off. As the number of particles increases, the density of particles increases, and the interactions between the particles become a larger factor. For $10$ particles, the one body densities with and without interactions are almost identical. This means that for $10$ particles, the interactions do not have a large impact on the system. For $100$ particles, the radial one body densities for the interacting and non-interacting cases differ more. The particles in the interacting case are more spread out in the $2$-dimensional space than the non-interacting case, which is expected, due to the repulsiveness of the Jastrow correlation factor. 
 \begin{figure}[H]
 \centering
 \subfloat[]{{\includegraphics[width=0.47\textwidth]{latex/figures/OBD_N10.pdf}}} 
@@ -134,95 +180,19 @@ Figure: RWM LMH Elliptical non-interacting / interacting
 %% N: Trenger vi noen av figurene under? Ekstra figurer kan gå i appendiks
 %% J: Tror ikke det. Under variational energy, så har du kanskje kjørt optimize? 
 % J: En annen ting, hvis du ser på y-aksen i OBD plots, og sammenligner med y-aksen i Figure 1 i DuBois, så er vår normalisert til å ha int_(space) = 1, mens deres er int_(space) = 0.5. Tror vi går for den vi har? 
-%----------------------------------------------------------------
-\subsubsection{Non-Interacting}
-%----------------------------------------------------------------
-
-\textbf{Spherical potential}
 
 
-\textbf{Elliptical potential}
-The ground state energy of the non-interacting particles in the elliptical potential with $\beta=2.82843$ is $\frac{\expval{E}}{N}=2.414215\hbar\omega_0$, and the ground state $\alpha=0.5$, as in the spherical potential. 
+%\subsubsection{One-body densities}
 
+%\textbf{Elliptical potential}
 
+%\autoref{fig:energy_elliptical} displays 16 independent energy sampling runs where $\alpha$ is optimized. 
 
-%----------------------------------------------------------------
-\subsubsection{Interacting}
-%----------------------------------------------------------------
+%\begin{figure}[H]
+%\begin{center}\includegraphics[scale=0.5]{latex/figures/aehoib_bp.pdf}
+%\end{center}
+%\caption{Sampled energies, the standard errors and the optimized $\alpha$-values of $16$ independent sampling runs.}
+%\label{fig:bp_aehoib}
+%\end{figure}
 
-\textbf{Spherical potential}
-
-In \autoref{fig:interactions_plot} variational grid searches for the non-interacting case, and $10, 50, 100$ particles with interactions are shown. The $y$-axis displays the energy per particle. A $95$\% confidence interval is shaded in light blue. The minimal energy per particle values together with their standard error, $\sigma$, are tabulated in \autoref{tab:min_energies}. 
-\begin{figure}[!htb]
-\centering
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_analytical_wo_interactions_N_50.pdf}}}
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_analytical_w_interactions_N_10.pdf}}}
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_analytical_w_interactions_N_50.pdf}}}
-\qquad
-\subfloat[]{{\includegraphics[scale=0.5]{latex/figures/grid_search_analytical_w_interactions_N_100.pdf}}}
-\caption{\textbf{(a)} Random Walk Metropolis with 50 non-interacting particles. \textbf{(b)} Random Walk Metropolis with ten interacting particles. \textbf{(c)} Random Walk Metropolis with 50 interacting particles. \textbf{(d)} Random Walk Metropolis with 100 interacting particles.}
-\label{fig:interactions_plot}
-\end{figure}
-
-\begin{table}[H]
-    \centering
-    \begin{tabular}{ccccc}
-    \hline \hline
-        Number of particles & Interactions & $\frac{\expval{E}_{\mathrm{min}}}{N}$ & $\sigma$ & $\alpha^{\mathrm{opt}}$\\
-    \hline \hline
-        $50$ & Off & $1.500$ & $0\cdot10^{0}$ & $0.5$\\
-        $10$ & On & $1.51731$& $8\cdot10^{-5}$& $0.5$ \\
-        $50$ & On & $1.59490$& $3\cdot10^{-4}$ &$0.5$ \\
-        $100$ & On & $1.66912$ & $3\cdot10^{-4}$ & $0.5$ \\
-    \hline \hline
-    \end{tabular}
-    \caption{The minimal energies of the grid searches for $10, 50, 100$ particles, together with the standard error and the optimal $\alpha$ values. The interactions column displays whether or not the particles are interacting with one another.}
-    \label{tab:min_energies}
-\end{table}
-
-As you can see in \autoref{tab:min_energies}, the minimal energy per particle is increasing with the number of particles when they are interacting. The density of particles within the potential increases with the number of particles unleashed in the same potential. This leads to more interactions between the particles, and thus a higher energy. Another important quantity, the standard error, is represented with the $95$\% confidence interval $[\mu\pm1.96\sigma]$ by the shaded light blue in \autoref{fig:interactions_plot}. The standard error is relatively small, but it should be possible to see the convex nature of it. It is decreasing from $\alpha=0.1\to\alpha=0.5$, where it increases again. 
-
-
-\autoref{fig:comparisons_interactions_plot} displays the VMC calculations of the grid searches in \autoref{fig:interactions_plot} all together in one plot. This way it is easier to see the increase in energy per particle as a function of the number of interacting particles. 
-
-\begin{figure}[H]
-\begin{center}\includegraphics[scale=1.0]{latex/figures/grid_search_analytical_w_interactions_all_N.pdf}
-\end{center}
-\caption{Random Walk Metropolis energy per particle comparison between $N=10, 50, 100$ interacting particles, and $N=50$ non-interacting particles.}
-\label{fig:comparisons_interactions_plot}
-\end{figure}
-
-\subsubsection{One-body densities}
-
-\textbf{Elliptical potential}
-
-\autoref{fig:energy_elliptical} displays 16 independent energy sampling runs where $\alpha$ is optimized. 
-
-\begin{figure}[H]
-\begin{center}\includegraphics[scale=0.5]{latex/figures/aehoib_bp.pdf}
-\end{center}
-\caption{Sampled energies, the standard errors and the optimized $\alpha$-values of $16$ independent sampling runs.}
-\label{fig:bp_aehoib}
-\end{figure}
-
-RWM vs LMH - standard error
-
-In \autoref{fig:comparison_se_RWMvLMH} the evolution of the standard error is plotted as a function of the logarithm with base $2$ of the number of samples, $\log_2{M}$. The numbers of samples used is from $2^{10}\to2^{20}$ where the number of samples increases by a factor of two in each step. \autoref{fig:comparison_time_RWMvLMH} displays the time spent sampling for each run. We have used the same number of warm-up cycles. The number of tuning cycles may differ, but it is of a relatively small order compared with warm-ups and sampling. 
-
-\begin{figure}[H]
-%\begin{center}\includegraphics[scale=0.5]{Figures/filename}
-\begin{center}\includegraphics[width=\textwidth]{example-image-a}
-\end{center}
-\caption{The standard error as a functions of the base $2$ logarithm of the number of energy samples. The blue line represents the Random Walk Metropolis sampling algorithm, while the orange represents the Langevin Metropolis-Hastings sampling algorithm.}
-\label{fig:comparison_se_RWMvLMH}
-\end{figure}
-
-\begin{figure}[H]
-%\begin{center}\includegraphics[scale=0.5]{Figures/filename}
-\begin{center}\includegraphics[width=\textwidth]{example-image-a}
-\end{center}
-\caption{Time spent running the sampling algorithm as a functions of the base $2$ logarithm of the number of energy samples. The blue line represents the Random Walk Metropolis sampling algorithm, while the orange represents the Langevin Metropolis-Hastings sampling algorithm.}
-\label{fig:comparison_time_RWMvLMH}
-\end{figure}
+\FloatBarrier
