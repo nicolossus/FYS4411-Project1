@@ -480,36 +480,18 @@ class AIB(WaveFunction):
 
         second_term = -0.5 * (-4) * alpha * \
             np.sum(np.diag(np.inner(r, np.sum(dudr, axis=1))))
-        #second_term_test = -4*alpha*np.sum(np.diag(np.inner(r, np.sum(dudr, axis=0))))
-        print("Second term: ", second_term)
-        #assert abs(second_term-second_term_test) <1e-12
-        # if (abs(second_term)>abs(non_interacting_part)):
-        #    print("Second term fuckup: ", second_term)
-        #print("Second term: ", second_term)
+
 
         third_term = -0.5 * \
             np.einsum("ijk, ajk -> ", dudr, dudr, optimize="greedy")
-        print("Third term: ", third_term)
-        # if (abs(third_term)>abs(non_interacting_part)):
-        #    print("Third term fuckup: ", third_term)
-        #    print("log|wf|^2: ", self.logprob(r, alpha))
-        #print("Third term: ", third_term)
-
         fourth_term = -0.5 * np.sum(fourth_term_vals)
-        print("Fourth term: ", fourth_term)
-        # if (abs(fourth_term)>abs(non_interacting_part)):
-        #    print("Fourth term fuckup: ", fourth_term)
-        #    print("log|wf|^2: ", self.logprob(r, alpha))
-        #print("Fourth term: ", fourth_term)
-        #print("Third and fourth term added: ", non_interacting_part-third_term-fourth_term)
         local_energy = non_interacting_part + second_term + third_term + \
-            fourth_term  # + second_term + third_term + fourth_term
-        # print(local_energy)
+            fourth_term
         return local_energy
 
     def drift_force(self, r, alpha):
         dudr = self.dudr_faster(r)
-        drift_force = -4 * alpha * r + np.sum(dudr, axis=0)
+        drift_force = -4 * alpha * r + np.sum(dudr, axis=1)
         return drift_force
 
     def grad_alpha(self, r, alpha):

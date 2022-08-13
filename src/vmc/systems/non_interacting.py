@@ -121,7 +121,7 @@ class AEHONIB(WaveFunction):
     Analytical Elliptical Harmonic Oscillator Non-Interacting Bosons (AEHONIB)
     """
 
-    def __init__(self, N, dim, omega, beta=2.82843):
+    def __init__(self, N, dim, omega=1., beta=2.82843):
         super().__init__(N, dim)
         self._omega = omega
         self._halfomega2 = 0.5 * omega * omega

@@ -1,0 +1,101 @@
+N,Energy,Time
+1,"0    1.502586
+Name: energy, dtype: float64",9.516460418701172
+1,"0    1.50292
+Name: energy, dtype: float64",9.50642466545105
+1,"0    1.50279
+Name: energy, dtype: float64",9.535572290420532
+1,"0    1.502717
+Name: energy, dtype: float64",9.48485016822815
+1,"0    1.501866
+Name: energy, dtype: float64",9.462737321853638
+1,"0    1.501824
+Name: energy, dtype: float64",9.476508140563965
+1,"0    1.503403
+Name: energy, dtype: float64",9.827915668487549
+1,"0    1.503547
+Name: energy, dtype: float64",9.783640623092651
+1,"0    1.502629
+Name: energy, dtype: float64",10.03461742401123
+1,"0    1.502826
+Name: energy, dtype: float64",9.91600251197815
+10,"0    15.054684
+Name: energy, dtype: float64",9.827625036239624
+10,"0    15.097513
+Name: energy, dtype: float64",9.866818904876709
+10,"0    15.041099
+Name: energy, dtype: float64",9.907357215881348
+10,"0    15.058928
+Name: energy, dtype: float64",11.497743129730225
+10,"0    15.098559
+Name: energy, dtype: float64",10.665787935256958
+10,"0    15.084512
+Name: energy, dtype: float64",11.39110541343689
+10,"0    15.070825
+Name: energy, dtype: float64",9.862988948822021
+10,"0    15.087867
+Name: energy, dtype: float64",9.720548868179321
+10,"0    15.09187
+Name: energy, dtype: float64",9.758000135421753
+10,"0    15.054416
+Name: energy, dtype: float64",9.746968746185303
+50,"0    75.29442
+Name: energy, dtype: float64",10.501827478408813
+50,"0    75.186244
+Name: energy, dtype: float64",10.416573286056519
+50,"0    75.266638
+Name: energy, dtype: float64",10.440315008163452
+50,"0    75.069978
+Name: energy, dtype: float64",10.461164236068726
+50,"0    74.88664
+Name: energy, dtype: float64",10.461554527282715
+50,"0    75.1404
+Name: energy, dtype: float64",10.471571445465088
+50,"0    75.19219
+Name: energy, dtype: float64",10.467036247253418
+50,"0    75.137031
+Name: energy, dtype: float64",10.357213497161865
+50,"0    75.257716
+Name: energy, dtype: float64",10.406351089477539
+50,"0    75.190291
+Name: energy, dtype: float64",11.766554355621338
+100,"0    150.298076
+Name: energy, dtype: float64",10.914329528808594
+100,"0    150.250267
+Name: energy, dtype: float64",11.357735395431519
+100,"0    150.239001
+Name: energy, dtype: float64",10.84263277053833
+100,"0    150.331804
+Name: energy, dtype: float64",11.885706901550293
+100,"0    150.187976
+Name: energy, dtype: float64",10.662482500076294
+100,"0    150.406592
+Name: energy, dtype: float64",11.718989372253418
+100,"0    149.956755
+Name: energy, dtype: float64",12.266539812088013
+100,"0    150.023041
+Name: energy, dtype: float64",11.075169801712036
+100,"0    150.287122
+Name: energy, dtype: float64",11.176121473312378
+100,"0    150.170738
+Name: energy, dtype: float64",11.140909910202026
+500,"0    750.613639
+Name: energy, dtype: float64",17.75396990776062
+500,"0    750.585346
+Name: energy, dtype: float64",14.905908823013306
+500,"0    750.249103
+Name: energy, dtype: float64",13.917822360992432
+500,"0    750.155481
+Name: energy, dtype: float64",14.767563819885254
+500,"0    750.542462
+Name: energy, dtype: float64",13.868068933486938
+500,"0    750.488083
+Name: energy, dtype: float64",13.95955204963684
+500,"0    750.072299
+Name: energy, dtype: float64",13.978084325790405
+500,"0    749.960561
+Name: energy, dtype: float64",13.878299951553345
+500,"0    749.753167
+Name: energy, dtype: float64",13.833407402038574
+500,"0    750.01867
+Name: energy, dtype: float64",14.16410231590271

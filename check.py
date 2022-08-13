@@ -48,13 +48,18 @@ r = np.random.rand(N, dim) * 2.0
 
 
 wf_a = vmc.ASHOIB(N, dim, omega)
+wf_e = vmc.AEHOIB(N, dim, omega, a=0)
+wf_e_NI = vmc.AEHONIB(N, dim, omega)
 wf_AI = vmc.AIB(N, dim, omega)
 # Numerical
 wf_n = vmc.SHOIB(omega)
-wf_AI.test_terms_in_lap(r, wf_AI.dudr_faster(r), alpha)
+#wf_AI.test_terms_in_lap(r, wf_AI.dudr_faster(r), alpha)
 print("ASHONIB drift_force=", wf_a.drift_force(r, alpha))
 print("SHOIB drift_force=", wf_n.drift_force(r, alpha))
 
 print("ASHOIB local_energy=", wf_a.local_energy(r, alpha))
 print("SHOIB local_energy=", wf_n.local_energy(r, alpha))
 print("AIB local energy=", wf_AI.local_energy(r, alpha))
+
+print("AEHOIB local energy=", wf_e.local_energy(r, alpha))
+print("AEHONIB local energy=", wf_e_NI.local_energy(r, alpha))

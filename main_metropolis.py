@@ -30,7 +30,7 @@ omega = 1.   # Oscillator frequency
 
 # Instantiate wave function
 # Analytical
-wf = vmc.NIBWF(N, dim, omega)
+wf = vmc.SHOIB(omega)
 # Numerical
 #wf = vmc.LogNIB(omega)
 
@@ -38,11 +38,51 @@ wf = vmc.NIBWF(N, dim, omega)
 sampler = vmc.Metropolis(wf)
 
 # Config
-nsamples = 40000
+nsamples = 10000
 initial_alpha = 0.2
 
 # Set intial positions
 initial_positions = safe_initial_positions(wf, initial_alpha, N, dim)
+
+start = time.time()
+results = sampler.sample(nsamples,
+                         initial_positions,
+                         initial_alpha,
+                         scale=1.0,
+                         nchains=4,
+                         warm=True,
+                         warmup_iter=500,
+                         tune=True,
+                         tune_iter=5000,
+                         tune_interval=250,
+                         tol_tune=1e-5,
+                         optimize=True,
+                         max_iter=70000,
+                         batch_size=500,
+                         gradient_method='adam',
+                         eta=0.01,
+                         tol_optim=1e-5,
+                         )
+
+end = time.time()
+print("Sampler elapsed time:", end - start)
+
+exact_E = exact_energy(N, dim, omega)
+print(f"Exact energy: {exact_E}")
+print(results)
+
+wf = vmc.ASHOIB(omega)
+# Numerical
+#wf = vmc.LogNIB(omega)
+
+# Instantiate sampler
+sampler = vmc.Metropolis(wf)
+
+# Config
+nsamples = 10000
+initial_alpha = 0.2
+
+# Set intial positions
 
 start = time.time()
 results = sampler.sample(nsamples,

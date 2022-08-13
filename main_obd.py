@@ -89,7 +89,7 @@ wf = vmc.ASHONIB(N, dim, omega)
 
 #wf = vmc.EHOIB()
 
-initial_positions, scale = interact_initial_positions(wf,
+initial_positions = non_interact_initial_positions(wf,
                                                       initial_alpha,
                                                       N,
                                                       dim)
@@ -99,51 +99,19 @@ sampler = vmc.OBDMetropolis(wf)
 #sampler = vmc.MetropolisHastings(wf)
 
 num_chains = 1
-results = {"x": [], "y": [], "pdf": []}
 start = time.time()
-for i in range(11):
-    for j in range(11):
-        x_, y_ = mx[i][j], my[i][j]
-        results["x"].append(x_)
-        results["y"].append(y_)
-        particle = np.array([x_, y_])
-        if (i==0 and j==0):
-            state, pdf = sampler.sample(particle,
-                                            nsamples,
-                                            initial_positions,
-                                            initial_alpha,
-                                            scale=1.0,  # METROPOLIS
-                                            nchains=num_chains,
-                                            warm=True,
-                                            warmup_iter=5000,
-                                            tune=True,
-                                            tune_iter=10000,
-                                            tune_interval=500,
-                                            )
-            results["pdf"].append(pdf)
-
-        else:
-            positions, pdf = sampler.sample(particle,
-                                            nsamples,
-                                            state.positions,
-                                            initial_alpha,
-                                            scale=1.0,
-                                            nchains=num_chains,
-                                            warm=True,
-                                            warmup_iter=100,
-                                            tune=False,
-                                            )
-            results["pdf"].append(pdf)
+results, position_array_NI = sampler.sample(nsamples,
+                         initial_positions,
+                         initial_alpha,
+                         scale=1.0,  # METROPOLIS
+                         #dt=1e-10,     # METROPOLIS-HASTINGS
+                         nchains=num_chains,
+                         warm=True,
+                         warmup_iter=50000,
+                         tune=True,
+                         tune_iter=10000,
+                         tune_interval=500,
+                         )
 
 end = time.time()
 print("Sampler elapsed time:", end - start)
-df = pd.DataFrame(data=results)
-print(df)
-
-x = df["x"]
-y = df["y"]
-pdf = df["pdf"]
-
-r = np.sqrt(x**2 + y**2)
-plt.plot(r, pdf)
-plt.show()

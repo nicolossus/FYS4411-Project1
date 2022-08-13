@@ -59,111 +59,87 @@ def interact_initial_positions(wf, alpha, N, dim, a=0.00433):
     return r, scale
 
 
-N = 10   # Number of particles
+N = 500 # Number of particles
 dim = 3      # Dimensionality
 omega = 1.   # Oscillator frequency
 
 # Config
 
 nsamples = 10000
-initial_alpha = 0.5
-
-
-# NON-INTERACTING
+alpha_vals = [0.4, 0.5, 0.6]
 
 wf = vmc.ASHONIB(N, dim, omega)
-#wf = vmc.SHONIB(omega)
-# wf = vmc.EHONIB()
-#initial_positions = non_interact_initial_positions(wf, initial_alpha, N, dim)
+#wf = vmc.EHONIB()
 
-# INTERACTING
-#wf = vmc.SHOIB(omega)
+sampler = vmc.RWM(wf)
 
-#wf = vmc.ASHOIB(N, dim, omega)
-#wf = vmc.EHOIB()
-
-
-
-
-#wf = vmc.EHOIB()
-
-initial_positions, scale = interact_initial_positions(wf,
-                                                      initial_alpha,
-                                                      N,
-                                                      dim)
-
-# Instantiate sampler
-sampler = vmc.Metropolis(wf)
-#sampler = vmc.MetropolisHastings(wf)
-
-# print(wf.logprob(initial_positions, initial_alpha))
-# print(wf.drift_force(initial_positions, initial_alpha))
-# print(wf.local_energy(initial_positions, initial_alpha))
-num_chains = 8
-
-start = time.time()
-results = sampler.sample(nsamples,
+num_chains = 4
+for i, alpha in enumerate(alpha_vals):
+    initial_positions, scale = interact_initial_positions(wf,
+                                                          alpha,
+                                                          N,
+                                                          dim)
+    start = time.time()
+    results = sampler.sample(nsamples,
                          initial_positions,
-                         initial_alpha,
+                         alpha,
                          scale=1.0,  # METROPOLIS
                          #dt=1e-10,     # METROPOLIS-HASTINGS
                          nchains=num_chains,
                          warm=True,
-                         warmup_iter=5000,
+                         warmup_iter=20000,
                          tune=True,
-                         tune_iter=10000,
-                         tune_interval=500,
+                         tune_iter=30000,
+                         tune_interval=1000,
                          tol_tune=1e-5,
                          optimize=False,
-                         max_iter=70000,
-                         batch_size=500,
+                         max_iter=200000,
+                         batch_size=2000,
                          gradient_method='adam',
                          eta=0.01,
-                         tol_optim=1e-5,
+                         tol_optim=1e-8,
                          )
 
-end = time.time()
-print("Sampler elapsed time:", end - start)
+    end = time.time()
+    print("Sampler elapsed time:", end - start)
 
-exact_E = exact_energy(N, dim, omega)
-print(f"Exact energy spherical HO NIB: {exact_E}")
-print(results)
-cwd = os.getcwd()
-filename = "/pdfs.csv"
-data_path = "/data/interactions"
-os.makedirs(cwd+data_path, exist_ok=True)
-#print(sampler.energy_samples)
-#print(sampler.distance_samples)
-#print(sampler.distance_samples[0])
-distance_samples = sampler.distance_samples.flatten()
-#for i in range(num_chains):
-#    distance_samples = np.concatenate(distance_samples, sampler.distance_samples[i])
-#print(distance_samples.shape)
-pdf_samples = sampler.pdf_samples.flatten()
-NCycles, NParticles = distance_samples.shape
-OBD_dict = {}
+    print(results)
 
-for particle in range(NParticles):
-    OBD_dict[f"r_particle_{particle}"] = []
-    OBD_dict[f"p_particle_{particle}"] = []
-    for cycle in range(NCycles):
-        OBD_dict[f"r_particle_{particle}"].append(distance_samples[cycle, particle])
-        OBD_dict[f"p_particle_{particle}"].append(pdf_samples[cycle, particle])
-OBD_data = pd.DataFrame(data=OBD_dict)
-print(OBD_data)
 
-particle_1_r = OBD_data["r_particle_1"]
-particle_1_p = OBD_data["p_particle_1"]
+wf = vmc.SHONIB(omega)
 
-# An "interface" to matplotlib.axes.Axes.hist() method
-n, bins, patches = plt.hist(x=particle_1_r, bins=50, color='#0504aa',
-                            alpha=0.7, rwidth=0.85)
-plt.grid(axis='y', alpha=0.75)
-plt.xlabel('Value')
-plt.ylabel('Frequency')
-plt.title('My Very Own Histogram')
-plt.text(23, 45, r'$\mu=15, b=3$')
-maxfreq = n.max()
-# Set a clean upper y-axis limit.
-plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
-plt.show()
+
+sampler = vmc.RWM(wf)
+
+
+num_chains = 4
+for i, alpha in enumerate(alpha_vals):
+    initial_positions, scale = interact_initial_positions(wf,
+                                                          alpha,
+                                                          N,
+                                                          dim)
+    start = time.time()
+    results = sampler.sample(nsamples,
+                         initial_positions,
+                         alpha,
+                         scale=1.0,  # METROPOLIS
+                         #dt=1e-10,     # METROPOLIS-HASTINGS
+                         nchains=num_chains,
+                         warm=True,
+                         warmup_iter=20000,
+                         tune=True,
+                         tune_iter=30000,
+                         tune_interval=1000,
+                         tol_tune=1e-5,
+                         optimize=True,
+                         max_iter=200000,
+                         batch_size=2000,
+                         gradient_method='adam',
+                         eta=0.01,
+                         tol_optim=1e-8,
+                         )
+
+    end = time.time()
+    print("Sampler elapsed time:", end - start)
+
+    print(results)
